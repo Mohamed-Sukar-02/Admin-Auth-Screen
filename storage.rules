@@ -1,0 +1,51 @@
+// SOURCE OF TRUTH — this is the copy `firebase deploy` reads, because only this
+// project has a `.firebaserc`. `app_v2/storage.rules` is a mirror: edit this
+// file first and keep the two bodies byte-identical below their headers.
+//
+// Firebase Storage is RETIRED in this project. This file is the honest record of
+// that state, not an upload surface:
+//   • Proposal photos and meal photos go to Cloudinary (Unsigned Direct Upload);
+//     no code path in the mobile app or the admin panel writes here.
+//   • The `firebase_storage` package is in NEITHER app's pubspec, and neither
+//     `lib/` tree mentions `FirebaseStorage` — so nothing in shipped code can
+//     even reach this bucket.
+//
+// Every write is therefore closed unconditionally. One piece of history is
+// worth keeping: the rules deployed before this rewrite granted
+// `allow write: if request.auth != null` on /meal_images, and because the
+// mobile app signs in anonymously the moment a meal is proposed, that rule let
+// any device on any network write unlimited, arbitrary-type objects into the
+// bucket.
+//
+// Reads stay open on exactly the two legacy prefixes below, and deliberately:
+// rows seeded before the Cloudinary move still carry /meal_images/... or
+// /staging_meal_images/<uid>/... URLs in their `imageUrl` field, and closing
+// those reads would not protect anything — it would only blank the photos of
+// existing data. Newly written rows never reference Storage.
+//
+// `/staging_meal_images/{uid}/{fileName}` is NOT dead code even though nothing
+// uploads to it any more: this dashboard still renders the stored `imageUrl` of
+// pending proposals (admin_dashboard_screen.dart, staging triage list and
+// dialog), and pending documents created before the Cloudinary move point at
+// this path. Delete this block only once those legacy rows are purged or their
+// URLs rewritten to Cloudinary — until then it is a read-only tombstone.
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Legacy, read-only: meal photos seeded before the Cloudinary move.
+    match /meal_images/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Legacy, read-only: staging ("proposal") photos seeded before the
+    // Cloudinary move — still displayed by this dashboard. See header.
+    match /staging_meal_images/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Anything else in the bucket is unreachable in both directions.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

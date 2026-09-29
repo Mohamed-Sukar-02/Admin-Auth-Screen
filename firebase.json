@@ -1,0 +1,39 @@
+﻿{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "daily-meal000",
+          "appId": "1:444806950900:android:47cff4c1ceb4346bfc53a1",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "daily-meal000",
+          "configurations": {
+            "android": "1:444806950900:android:47cff4c1ceb4346bfc53a1",
+            "web": "1:444806950900:web:e82c9209f78a31befc53a1"
+          }
+        }
+      }
+    }
+  },
+  "storage": { "rules": "storage.rules" }, "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

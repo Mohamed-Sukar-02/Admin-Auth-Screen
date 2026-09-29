@@ -1,0 +1,199 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Check if caller is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Check if caller is a whitelisted admin
+    //
+    // Every helper below performs exactly ONE document read. Rules cost one
+    // document access per get()/exists() call against a per-request budget
+    // (10 for single-document requests, 20 for multi-document ones), so an
+    // `exists()` + `get()` pair here would double the cost and make batched
+    // admin writes fail with permission-denied.
+    function isAdmin() {
+      return isAuthenticated() &&
+        request.auth.token.email != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()));
+    }
+
+    // Role of the caller; null when the admins document is missing.
+    function getAdminRole() {
+      return isAuthenticated() && request.auth.token.email != null
+        ? get(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())).data.role
+        : null;
+    }
+
+    // Helper: Check if caller is allowed to write data (Editing Admin or Super Admin)
+    function isEditingAdmin() {
+      return getAdminRole() in ['editing_admin', 'super_admin', 'admin'];
+    }
+
+    // Helper: Check if caller is super admin
+    function isSuperAdmin() {
+      return getAdminRole() == 'super_admin';
+    }
+
+    // Comprehensive anti-spam and schema validator for staging meals
+    function isValidStagingMeal() {
+      let data = request.resource.data;
+
+      let requiredKeys = [
+        'name', 'proteinType', 'carbsType', 'category',
+        'prepTimeMinutes', 'createdAt', 'status', 'proposedBy'
+      ];
+
+      let allowedKeys = [
+        'id', 'name', 'imageUrl', 'proteinType', 'carbsType', 'category',
+        'prepTimeMinutes', 'isFridaySpecial', 'isBudgetFriendly',
+        'isStarterMeal', 'notes', 'createdAt', 'proposedBy', 'status'
+      ];
+
+      return (
+        data.keys().hasAll(requiredKeys) &&
+        data.keys().hasOnly(allowedKeys) &&
+        data.name is string &&
+        data.name.size() >= 2 &&
+        data.name.size() <= 100 &&
+        data.proteinType is string &&
+        data.proteinType in ['chicken', 'beef', 'fish', 'meatless', 'other'] &&
+        data.carbsType is string &&
+        data.carbsType in ['rice', 'pasta', 'bread', 'none'] &&
+        data.category is string &&
+        data.category in ['tabeekh', 'casserole', 'dry_sandwich', 'popular', 'seafood', 'soup_stew', 'vegetarian'] &&
+        (data.prepTimeMinutes is int || data.prepTimeMinutes is number) &&
+        data.prepTimeMinutes >= 5 &&
+        data.prepTimeMinutes <= 720 &&
+        (!('isFridaySpecial' in data) || data.isFridaySpecial is bool) &&
+        (!('isBudgetFriendly' in data) || data.isBudgetFriendly is bool) &&
+        (!('isStarterMeal' in data) || (data.isStarterMeal is bool && data.isStarterMeal == false)) &&
+        data.status is string &&
+        data.status == 'pending' &&
+        (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() <= 500)) &&
+        (!('imageUrl' in data) || data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 2048 && data.imageUrl.matches('^https://'))) &&
+        data.createdAt is string &&
+        data.createdAt.size() >= 10 &&
+        data.createdAt.size() <= 40 &&
+        data.proposedBy is string &&
+        data.proposedBy.size() > 0 &&
+        data.proposedBy == request.auth.uid
+      );
+    }
+
+    // Schema validator for admin broadcast notifications. Their title/body are
+    // pushed into a system notification on every install, so field names,
+    // types and sizes are enforced here.
+    function isValidAdminNotification() {
+      let data = request.resource.data;
+      let allowedKeys = ['titleAr', 'titleEn', 'messageAr', 'messageEn',
+                         'route', 'sentAt', 'createdBy'];
+      return (
+        data.keys().hasOnly(allowedKeys) &&
+        (!('titleAr' in data) || (data.titleAr is string && data.titleAr.size() <= 200)) &&
+        (!('titleEn' in data) || (data.titleEn is string && data.titleEn.size() <= 200)) &&
+        (!('messageAr' in data) || (data.messageAr is string && data.messageAr.size() <= 1000)) &&
+        (!('messageEn' in data) || (data.messageEn is string && data.messageEn.size() <= 1000)) &&
+        (!('route' in data) || data.route == null || (data.route is string && data.route.size() <= 256)) &&
+        (!('sentAt' in data) || data.sentAt is timestamp) &&
+        (!('createdBy' in data) || data.createdBy == null || (data.createdBy is string && data.createdBy.size() <= 254))
+      );
+    }
+
+    // Admins: every admin may see the roster and their own row. Only a super
+    // admin may create, promote, demote or remove one. This clause used to also
+    // let a caller write *its own* document — and the role lives inside that
+    // document — so a viewing_admin could hand itself super_admin with one
+    // direct SDK call, which made every role check downstream advisory.
+    //
+    // The one self-write that stays is signing in: a caller may stamp its own
+    // row's activity so the roster can tell "granted" apart from "granted and
+    // the address really exists". Creating the role, or changing it, is not on
+    // this list, so the promotion hole stays shut.
+    match /admins/{email} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email);
+      allow create, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin()
+        || (isAdmin()
+          && request.auth.token.email.lower() == email
+          && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['role', 'email']));
+    }
+
+    // Vault Meals: public read for discovery, admin-only write.
+    // Publicly readable, so `proposedBy` (a user UID) is refused on write.
+    match /vault_meals/{mealId} {
+      allow read: if true;
+      allow create, update: if isEditingAdmin()
+        && !request.resource.data.keys().hasAny(['proposedBy']);
+
+      // Deletes have no request.resource. Keeping the request.resource check
+      // in a blanket `allow write` made every admin delete fail closed.
+      allow delete: if isEditingAdmin();
+    }
+
+    // Staging Meals: admin-only read/update/delete, authenticated + validated create
+    match /staging_meals/{mealId} {
+      allow read: if isAdmin();
+      allow update, delete: if isEditingAdmin();
+      allow create: if isEditingAdmin() || (isAuthenticated() && isValidStagingMeal());
+    }
+
+    // Backup Meals: Super Admin only read and write
+    match /backup_meals/{mealId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Admin Audit: who granted, changed or removed which address, and when.
+    // Append-only — nobody may edit or delete history, not even a super admin,
+    // otherwise the log stops being evidence. `actor` has to be the caller's own
+    // address so an entry cannot be pinned on somebody else.
+    match /admin_audit/{entry} {
+      allow read: if isAdmin();
+      allow create: if isSuperAdmin()
+        && request.resource.data.actor == request.auth.token.email.lower()
+        && request.resource.data.action in ['add', 'set_role', 'remove']
+        && request.resource.data.target is string;
+      allow update, delete: if false;
+    }
+
+    // Admin Config. Two documents live here and they are not equally public:
+    //   system_defaults — the starter-meal catalogue the mobile app downloads
+    //                     with no sign-in, so this one must stay world-readable.
+    //   security        — the verifier for the mobile "admin" password. It used
+    //                     to be readable by anyone, which put an unsalted
+    //                     SHA-256 digest online for offline guessing. Blocking
+    //                     it makes the phone's dialog fail closed, which is
+    //                     correct: on success that dialog only prints the panel
+    //                     URL, and the URL is already public. The mobile
+    //                     AdminAuthService read is now dead code to delete.
+    // Anything else in this collection stays admin-visible only.
+    // Admin Config:
+    // system_defaults — the starter-meal catalogue the mobile app downloads
+    //                   with no sign-in, so this one stays world-readable.
+    match /admin_config/system_defaults {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // security — admin credentials verifier; strictly super admin only.
+    match /admin_config/security {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Anything else in this collection stays admin-visible only.
+    match /admin_config/{doc} {
+      allow read: if isAdmin() && doc != 'security';
+      allow write: if isSuperAdmin();
+    }
+
+    // Admin Notifications: public read for mobile users, editing admin write
+    match /admin_notifications/{notification} {
+      allow read: if true;
+      allow write: if isEditingAdmin() && isValidAdminNotification();
+    }
+  }
+}
