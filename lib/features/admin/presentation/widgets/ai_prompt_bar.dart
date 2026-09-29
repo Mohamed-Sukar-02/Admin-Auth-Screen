@@ -6,17 +6,18 @@ import '../theme/admin_palette.dart';
 import 'admin_dialog.dart';
 
 /// ===========================================================================
-/// AI prompt bar
+/// AI prompt capsule
 ///
-/// The chat-style input that sits at the bottom of the assistant panel: a
-/// multi-line idea field on top, then the model selector pill and the circular
-/// send button on the row underneath.
+/// The compose-side input of the assistant: a multi-line idea field with the
+/// model picker and the send button on the row underneath, all wrapped in one
+/// dark-olive capsule.
 ///
-/// The controller belongs to the parent panel (it survives rebuilds and owns
-/// the text), so this widget never disposes it.
+/// The controller and the focus node belong to the parent panel — the welcome
+/// chips write straight into this field — so this widget never disposes them.
 /// ===========================================================================
 class AiPromptBar extends StatelessWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
   final List<AiProvider> providers;
   final AiSelectedTarget? selectedTarget;
   final ValueChanged<AiSelectedTarget?> onTargetChanged;
@@ -26,6 +27,7 @@ class AiPromptBar extends StatelessWidget {
   const AiPromptBar({
     super.key,
     required this.controller,
+    required this.focusNode,
     required this.providers,
     required this.selectedTarget,
     required this.onTargetChanged,
@@ -35,44 +37,53 @@ class AiPromptBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = AdminPalette.of(context);
     final strings = AppStrings.of(context);
 
     return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
       decoration: BoxDecoration(
-        color: p.surfaceAlt,
+        color: AiCapsule.ink,
         borderRadius: BorderRadius.circular(AdminRadii.lg),
-        border: Border.all(color: p.border),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: controller,
-            minLines: 1,
-            maxLines: 4,
+            focusNode: focusNode,
+            enabled: !isGenerating,
+            maxLines: 3,
+            maxLength: 600,
             textDirection: TextDirection.rtl,
-            style: adminText(size: 13.5, color: p.ink, height: 1.6),
+            style: adminText(size: 13, color: AiCapsule.onInk, height: 1.8),
             decoration: InputDecoration(
-              isDense: true,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              counterText: '',
+              isDense: true,
               contentPadding: EdgeInsets.zero,
-              hintText: strings.aiPromptHint,
-              hintStyle: adminText(size: 13.5, color: p.inkFaint),
+              hintText: strings.aiPromptCapsuleHint,
+              hintStyle: adminText(
+                size: 12,
+                color: AiCapsule.muted,
+                height: 1.8,
+              ),
             ),
-            onSubmitted: (_) => onSubmit(),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Row(
             children: [
-              _ModelDropdownPill(
-                providers: providers,
-                selected: selectedTarget,
-                onChanged: onTargetChanged,
+              Expanded(
+                child: _ModelDropdownPill(
+                  providers: providers,
+                  selected: selectedTarget,
+                  onChanged: onTargetChanged,
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
               _SendButton(
+                tooltip: strings.aiSendTooltip,
                 onPressed: isGenerating ? null : onSubmit,
                 isLoading: isGenerating,
               ),
@@ -82,6 +93,32 @@ class AiPromptBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// ---------------------------------------------------------------------------
+/// Capsule palette
+/// ---------------------------------------------------------------------------
+/// The prompt capsule is one deliberate dark island inside the panel, so it
+/// keeps the same olive values in both dashboard themes instead of following
+/// [AdminPalette]; every other colour in the assistant stays token-driven.
+abstract final class AiCapsule {
+  /// Capsule body.
+  static const Color ink = Color(0xFF27392E);
+
+  /// Model picker pill, menu surface and hover fills.
+  static const Color surface = Color(0xFF304536);
+
+  /// Send button.
+  static const Color accent = Color(0xFF82A96C);
+
+  /// Placeholder and muted labels sitting on [ink].
+  static const Color muted = Color(0xFFABB9A4);
+
+  /// Primary text sitting on [ink].
+  static const Color onInk = Color(0xFFFFFFFF);
+
+  /// Hairline that separates a menu group from the surface behind it.
+  static const Color hairline = Color(0x33FFFFFF);
 }
 
 /// ---------------------------------------------------------------------------
@@ -118,57 +155,65 @@ class _ModelDropdownPillState extends State<_ModelDropdownPill> {
 
   /// Reserves the slot on every row so the labels stay aligned; an invisible
   /// tick would otherwise shift the text of the unselected items.
-  Widget _checkIcon(bool isSelected, AdminPalette p) {
+  Widget _checkIcon(bool isSelected) {
     return Icon(
-      Icons.check_rounded,
+      AdminIcons.check,
       size: 18,
-      color: isSelected ? p.claySolid : Colors.transparent,
+      color: isSelected ? AiCapsule.accent : Colors.transparent,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = AdminPalette.of(context);
     final strings = AppStrings.of(context);
     final selected = widget.selected;
 
     return MenuAnchor(
       controller: _menuController,
       style: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll<Color>(p.surface),
-        surfaceTintColor: WidgetStatePropertyAll<Color>(Colors.transparent),
-        shadowColor: WidgetStatePropertyAll<Color>(p.shadow),
-        elevation: WidgetStatePropertyAll<double>(12),
+        backgroundColor: const WidgetStatePropertyAll<Color>(AiCapsule.surface),
+        surfaceTintColor: const WidgetStatePropertyAll<Color>(
+          Colors.transparent,
+        ),
+        elevation: const WidgetStatePropertyAll<double>(12),
         shape: WidgetStatePropertyAll<OutlinedBorder>(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AdminRadii.md),
           ),
         ),
-        side: WidgetStatePropertyAll<BorderSide>(BorderSide(color: p.border)),
-        padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(
-          const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        side: const WidgetStatePropertyAll<BorderSide>(
+          BorderSide(color: AiCapsule.hairline),
+        ),
+        padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
+          EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         ),
       ),
       menuChildren: [
         MenuItemButton(
-          leadingIcon: _checkIcon(selected == null, p),
+          leadingIcon: _checkIcon(selected == null),
           onPressed: () => widget.onChanged(null),
           child: Text(
             strings.aiAutoMode,
-            style: adminText(size: 13, weight: FontWeight.w700, color: p.ink),
+            style: adminText(
+              size: 13,
+              weight: FontWeight.w700,
+              color: AiCapsule.onInk,
+            ),
           ),
         ),
-        Divider(height: 10, thickness: 1, color: p.border),
+        const Divider(height: 10, thickness: 1, color: AiCapsule.hairline),
         for (final group in _AiModelCatalog.groups)
           SubmenuButton(
-            leadingIcon: Icon(group.icon, size: 16, color: p.inkMuted),
+            style: const ButtonStyle(
+              foregroundColor: WidgetStatePropertyAll<Color>(AiCapsule.muted),
+            ),
+            leadingIcon: Icon(group.icon, size: 16, color: AiCapsule.muted),
             menuChildren: [
               for (final option in group.options)
                 MenuItemButton(
                   leadingIcon: _checkIcon(
                     selected?.provider == group.provider &&
                         selected?.model == option.model,
-                    p,
                   ),
                   onPressed: () => widget.onChanged(
                     AiSelectedTarget(
@@ -180,13 +225,17 @@ class _ModelDropdownPillState extends State<_ModelDropdownPill> {
                   child: Text(
                     option.label,
                     textDirection: TextDirection.ltr,
-                    style: adminText(size: 12.5, color: p.ink),
+                    style: adminText(size: 12.5, color: AiCapsule.onInk),
                   ),
                 ),
             ],
             child: Text(
               _AiModelCatalog.labelFor(strings, group.provider),
-              style: adminText(size: 13, weight: FontWeight.w600, color: p.ink),
+              style: adminText(
+                size: 13,
+                weight: FontWeight.w600,
+                color: AiCapsule.onInk,
+              ),
             ),
           ),
       ],
@@ -201,40 +250,34 @@ class _ModelDropdownPillState extends State<_ModelDropdownPill> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: p.surfaceSunken,
+                color: AiCapsule.surface,
                 borderRadius: BorderRadius.circular(AdminRadii.pill),
-                border: Border.all(color: p.border),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.auto_awesome_rounded,
+                    AdminIcons.aiMagic,
                     size: 14,
-                    color: _hasChoices ? p.clay : p.inkFaint,
+                    color: _hasChoices ? AiCapsule.accent : AiCapsule.muted,
                   ),
                   const SizedBox(width: 6),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 190),
+                  Flexible(
                     child: Text(
                       selected?.displayName ?? strings.aiAutoMode,
                       textDirection: selected == null
-                          ? null
+                          ? TextDirection.rtl
                           : TextDirection.ltr,
                       overflow: TextOverflow.ellipsis,
                       style: adminText(
                         size: 12,
                         weight: FontWeight.w600,
-                        color: _hasChoices ? p.inkMuted : p.inkFaint,
+                        color: _hasChoices ? AiCapsule.onInk : AiCapsule.muted,
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 16,
-                    color: p.inkMuted,
-                  ),
+                  Icon(AdminIcons.expand, size: 16, color: AiCapsule.muted),
                 ],
               ),
             ),
@@ -343,42 +386,47 @@ abstract final class _AiModelCatalog {
 /// ---------------------------------------------------------------------------
 /// Circular send button that turns into a spinner while a request is in flight.
 class _SendButton extends StatelessWidget {
+  final String tooltip;
   final VoidCallback? onPressed;
   final bool isLoading;
 
-  const _SendButton({required this.onPressed, required this.isLoading});
+  const _SendButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.isLoading,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final p = AdminPalette.of(context);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isLoading ? p.claySoft : p.claySolid,
-            shape: BoxShape.circle,
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: AiCapsule.accent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Center(
+              child: isLoading
+                  ? const SizedBox(
+                      width: 17,
+                      height: 17,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AiCapsule.onInk,
+                      ),
+                    )
+                  : const Icon(
+                      AdminIcons.aiSend,
+                      size: 20,
+                      color: AiCapsule.onInk,
+                    ),
+            ),
           ),
-          child: isLoading
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: p.claySolid,
-                  ),
-                )
-              : const Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 18,
-                  color: Colors.white,
-                ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/localization/app_strings.dart';
@@ -8,24 +9,26 @@ import '../../data/models/ai_notification_result.dart';
 import '../../data/models/ai_provider.dart';
 import '../theme/admin_palette.dart';
 import 'admin_dialog.dart';
+import 'admin_toast.dart';
 import 'ai_prompt_bar.dart';
-import 'ai_result_preview.dart';
 
 /// ===========================================================================
 /// AI assistant panel
 ///
 /// The compose-side companion to the notification form: the admin writes an
-/// idea, picks a model, and the panel previews the copy before pushing it into
-/// the form through [onApplyToForm].
+/// idea in the dark capsule at the bottom, picks a model, and the panel reads
+/// back one of three states — a welcome when nothing has been generated yet, a
+/// spinner that can be stopped mid-flight, or the bilingual draft itself.
 ///
 /// Provider configs stream from Firestore (`ai_providers`); the generated copy
 /// comes from [AiNotificationService], which raises [AiServiceException] with
 /// an Egyptian phrasing the admin can actually act on.
 /// ===========================================================================
 class AiAssistantPanel extends ConsumerStatefulWidget {
-  /// Called when the admin taps "Apply to Form" on a generated result.
-  /// The parent (NotificationManagementScreen) uses this to fill its controllers.
-  final void Function(AiNotificationResult result) onApplyToForm;
+  /// Called when the admin asks to push a draft into the compose form. The host
+  /// confirms the swap when the form already holds text and answers with
+  /// whether the fields were actually filled, so the button can latch.
+  final Future<bool> Function(AiNotificationResult draft) onApplyToForm;
 
   const AiAssistantPanel({super.key, required this.onApplyToForm});
 
@@ -35,28 +38,58 @@ class AiAssistantPanel extends ConsumerStatefulWidget {
 
 class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   final _promptController = TextEditingController();
+  final _focus = FocusNode();
 
   AiSelectedTarget? _selectedTarget;
-  AiNotificationResult? _lastResult;
+  AiNotificationResult? _currentResult;
+  String _lastPrompt = '';
   bool _isGenerating = false;
+  bool _isApplying = false;
+  bool _isApplied = false;
   String? _errorMessage;
+
+  /// Bumped on every "another variation" press so the offline fallback rotates
+  /// to the next hand-written draft instead of replaying the same one.
+  int _variant = 0;
+
+  /// Cancel token. [AiNotificationService] has no way to abort the in-flight
+  /// HTTP call, so stopping is done by invalidating the result: anything that
+  /// comes back for a stale operation is dropped on the floor.
+  int _operation = 0;
 
   @override
   void dispose() {
+    _operation++;
     _promptController.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
   /// ------------------------------------------------------------- generate ---
-  Future<void> _handleGenerate() async {
-    final prompt = _promptController.text.trim();
-    final providersAsync = ref.read(activeAiProvidersStreamProvider);
-    final allProviders = providersAsync.value ?? [];
-    if (prompt.isEmpty || allProviders.isEmpty || _isGenerating) return;
+  Future<void> _handleGenerate({bool again = false}) async {
+    if (_isGenerating) return;
+    final strings = AppStrings.of(context);
+    final providers =
+        ref.read(activeAiProvidersStreamProvider).valueOrNull ??
+        const <AiProvider>[];
+    final idea = (again ? _lastPrompt : _promptController.text).trim();
 
+    if (idea.length < 2) {
+      setState(() => _errorMessage = strings.aiIdeaTooShort);
+      _focus.requestFocus();
+      return;
+    }
+    if (providers.isEmpty) {
+      setState(() => _errorMessage = strings.aiNoProviders);
+      return;
+    }
+
+    final operation = ++_operation;
+    final variation = again ? ++_variant : 0;
     FocusScope.of(context).unfocus();
     setState(() {
       _isGenerating = true;
+      _isApplied = false;
       _errorMessage = null;
     });
 
@@ -65,38 +98,96 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
           .read(aiNotificationServiceProvider)
           .generateNotification(
             target: _selectedTarget,
-            allProviders: allProviders,
-            userPrompt: prompt,
+            allProviders: providers,
+            userPrompt: idea,
+            // A new idea edits the draft on screen ("خلّيها أقصر"); "صياغة
+            // تانية" wants a clean take on the same idea, so it starts empty.
+            previousDraft: again ? null : _currentResult,
+            variant: variation,
           );
-      if (!mounted) return;
-      setState(() => _lastResult = result);
+      if (!mounted || operation != _operation) return;
+      setState(() {
+        _currentResult = result;
+        _lastPrompt = idea;
+      });
     } on AiServiceException catch (error) {
-      if (!mounted) return;
-      setState(() => _errorMessage = error.message);
+      if (mounted && operation == _operation) {
+        setState(() => _errorMessage = error.message);
+      }
     } catch (error) {
-      if (!mounted) return;
-      setState(() => _errorMessage = 'حدث خطأ: ');
+      if (mounted && operation == _operation) {
+        setState(() => _errorMessage = '${strings.errorOccurred}$error');
+      }
     } finally {
-      if (mounted) setState(() => _isGenerating = false);
+      if (mounted && operation == _operation) {
+        setState(() => _isGenerating = false);
+      }
     }
   }
 
-  /// ---------------------------------------------------------------- apply ---
-  void _applyToForm() {
-    final result = _lastResult;
-    if (result == null) return;
-
-    // The host screen confirms the fill on the shared toast stack; a second
-    // card here would stack a duplicate for one action.
-    widget.onApplyToForm(result);
+  /// --------------------------------------------------------------- cancel ---
+  void _handleCancel() {
+    _operation++;
+    setState(() {
+      _isGenerating = false;
+      _errorMessage = null;
+    });
   }
 
+  /// ---------------------------------------------------------------- apply ---
+  Future<void> _handleApply() async {
+    final draft = _currentResult;
+    if (draft == null || _isApplying || _isGenerating) return;
+    final strings = AppStrings.of(context);
+
+    setState(() => _isApplying = true);
+    try {
+      final applied = await widget.onApplyToForm(draft);
+      if (!mounted) return;
+      setState(() => _isApplied = applied);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _errorMessage = strings.aiApplyFailed);
+    } finally {
+      if (mounted) setState(() => _isApplying = false);
+    }
+  }
+
+  /// ----------------------------------------------------------------- copy ---
+  Future<void> _handleCopy() async {
+    final draft = _currentResult;
+    if (draft == null) return;
+    final strings = AppStrings.of(context);
+
+    try {
+      await Clipboard.setData(
+        ClipboardData(
+          text:
+              '${draft.titleAr}\n${draft.messageAr}\n\n'
+              '${draft.titleEn}\n${draft.messageEn}',
+        ),
+      );
+      if (!mounted) return;
+      showAdminToast(
+        context,
+        message: strings.aiCopiedToast,
+        kind: AdminToastKind.success,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _errorMessage = strings.aiCopyBlocked);
+    }
+  }
+
+  /// --------------------------------------------------------------- layout ---
   @override
   Widget build(BuildContext context) {
     final p = AdminPalette.of(context);
-    final providersState = ref.watch(activeAiProvidersStreamProvider);
-    final providers = providersState.valueOrNull ?? const <AiProvider>[];
-    final result = _lastResult;
+    final strings = AppStrings.of(context);
+    final providers =
+        ref.watch(activeAiProvidersStreamProvider).valueOrNull ??
+        const <AiProvider>[];
+    final draft = _currentResult;
     final error = _errorMessage;
 
     // The panel is dropped both next to the form (bounded height) and under it
@@ -105,42 +196,45 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final fillsHeight = constraints.hasBoundedHeight;
+        final body = _buildBody(p, strings, draft);
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: p.panel(shadow: true),
-          child: Column(
-            mainAxisSize: fillsHeight ? MainAxisSize.max : MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildPanelHeader(p),
-              const SizedBox(height: 16),
-              if (fillsHeight)
-                Expanded(child: _buildChatArea(p, providers))
-              else
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 240),
-                  child: _buildChatArea(p, providers),
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: p.panel(shadow: true),
+            child: Column(
+              mainAxisSize: fillsHeight ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(p, strings),
+                const SizedBox(height: 22),
+                if (fillsHeight)
+                  Expanded(child: SingleChildScrollView(child: body))
+                else
+                  body,
+                const SizedBox(height: 22),
+                if (error != null) ...[
+                  Text(
+                    error,
+                    style: adminText(size: 12, color: p.chiliInk, height: 1.7),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                AiPromptBar(
+                  controller: _promptController,
+                  focusNode: _focus,
+                  providers: providers,
+                  selectedTarget: _selectedTarget,
+                  onTargetChanged: (target) =>
+                      setState(() => _selectedTarget = target),
+                  onSubmit: () => _handleGenerate(),
+                  isGenerating: _isGenerating,
                 ),
-              if (result != null) ...[
                 const SizedBox(height: 12),
-                AiResultPreview(result: result, onApply: _applyToForm),
+                _buildFootnotes(p, strings),
               ],
-              if (error != null) ...[
-                const SizedBox(height: 12),
-                _buildErrorBanner(p, error),
-              ],
-              const SizedBox(height: 12),
-              AiPromptBar(
-                controller: _promptController,
-                providers: providers,
-                selectedTarget: _selectedTarget,
-                onTargetChanged: (target) =>
-                    setState(() => _selectedTarget = target),
-                onSubmit: _handleGenerate,
-                isGenerating: _isGenerating,
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -148,315 +242,258 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   }
 
   /// ---------------------------------------------------------------- header ---
-  Widget _buildPanelHeader(AdminPalette p) {
-    final strings = AppStrings.of(context);
-    final target = _selectedTarget;
-
+  Widget _buildHeader(AdminPalette p, AppStrings strings) {
     return Row(
       children: [
-        Container(
-          width: 42,
-          height: 42,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: p.claySoft,
-            borderRadius: BorderRadius.circular(AdminRadii.md),
-          ),
-          child: Icon(Icons.auto_fix_high_rounded, size: 21, color: p.clay),
+        Icon(AdminIcons.aiMagic, color: p.claySolid, size: 22),
+        const SizedBox(width: 9),
+        Text(
+          strings.aiAssistantHeaderTitle,
+          style: adminText(size: 16, weight: FontWeight.bold, color: p.ink),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'مساعد الصياغة الذكي',
-                style: adminText(
-                  size: 15.5,
-                  weight: FontWeight.bold,
-                  color: p.ink,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'توليد صياغات مصرية جذابة للإشعارات',
-                style: adminText(size: 12, color: p.inkMuted),
-              ),
-            ],
-          ),
+        const SizedBox(width: 8),
+        Text(
+          strings.aiBadgeLabel,
+          style: adminText(size: 10, color: p.inkMuted),
         ),
-        const SizedBox(width: 10),
-        // Mirrors the pill in the prompt bar: what the generator is aimed at.
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color: p.surfaceSunken,
-            borderRadius: BorderRadius.circular(AdminRadii.pill),
-            border: Border.all(color: p.border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.auto_awesome_rounded, size: 12, color: p.clay),
-              const SizedBox(width: 5),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 150),
-                child: Text(
-                  target?.displayName ?? strings.aiAutoMode,
-                  textDirection: target == null ? null : TextDirection.ltr,
-                  overflow: TextOverflow.ellipsis,
-                  style: adminText(
-                    size: 11,
-                    weight: FontWeight.w600,
-                    color: p.inkMuted,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        const Spacer(),
+        Text(
+          _isGenerating ? strings.aiStatusBusy : strings.aiStatusReady,
+          style: adminText(size: 10, color: p.inkMuted),
         ),
       ],
     );
   }
 
-  /// ------------------------------------------------------------- chat area ---
-  /// The status strip above the input: what the assistant is doing right now,
-  /// or what it needs from the admin before it can do anything.
-  Widget _buildChatArea(AdminPalette p, List<AiProvider> providers) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 4),
+  /// ------------------------------------------------------------------ body ---
+  Widget _buildBody(
+    AdminPalette p,
+    AppStrings strings,
+    AiNotificationResult? draft,
+  ) {
+    if (_isGenerating) return _buildGenerating(p, strings);
+    if (draft == null) return _buildWelcome(p, strings);
+    return _buildResult(p, strings, draft);
+  }
+
+  Widget _buildGenerating(AdminPalette p, AppStrings strings) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 45),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_isGenerating)
-            _StatusLine(
-              icon: Icons.hourglass_top_rounded,
-              color: p.clay,
-              bg: p.claySoft,
-              text: 'جارٍ التوليد...',
-              hint: 'الموديل يجهّز صياغة مصرية للإشعار.',
-            )
-          else if (_lastResult != null)
-            _StatusLine(
-              icon: Icons.check_circle_rounded,
-              color: p.oliveInk,
-              bg: p.oliveSoft,
-              text: 'تم توليد الصياغة',
-              hint: 'راجعها بالأسفل ثم اضغط «تطبيق في النموذج».',
-            )
-          else
-            _buildIdleGuidance(p, providers),
+          // The panel is laid out inside a scroll view, so the spinner is given
+          // its own slot instead of letting it drink the unbounded height.
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(color: p.claySolid),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            strings.aiGeneratingTaste,
+            style: adminText(size: 15, color: p.ink),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _handleCancel,
+            style: TextButton.styleFrom(foregroundColor: p.inkMuted),
+            child: Text(
+              strings.aiStopGenerating,
+              style: adminText(size: 12.5, weight: FontWeight.w700),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildIdleGuidance(AdminPalette p, List<AiProvider> providers) {
-    final providersState = ref.read(activeAiProvidersStreamProvider);
+  Widget _buildWelcome(AdminPalette p, AppStrings strings) {
+    final ideas = [
+      strings.aiChipKoshari,
+      strings.aiChipRamadan,
+      strings.aiChipReminder,
+    ];
 
-    if (providersState.hasError) {
-      return _StatusLine(
-        icon: AdminIcons.warning,
-        color: p.chiliInk,
-        bg: p.chiliSoft,
-        text: 'تعذّر قراءة الموديلات',
-        hint: 'تحقق من الاتصال أو من قواعد أمان Firestore.',
-      );
-    }
-    if (providersState.isLoading) {
-      return _StatusLine(
-        icon: Icons.sync_rounded,
-        color: p.inkMuted,
-        bg: p.surfaceAlt,
-        text: 'جارٍ تحميل الموديلات...',
-        hint: 'نقرأ المزودين المفعّلين من Firebase.',
-      );
-    }
-    if (providers.isEmpty) {
-      return _StatusLine(
-        icon: AdminIcons.empty,
-        color: p.honeyInk,
-        bg: p.honeySoft,
-        text: 'لا يوجد موديلات ذكاء اصطناعي',
-        hint: 'أضف مزودين في Firebase Console لتفعيل المساعد.',
-      );
-    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          Container(
+            width: 66,
+            height: 66,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: p.claySoft,
+              borderRadius: BorderRadius.circular(AdminRadii.xl),
+            ),
+            child: Icon(AdminIcons.aiSparkle, size: 34, color: p.claySolid),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            strings.aiWelcomeTitle,
+            style: adminText(size: 20, weight: FontWeight.bold, color: p.ink),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            strings.aiWelcomeSubtitle,
+            textAlign: TextAlign.center,
+            style: adminText(size: 12, color: p.inkMuted, height: 1.8),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            alignment: WrapAlignment.center,
+            children: [
+              for (final idea in ideas)
+                ActionChip(
+                  label: Text(
+                    idea,
+                    style: adminText(size: 11, color: p.inkMuted),
+                  ),
+                  // Seeds the capsule instead of sending straight away, so the
+                  // admin always edits the wording before paying a request.
+                  onPressed: () {
+                    _promptController.text = idea;
+                    _focus.requestFocus();
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildResult(
+    AdminPalette p,
+    AppStrings strings,
+    AiNotificationResult draft,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildLanguageBlock(
+          p,
+          strings.aiEgyptianSection,
+          draft.titleAr,
+          draft.messageAr,
+        ),
+        const SizedBox(height: 16),
+        _buildLanguageBlock(
+          p,
+          strings.aiEnglishSection,
+          draft.titleEn,
+          draft.messageEn,
+          ltr: true,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '${strings.aiSuggestedType}: ${_localizedType(draft.type, strings)}',
+          style: adminText(size: 11, color: p.inkMuted),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _isApplying || _isGenerating ? null : _handleApply,
+                style: FilledButton.styleFrom(
+                  backgroundColor: p.claySolid,
+                  foregroundColor: p.onClay,
+                ),
+                icon: _isApplying
+                    ? SizedBox(
+                        width: 15,
+                        height: 15,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: p.onClay,
+                        ),
+                      )
+                    : Icon(
+                        _isApplied ? AdminIcons.check : AdminIcons.aiApply,
+                        size: 17,
+                      ),
+                label: Text(
+                  _isApplied ? strings.aiAppliedDraft : strings.aiApplyDraft,
+                  style: adminText(size: 13, weight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            AdminIconChip(
+              icon: AdminIcons.refresh,
+              tooltip: strings.aiRegenerateTooltip,
+              onTap: _isGenerating ? null : () => _handleGenerate(again: true),
+            ),
+            const SizedBox(width: 8),
+            AdminIconChip(
+              icon: AdminIcons.copy,
+              tooltip: strings.aiCopyTooltip,
+              onTap: _handleCopy,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// One language of the draft: a quiet caption, then the selectable copy, so
+  /// the admin can lift a single line without going through the whole card.
+  Widget _buildLanguageBlock(
+    AdminPalette p,
+    String label,
+    String title,
+    String message, {
+    bool ltr = false,
+  }) {
+    return Directionality(
+      textDirection: ltr ? TextDirection.ltr : TextDirection.rtl,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: adminText(size: 10, color: p.inkFaint)),
+          const SizedBox(height: 5),
+          SelectableText(
+            title,
+            style: adminText(size: 15, weight: FontWeight.w600, color: p.ink),
+          ),
+          const SizedBox(height: 5),
+          SelectableText(
+            message,
+            style: adminText(size: 12, color: p.inkMuted, height: 1.8),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ---------------------------------------------------------------- footers ---
+  Widget _buildFootnotes(AdminPalette p, AppStrings strings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'إزاي تستخدم المساعد',
-          style: adminText(
-            size: 12,
-            weight: FontWeight.w700,
-            color: p.inkMuted,
-          ),
+          strings.aiFooterPillars,
+          textAlign: TextAlign.center,
+          style: adminText(size: 10, color: p.inkMuted),
         ),
         const SizedBox(height: 8),
-        _TipRow(step: '1', text: 'اختر الموديل من الزر بالأسفل.', palette: p),
-        _TipRow(
-          step: '2',
-          text: 'اكتب فكرة الإشعار: اسم أكلة، مناسبة، أو تذكير.',
-          palette: p,
-        ),
-        _TipRow(
-          step: '3',
-          text: 'اضغط زر الإرسال، ثم طبّق النتيجة في النموذج.',
-          palette: p,
+        Text(
+          strings.aiFooterDisclaimer,
+          textAlign: TextAlign.center,
+          style: adminText(size: 10, color: p.inkFaint),
         ),
       ],
     );
   }
 
-  /// ---------------------------------------------------------- error banner ---
-  Widget _buildErrorBanner(AdminPalette p, String message) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-      decoration: BoxDecoration(
-        color: p.chiliSoft,
-        borderRadius: BorderRadius.circular(AdminRadii.md),
-        border: Border.all(color: p.chiliSolid.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(AdminIcons.danger, size: 18, color: p.chiliInk),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: adminText(size: 12.5, color: p.chiliInk, height: 1.6),
-            ),
-          ),
-          TextButton(
-            onPressed: _isGenerating ? null : _handleGenerate,
-            style: TextButton.styleFrom(
-              foregroundColor: p.chiliInk,
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
-            child: Text(
-              'جرب تاني',
-              style: adminText(size: 12, weight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ---------------------------------------------------------------------------
-/// Status line
-/// ---------------------------------------------------------------------------
-class _StatusLine extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final Color bg;
-  final String text;
-  final String hint;
-
-  const _StatusLine({
-    required this.icon,
-    required this.color,
-    required this.bg,
-    required this.text,
-    required this.hint,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final p = AdminPalette.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AdminRadii.md),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  text,
-                  style: adminText(
-                    size: 13,
-                    weight: FontWeight.w700,
-                    color: p.ink,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  hint,
-                  style: adminText(size: 11.5, color: p.inkMuted, height: 1.5),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ---------------------------------------------------------------------------
-/// Tip row
-/// ---------------------------------------------------------------------------
-class _TipRow extends StatelessWidget {
-  final String step;
-  final String text;
-  final AdminPalette palette;
-
-  const _TipRow({
-    required this.step,
-    required this.text,
-    required this.palette,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: p.claySoft,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              step,
-              style: adminText(
-                size: 11,
-                weight: FontWeight.w700,
-                color: p.clay,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: adminText(size: 12.5, color: p.inkMuted, height: 1.6),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _localizedType(String type, AppStrings strings) {
+    return switch (type) {
+      'reminder' => strings.aiTypeReminder,
+      'update' => strings.aiTypeUpdate,
+      _ => strings.aiTypeMeal,
+    };
   }
 }

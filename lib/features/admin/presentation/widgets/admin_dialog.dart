@@ -100,6 +100,14 @@ abstract final class AdminIcons {
   static const IconData role = Icons.military_tech_rounded;
   static const IconData checkbox = Icons.check_box_rounded;
   static const IconData checkboxOff = Icons.check_box_outline_blank_rounded;
+
+  // AI assistant
+  static const IconData aiMagic = Icons.auto_awesome_rounded;
+  static const IconData aiSparkle = Icons.auto_fix_high_rounded;
+  static const IconData aiSend = Icons.arrow_upward_rounded;
+  static const IconData aiApply = Icons.north_west_rounded;
+  static const IconData copy = Icons.copy_rounded;
+  static const IconData check = Icons.check_rounded;
 }
 
 /// ---------------------------------------------------------------------------

@@ -183,4 +183,87 @@ class AppStrings {
   String get aiProviderGroq => isEn ? 'Groq' : 'جروك (Groq)';
   String get aiProviderOpenRouter =>
       isEn ? 'OpenRouter' : 'أوبن راوتر (OpenRouter)';
+
+  // AI assistant panel — header strip
+  String get aiAssistantHeaderTitle =>
+      isEn ? 'Smart Assistant' : 'مساعدك الذكي';
+  String get aiBadgeLabel => 'AI';
+  String get aiStatusBusy => isEn ? 'Polishing words…' : 'بيظبط الكلام…';
+  String get aiStatusReady => isEn ? 'Ready to create' : 'جاهز للإبداع';
+
+  // AI assistant panel — generating state
+  String get aiGeneratingTaste =>
+      isEn ? 'Adding flavor to words…' : 'بنضيف شوية طعم للكلام…';
+  String get aiStopGenerating => isEn ? 'Stop generating' : 'إيقاف التوليد';
+
+  // AI assistant panel — welcome state
+  String get aiWelcomeTitle =>
+      isEn ? 'An idea from you, words from us.' : 'فكرة منك، وصياغة علينا.';
+  String get aiWelcomeSubtitle => isEn
+      ? 'Tell me what is on your mind, and I will turn it into a bilingual '
+            'notification… with the flavor of Aklet El Naharda.'
+      : 'قولّي في بالك إيه، وأنا أحوّله لإشعار\n'
+            'بالمصري والإنجليزي… بطعم أكلة النهاردة.';
+  String get aiChipKoshari => isEn ? 'Koshari for lunch' : 'كشري على الغدا';
+  String get aiChipRamadan => isEn ? 'Ramadan gathering' : 'لمّة رمضان';
+  String get aiChipReminder =>
+      isEn ? 'Gentle lunch reminder' : 'تذكير لطيف للغدا';
+
+  // AI assistant panel — result card
+  String get aiEgyptianSection => isEn ? 'In Egyptian' : 'بالمصري';
+  String get aiEnglishSection => 'In English';
+  String get aiSuggestedType => isEn ? 'Suggested Type' : 'النوع المقترح';
+  String get aiApplyDraft =>
+      isEn ? 'Use notification in form' : 'استخدم الإشعار في النموذج';
+  String get aiAppliedDraft =>
+      isEn ? 'Notification applied' : 'تم تطبيق الإشعار';
+  String get aiRegenerateTooltip => isEn ? 'Another variation' : 'صياغة تانية';
+  String get aiCopyTooltip => isEn ? 'Copy notification' : 'نسخ الإشعار';
+  String get aiCopiedToast => isEn
+      ? 'Notification copied in both languages'
+      : 'تم نسخ الإشعار باللغتين';
+
+  // AI assistant panel — prompt capsule
+  String get aiPromptCapsuleHint => isEn
+      ? 'What story do you want to tell today?\n'
+            'E.g.: Inspire people to enjoy Koshari for lunch'
+      : 'إيه الحكاية اللي عايز تقولها النهاردة؟\n'
+            'مثلاً: شجّع الناس يجربوا الكشري على الغدا';
+  String get aiSendTooltip => isEn ? 'Write the notification' : 'صياغة الإشعار';
+
+  // AI assistant panel — footnotes
+  String get aiFooterPillars => isEn
+      ? 'Egyptian Arabic · Spirited English · No emoji unless requested'
+      : 'عامية مصرية · إنجليزي بروحها · بدون إيموجي إلا بطلبك';
+  String get aiFooterDisclaimer => isEn
+      ? 'The assistant suggests, you decide. The app never sends automatically.'
+      : 'المساعد بيقترح، وأنت صاحب القرار. التطبيق لا يرسل الإشعار تلقائياً.';
+
+  // AI assistant panel — inline failures
+  String get aiIdeaTooShort => isEn
+      ? 'Tell me your idea first — a meal name or an occasion is a good start.'
+      : 'قول فكرتك الأول… اسم أكلة أو مناسبة هيكون بداية حلوة.';
+  String get aiApplyFailed => isEn
+      ? 'Could not apply the suggestion. Try again.'
+      : 'تعذّر تطبيق الاقتراح. حاول مجدداً.';
+  String get aiCopyBlocked => isEn
+      ? 'The browser did not allow copying. Select the text and copy it manually.'
+      : 'المتصفح لم يسمح بالنسخ. تقدر تحدد النص وتنسخه يدوياً.';
+
+  // Suggested notification kind, named exactly the way the compose form names it
+  String get aiTypeMeal => isEn ? 'Meal / suggestion' : 'وجبة / اقتراح';
+  String get aiTypeReminder => isEn ? 'Reminder' : 'تذكير';
+  String get aiTypeUpdate => isEn ? 'Update' : 'تحديث';
+
+  // AI assistant -> compose form: replacing an idea the admin already typed
+  String get aiReplaceConfirmTitle =>
+      isEn ? 'Use the new wording?' : 'نستخدم الصياغة الجديدة؟';
+  String get aiReplaceConfirmBody => isEn
+      ? 'Only the bilingual texts and type will be replaced. The notification '
+            'target remains unchanged, and nothing is sent automatically.'
+      : 'سيتم استبدال النصوص باللغتين والنوع فقط. وجهة الإشعار لن تتغير، '
+            'ولن يتم إرساله تلقائياً.';
+  String get aiKeepCurrent =>
+      isEn ? 'Keep current content' : 'خلي المحتوى الحالي';
+  String get aiUseSuggestion => isEn ? 'Use suggestion' : 'استخدم الاقتراح';
 }

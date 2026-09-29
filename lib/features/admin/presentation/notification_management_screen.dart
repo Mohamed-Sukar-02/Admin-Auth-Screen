@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../data/models/ai_notification_result.dart';
 import '../data/models/cloud_meal.dart';
 import '../data/vault_admin_repository.dart';
@@ -225,7 +226,30 @@ class _NotificationManagementScreenState
 
   /// Pushes an AI-generated draft into the compose form. The type key is
   /// already one of [_types], so the chip row picks it up without remapping.
-  void _applyAiResult(AiNotificationResult result) {
+  ///
+  /// Copy the admin already typed is never silently overwritten: the swap is
+  /// confirmed first, and the answer tells the assistant whether to latch its
+  /// button. Only the four texts and the type move — the destination stays.
+  Future<bool> _applyAiResult(AiNotificationResult result) async {
+    final strings = AppStrings.of(context);
+    final hasTypedCopy =
+        _titleArController.text.trim().isNotEmpty ||
+        _messageArController.text.trim().isNotEmpty;
+
+    if (hasTypedCopy) {
+      final replaced = await showAdminConfirmDialog(
+        context: context,
+        icon: AdminIcons.aiSparkle,
+        tone: AdminDialogTone.warn,
+        title: strings.aiReplaceConfirmTitle,
+        message: strings.aiReplaceConfirmBody,
+        confirmLabel: strings.aiUseSuggestion,
+        cancelLabel: strings.aiKeepCurrent,
+        confirmIcon: AdminIcons.check,
+      );
+      if (!replaced || !mounted) return false;
+    }
+
     setState(() {
       _titleArController.text = result.titleAr;
       _titleEnController.text = result.titleEn;
@@ -235,9 +259,10 @@ class _NotificationManagementScreenState
     });
     showAdminToast(
       context,
-      message: 'تم ملء بيانات الإشعار من المساعد الذكي',
+      message: strings.aiAppliedSuccess,
       kind: AdminToastKind.success,
     );
+    return true;
   }
 
   /// -------------------------------------------------------------- layout ---

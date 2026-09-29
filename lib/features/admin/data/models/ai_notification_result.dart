@@ -25,4 +25,14 @@ class AiNotificationResult {
       messageEn: json['messageEn']?.toString() ?? '',
     );
   }
+
+  /// Sent back to the model as `previousNotification` so a refinement idea
+  /// ("خلّيها أقصر") edits this draft instead of starting from scratch.
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'titleAr': titleAr,
+    'titleEn': titleEn,
+    'messageAr': messageAr,
+    'messageEn': messageEn,
+  };
 }
