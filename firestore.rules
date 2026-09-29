@@ -195,5 +195,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isEditingAdmin() && isValidAdminNotification();
     }
+
+    // AI Providers: admins can read, editing/super admins can write.
+    match /ai_providers/{docId} {
+      allow read: if isAdmin();
+      allow write: if false; // الإضافة فقط من الـ Console أو سكريبت خارجي
+    }
   }
 }
