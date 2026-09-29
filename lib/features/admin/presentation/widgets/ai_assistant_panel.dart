@@ -47,10 +47,11 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   }
 
   /// ------------------------------------------------------------- generate ---
-  Future<void> _handleGenerate() async {
+    Future<void> _handleGenerate() async {
     final prompt = _promptController.text.trim();
-    final provider = _selectedProvider;
-    if (prompt.isEmpty || provider == null || _isGenerating) return;
+    final providersAsync = ref.read(activeAiProvidersStreamProvider);
+    final allProviders = providersAsync.value ?? [];
+    if (prompt.isEmpty || allProviders.isEmpty || _isGenerating) return;
 
     FocusScope.of(context).unfocus();
     setState(() {
@@ -61,7 +62,7 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     try {
       final result = await ref
           .read(aiNotificationServiceProvider)
-          .generateNotification(provider: provider, userPrompt: prompt);
+          .generateNotification(targetProvider: _selectedProvider, allProviders: allProviders, userPrompt: prompt);
       if (!mounted) return;
       setState(() => _lastResult = result);
     } on AiServiceException catch (error) {
@@ -69,7 +70,7 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
       setState(() => _errorMessage = error.message);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'حصل خطأ: $error');
+      setState(() => _errorMessage = 'حدث خطأ: ');
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }

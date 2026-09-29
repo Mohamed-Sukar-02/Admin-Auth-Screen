@@ -17,22 +17,47 @@ final aiNotificationServiceProvider = Provider<AiNotificationService>((ref) {
 
 class AiNotificationService {
   Future<AiNotificationResult> generateNotification({
-    required AiProvider provider,
+    AiProvider? targetProvider,
+    required List<AiProvider> allProviders,
     required String userPrompt,
   }) async {
-    try {
-      final responseBody = await _makeRequest(provider, userPrompt);
-      return _parseResponse(responseBody, provider.provider);
-    } catch (e) {
-      if (e is AiServiceException) rethrow;
-      throw AiServiceException('حصل خطأ غير متوقع: $e');
+    List<AiProvider> providersToTry = [];
+
+    if (targetProvider != null) {
+      providersToTry.add(targetProvider);
+      providersToTry.addAll(
+        allProviders.where(
+          (p) =>
+              p.provider == targetProvider.provider &&
+              p.id != targetProvider.id,
+        ),
+      );
+    } else {
+      providersToTry.addAll(allProviders);
     }
+
+    if (providersToTry.isEmpty) {
+      throw const AiServiceException('لا يوجد مزودين متاحين.');
+    }
+
+    List<String> errorLogs = [];
+    for (final provider in providersToTry) {
+      try {
+        final responseBody = await _makeRequest(provider, userPrompt);
+        return _parseResponse(responseBody, provider.provider);
+      } catch (e) {
+        errorLogs.add('${provider.name}: $e');
+        continue;
+      }
+    }
+
+    throw AiServiceException('فشلت جميع المحاولات:\n' + errorLogs.join('\n'));
   }
 
   Future<String> _makeRequest(AiProvider provider, String userPrompt) async {
     if (provider.provider == 'gemini') {
       return _buildGeminiRequest(provider, userPrompt);
-    } else if (provider.provider == 'groq') {
+    } else if (provider.provider == 'groq' || provider.provider == 'openrouter') {
       return _buildGroqRequest(provider, userPrompt);
     }
     throw const AiServiceException('مزود الذكاء الاصطناعي غير مدعوم.');
@@ -55,8 +80,10 @@ class AiNotificationService {
             ],
           },
         ],
-        "generationConfig": {"responseMimeType": "application/json",
-          "temperature": 0.85},
+        "generationConfig": {
+          "responseMimeType": "application/json",
+          "temperature": 0.85,
+        },
       }),
     );
 
@@ -129,7 +156,7 @@ class AiNotificationService {
       if (providerType == 'gemini') {
         textContent =
             json['candidates'][0]['content']['parts'][0]['text'] as String;
-      } else if (providerType == 'groq') {
+      } else if (providerType == 'groq' || providerType == 'openrouter') {
         textContent = json['choices'][0]['message']['content'] as String;
       }
 
