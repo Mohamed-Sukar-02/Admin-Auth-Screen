@@ -4,17 +4,20 @@ class CloudMeal {
   final String? imageUrl;
   final String? shortName;
   final String proteinType; // chicken, beef, fish, meatless, other
-  final String carbsType;   // rice, pasta, bread, none
-  final String category;    // tabeekh, casserole, dry_sandwich, popular, seafood, soup_stew, vegetarian
+  final String carbsType; // rice, pasta, bread, none
+  final String
+  category; // tabeekh, casserole, dry_sandwich, popular, seafood, soup_stew, vegetarian
   final int prepTimeMinutes;
   final bool isFridaySpecial;
   final bool isBudgetFriendly;
-  final bool isStarterMeal; // True if this meal is automatically downloaded for fresh installs
+  final bool
+  isStarterMeal; // True if this meal is automatically downloaded for fresh installs
   final String? notes;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String? proposedBy; // user ID or null for admin
-  final String status;     // 'approved' in vault_meals, or 'pending' in staging_meals
+  final String
+  status; // 'approved' in vault_meals, or 'pending' in staging_meals
 
   const CloudMeal({
     required this.id,

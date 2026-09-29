@@ -30,10 +30,14 @@ class AdminSystemConfigRepository {
   }
 }
 
-final adminSystemConfigRepositoryProvider = Provider<AdminSystemConfigRepository>((ref) {
-  return AdminSystemConfigRepository(FirebaseFirestore.instance);
-});
+final adminSystemConfigRepositoryProvider =
+    Provider<AdminSystemConfigRepository>((ref) {
+      return AdminSystemConfigRepository(FirebaseFirestore.instance);
+    });
 
-final systemConfigStreamProvider = StreamProvider.autoDispose<Map<String, dynamic>?>((ref) {
-  return ref.watch(adminSystemConfigRepositoryProvider).streamSystemConfig();
-});
+final systemConfigStreamProvider =
+    StreamProvider.autoDispose<Map<String, dynamic>?>((ref) {
+      return ref
+          .watch(adminSystemConfigRepositoryProvider)
+          .streamSystemConfig();
+    });

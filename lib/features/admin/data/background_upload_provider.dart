@@ -5,9 +5,10 @@ import '../presentation/widgets/admin_toast.dart';
 import 'models/cloud_meal.dart';
 import 'vault_admin_repository.dart';
 
-final backgroundUploadProvider = NotifierProvider<BackgroundUploadNotifier, bool>(() {
-  return BackgroundUploadNotifier();
-});
+final backgroundUploadProvider =
+    NotifierProvider<BackgroundUploadNotifier, bool>(() {
+      return BackgroundUploadNotifier();
+    });
 
 class BackgroundUploadNotifier extends Notifier<bool> {
   @override
@@ -33,10 +34,14 @@ class BackgroundUploadNotifier extends Notifier<bool> {
 
       if (imageBytes != null && imageName != null) {
         // Enforce a hard timeout so it doesn't spin forever if Storage is not set up
-        final uploadedUrl = await repo.uploadMealImage(imageBytes, imageName).timeout(
-          const Duration(seconds: 15),
-          onTimeout: () => throw Exception('انتهى وقت الاتصال (تأكد من تفعيل Storage في Firebase)'),
-        );
+        final uploadedUrl = await repo
+            .uploadMealImage(imageBytes, imageName)
+            .timeout(
+              const Duration(seconds: 15),
+              onTimeout: () => throw Exception(
+                'انتهى وقت الاتصال (تأكد من تفعيل Storage في Firebase)',
+              ),
+            );
         if (uploadedUrl != null) {
           imageUrl = uploadedUrl;
         }

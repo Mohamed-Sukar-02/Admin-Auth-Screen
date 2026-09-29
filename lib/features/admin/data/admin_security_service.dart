@@ -108,9 +108,11 @@ class AdminSecurityService {
         .orderBy('at', descending: true)
         .limit(limit)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => {'id': doc.id, ...doc.data()})
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList(),
+        );
   }
 
   /// Records that this address really did sign in.
@@ -128,10 +130,9 @@ class AdminSecurityService {
     final normalized = email?.trim().toLowerCase() ?? '';
     if (normalized.isEmpty) return;
     try {
-      await _firestore.collection('admins').doc(normalized).set(
-        {'lastSeenAt': FieldValue.serverTimestamp()},
-        SetOptions(merge: true),
-      );
+      await _firestore.collection('admins').doc(normalized).set({
+        'lastSeenAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('admins/$normalized activity stamp skipped: $e');
     }
@@ -176,7 +177,9 @@ class AdminSecurityService {
       throw ArgumentError.value(role, 'role', 'Unknown admin role');
     }
     final normalized = email.trim().toLowerCase();
-    await _firestore.collection('admins').doc(normalized).update({'role': role});
+    await _firestore.collection('admins').doc(normalized).update({
+      'role': role,
+    });
     await _recordAudit('set_role', target: normalized, role: role);
   }
 }
@@ -187,13 +190,19 @@ final adminSecurityServiceProvider = Provider<AdminSecurityService>((ref) {
 });
 
 /// Riverpod FutureProvider checking if the given email belongs to an authorized admin.
-final isAdminProvider = FutureProvider.family<bool, String?>((ref, email) async {
+final isAdminProvider = FutureProvider.family<bool, String?>((
+  ref,
+  email,
+) async {
   final service = ref.watch(adminSecurityServiceProvider);
   return service.isEmailAdmin(email);
 });
 
 /// Riverpod FutureProvider fetching the role of the given admin email.
-final adminRoleProvider = FutureProvider.family<String?, String?>((ref, email) async {
+final adminRoleProvider = FutureProvider.family<String?, String?>((
+  ref,
+  email,
+) async {
   final service = ref.watch(adminSecurityServiceProvider);
   return service.getAdminRole(email);
 });

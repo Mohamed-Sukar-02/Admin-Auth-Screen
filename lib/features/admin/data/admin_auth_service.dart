@@ -33,11 +33,10 @@ class AdminAuthService {
   final FirebaseAuth _auth;
   final AdminSecurityService _securityService;
 
-  AdminAuthService(
-    this._auth, {
-    AdminSecurityService? adminSecurityService,
-  }) : _securityService =
-            adminSecurityService ?? AdminSecurityService(FirebaseFirestore.instance);
+  AdminAuthService(this._auth, {AdminSecurityService? adminSecurityService})
+    : _securityService =
+          adminSecurityService ??
+          AdminSecurityService(FirebaseFirestore.instance);
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 

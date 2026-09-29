@@ -9,27 +9,31 @@ final vaultAdminRepositoryProvider = Provider<VaultAdminRepository>((ref) {
   return VaultAdminRepository(firestore: FirebaseFirestore.instance);
 });
 
-final vaultMealsStreamProvider = StreamProvider.autoDispose<List<CloudMeal>>((ref) {
+final vaultMealsStreamProvider = StreamProvider.autoDispose<List<CloudMeal>>((
+  ref,
+) {
   final repo = ref.watch(vaultAdminRepositoryProvider);
   return repo.streamVaultMeals();
 });
 
-final stagingMealsStreamProvider = StreamProvider.autoDispose<List<CloudMeal>>((ref) {
+final stagingMealsStreamProvider = StreamProvider.autoDispose<List<CloudMeal>>((
+  ref,
+) {
   final repo = ref.watch(vaultAdminRepositoryProvider);
   return repo.streamStagingMeals();
 });
 
 final adminNotificationsStreamProvider =
     StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
-  final repo = ref.watch(vaultAdminRepositoryProvider);
-  return repo.getNotifications();
-});
+      final repo = ref.watch(vaultAdminRepositoryProvider);
+      return repo.getNotifications();
+    });
 
 class VaultAdminRepository {
   final FirebaseFirestore _firestore;
 
   VaultAdminRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _vaultRef =>
       _firestore.collection('vault_meals');
@@ -73,9 +77,10 @@ class VaultAdminRepository {
         chunk[id] = entries[id]!;
       }
       final chunkId = '_snapshot_${chunkIds.length}';
-      await _backupRef
-          .doc(chunkId)
-          .set({'meals': chunk, 'count': chunk.length});
+      await _backupRef.doc(chunkId).set({
+        'meals': chunk,
+        'count': chunk.length,
+      });
       chunkIds.add(chunkId);
     }
 
@@ -95,8 +100,7 @@ class VaultAdminRepository {
     }
 
     final current = await _vaultRef.get();
-    await _deleteInChunks(
-        _vaultRef, [for (final doc in current.docs) doc.id]);
+    await _deleteInChunks(_vaultRef, [for (final doc in current.docs) doc.id]);
     await _writeInChunks(_vaultRef, restored);
   }
 
@@ -159,10 +163,9 @@ class VaultAdminRepository {
 
   /// Stream all approved meals from `vault_meals`
   Stream<List<CloudMeal>> streamVaultMeals() {
-    return _vaultRef
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
+    return _vaultRef.orderBy('createdAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
       return snapshot.docs
           .map((doc) => CloudMeal.fromMap(doc.data(), doc.id))
           .toList();
@@ -171,10 +174,9 @@ class VaultAdminRepository {
 
   /// Stream all user-suggested meals waiting in `staging_meals`
   Stream<List<CloudMeal>> streamStagingMeals() {
-    return _stagingRef
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
+    return _stagingRef.orderBy('createdAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
       return snapshot.docs
           .map((doc) => CloudMeal.fromMap(doc.data(), doc.id))
           .toList();
@@ -213,7 +215,10 @@ class VaultAdminRepository {
 
   /// Check if a meal with the given name already exists in the vault
   Future<bool> mealExists(String name) async {
-    final snapshot = await _vaultRef.where('name', isEqualTo: name.trim()).limit(1).get();
+    final snapshot = await _vaultRef
+        .where('name', isEqualTo: name.trim())
+        .limit(1)
+        .get();
     return snapshot.docs.isNotEmpty;
   }
 
@@ -221,7 +226,7 @@ class VaultAdminRepository {
   Future<void> approveStagingMeal(CloudMeal stagingMeal) async {
     final batch = _firestore.batch();
     final docRef = _vaultRef.doc(stagingMeal.id);
-    
+
     final approvedMeal = stagingMeal.copyWith(
       status: 'approved',
       updatedAt: DateTime.now(),
@@ -232,7 +237,7 @@ class VaultAdminRepository {
     final mealMap = approvedMeal.toMap()..remove('proposedBy');
     batch.set(docRef, mealMap);
     batch.delete(_stagingRef.doc(stagingMeal.id));
-    
+
     await batch.commit();
   }
 
@@ -247,7 +252,9 @@ class VaultAdminRepository {
       const cloudName = 'bzd1vjrs';
       const uploadPreset = 'daily meal';
 
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+      final uri = Uri.parse(
+        'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+      );
       final request = http.MultipartRequest('POST', uri)
         ..fields['upload_preset'] = uploadPreset
         ..files.add(
@@ -267,11 +274,16 @@ class VaultAdminRepository {
 
         // Auto-optimize delivery using Cloudinary AI format & quality
         if (secureUrl.contains('/upload/')) {
-          secureUrl = secureUrl.replaceFirst('/upload/', '/upload/f_auto,q_auto/');
+          secureUrl = secureUrl.replaceFirst(
+            '/upload/',
+            '/upload/f_auto,q_auto/',
+          );
         }
         return secureUrl;
       } else {
-        throw Exception('Cloudinary error (${response.statusCode}): ${response.body}');
+        throw Exception(
+          'Cloudinary error (${response.statusCode}): ${response.body}',
+        );
       }
     } catch (e) {
       throw Exception('فشل رفع الصورة: $e');
@@ -286,7 +298,8 @@ class VaultAdminRepository {
     if (snapshot.docs.isEmpty) return 0;
 
     // Group documents by normalized name (trimmed, lowercased)
-    final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>> grouped = {};
+    final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+    grouped = {};
     for (final doc in snapshot.docs) {
       final name = (doc.data()['name'] as String? ?? '').trim().toLowerCase();
       if (name.isEmpty) continue;
@@ -334,10 +347,10 @@ class VaultAdminRepository {
         .orderBy('sentAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => <String, dynamic>{...doc.data(), 'id': doc.id})
-          .toList();
-    });
+          return snapshot.docs
+              .map((doc) => <String, dynamic>{...doc.data(), 'id': doc.id})
+              .toList();
+        });
   }
 
   /// Broadcast a new notification, stamped with the server's clock.
