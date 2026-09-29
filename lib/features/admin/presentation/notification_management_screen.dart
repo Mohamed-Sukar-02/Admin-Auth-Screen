@@ -3,17 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/models/ai_notification_result.dart';
 import '../data/models/cloud_meal.dart';
 import '../data/vault_admin_repository.dart';
 import 'theme/admin_palette.dart';
 import 'widgets/admin_dialog.dart';
+import 'widgets/ai_assistant_panel.dart';
 
 /// A broadcast template: one type glyph, one label, one tint pair.
-typedef _NotificationType = ({
-  String key,
-  String label,
-  IconData icon,
-});
+typedef _NotificationType = ({String key, String label, IconData icon});
 
 /// A deep-link destination: the label the admin taps, and the route the mobile
 /// app opens. [route] is empty for the presets resolved at send time
@@ -79,12 +77,7 @@ class _NotificationManagementScreenState
       route: '/settings',
       icon: Icons.settings_rounded,
     ),
-    (
-      key: 'custom',
-      label: 'رابط مخصص',
-      route: '',
-      icon: AdminIcons.link,
-    ),
+    (key: 'custom', label: 'رابط مخصص', route: '', icon: AdminIcons.link),
   ];
 
   final _formKey = GlobalKey<FormState>();
@@ -135,14 +128,16 @@ class _NotificationManagementScreenState
 
     final meals = _selectedDestination == 'meal'
         ? (ref.read(vaultMealsStreamProvider).valueOrNull ??
-            const <CloudMeal>[])
+              const <CloudMeal>[])
         : const <CloudMeal>[];
     final targetRoute = _resolveRoute(meals);
     if (targetRoute.isEmpty) {
       // Reachable when the vault stream is still loading on a `meal` target,
       // where no field exists yet to fail form validation.
-      _showSnack('أكمل وجهة التوجيه قبل الإرسال',
-          AdminPalette.of(context).honeySolid);
+      _showSnack(
+        'أكمل وجهة التوجيه قبل الإرسال',
+        AdminPalette.of(context).honeySolid,
+      );
       return;
     }
 
@@ -150,15 +145,17 @@ class _NotificationManagementScreenState
     setState(() => _isSending = true);
 
     try {
-      await ref.read(vaultAdminRepositoryProvider).sendNotification(
-        type: _selectedType,
-        titleAr: _titleArController.text.trim(),
-        titleEn: _titleEnController.text.trim(),
-        messageAr: _messageArController.text.trim(),
-        messageEn: _messageEnController.text.trim(),
-        sentBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
-        route: targetRoute,
-      );
+      await ref
+          .read(vaultAdminRepositoryProvider)
+          .sendNotification(
+            type: _selectedType,
+            titleAr: _titleArController.text.trim(),
+            titleEn: _titleEnController.text.trim(),
+            messageAr: _messageArController.text.trim(),
+            messageEn: _messageEnController.text.trim(),
+            sentBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
+            route: targetRoute,
+          );
 
       _titleArController.clear();
       _titleEnController.clear();
@@ -193,8 +190,10 @@ class _NotificationManagementScreenState
 
   void _reportFailure(Object error) {
     if (!mounted) return;
-    _showSnack('فشل إرسال الإشعار: $error',
-        AdminPalette.of(context).chiliSolid);
+    _showSnack(
+      'فشل إرسال الإشعار: $error',
+      AdminPalette.of(context).chiliSolid,
+    );
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> notification) async {
@@ -224,8 +223,10 @@ class _NotificationManagementScreenState
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text('تعذّر حذف الإشعار: $error',
-                style: adminText(color: Colors.white)),
+            content: Text(
+              'تعذّر حذف الإشعار: $error',
+              style: adminText(color: Colors.white),
+            ),
             backgroundColor: p.chiliSolid,
             behavior: SnackBarBehavior.floating,
           ),
@@ -233,15 +234,32 @@ class _NotificationManagementScreenState
     }
   }
 
+  /// Pushes an AI-generated draft into the compose form. The type key is
+  /// already one of [_types], so the chip row picks it up without remapping.
+  void _applyAiResult(AiNotificationResult result) {
+    setState(() {
+      _titleArController.text = result.titleAr;
+      _titleEnController.text = result.titleEn;
+      _messageArController.text = result.messageAr;
+      _messageEnController.text = result.messageEn;
+      _selectedType = result.type;
+    });
+    _showSnack(
+      'تم ملء بيانات الإشعار من المساعد الذكي',
+      AdminPalette.of(context).oliveSolid,
+    );
+  }
+
   /// -------------------------------------------------------------- layout ---
   @override
   Widget build(BuildContext context) {
     final p = AdminPalette.of(context);
+    final isWide = MediaQuery.sizeOf(context).width >= 1150;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(26, 20, 26, 40),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
+        constraints: const BoxConstraints(maxWidth: 1380),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -249,7 +267,25 @@ class _NotificationManagementScreenState
             const SizedBox(height: 28),
             _SectionLabel(label: 'إنشاء إشعار جديد', palette: p),
             const SizedBox(height: 10),
-            _buildComposeCard(p),
+
+            if (isWide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 5, child: _buildComposeCard(p)),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    flex: 4,
+                    child: AiAssistantPanel(onApplyToForm: _applyAiResult),
+                  ),
+                ],
+              )
+            else ...[
+              _buildComposeCard(p),
+              const SizedBox(height: 20),
+              AiAssistantPanel(onApplyToForm: _applyAiResult),
+            ],
+
             const SizedBox(height: 28),
             _SectionLabel(label: 'سجل الإشعارات المرسلة', palette: p),
             const SizedBox(height: 10),
@@ -276,11 +312,14 @@ class _NotificationManagementScreenState
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('إدارة الإشعارات',
-                style: adminText(
-                    size: 20, weight: FontWeight.bold, color: p.ink)),
-            Text('إرسال إشعارات عامة لجميع مستخدمي التطبيق',
-                style: adminText(size: 12, color: p.inkMuted)),
+            Text(
+              'إدارة الإشعارات',
+              style: adminText(size: 20, weight: FontWeight.bold, color: p.ink),
+            ),
+            Text(
+              'إرسال إشعارات عامة لجميع مستخدمي التطبيق',
+              style: adminText(size: 12, color: p.inkMuted),
+            ),
           ],
         ),
       ],
@@ -291,8 +330,7 @@ class _NotificationManagementScreenState
     // The vault stream is only listened to while a specific meal is the target,
     // so composing any other notification costs no vault reads.
     final pickingMeal = _selectedDestination == 'meal';
-    final mealsAsync =
-        pickingMeal ? ref.watch(vaultMealsStreamProvider) : null;
+    final mealsAsync = pickingMeal ? ref.watch(vaultMealsStreamProvider) : null;
     final meals = mealsAsync?.valueOrNull ?? const <CloudMeal>[];
 
     return Container(
@@ -303,9 +341,14 @@ class _NotificationManagementScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('نوع الإشعار',
-                style: adminText(
-                    size: 12.5, weight: FontWeight.w700, color: p.inkMuted)),
+            Text(
+              'نوع الإشعار',
+              style: adminText(
+                size: 12.5,
+                weight: FontWeight.w700,
+                color: p.inkMuted,
+              ),
+            ),
             const SizedBox(height: 10),
             _buildChoiceChips(
               options: _types,
@@ -341,9 +384,14 @@ class _NotificationManagementScreenState
               ltr: true,
             ),
             const SizedBox(height: 20),
-            Text('وجهة التوجيه عند الضغط',
-                style: adminText(
-                    size: 12.5, weight: FontWeight.w700, color: p.inkMuted)),
+            Text(
+              'وجهة التوجيه عند الضغط',
+              style: adminText(
+                size: 12.5,
+                weight: FontWeight.w700,
+                color: p.inkMuted,
+              ),
+            ),
             const SizedBox(height: 10),
             _buildChoiceChips(
               options: _destinations
@@ -401,17 +449,17 @@ class _NotificationManagementScreenState
               size: 18,
               color: selected == option.key ? p.onClaySoft : p.inkMuted,
             ),
-            label: Text(option.label,
-                style: adminText(
-                    size: 13,
-                    weight: FontWeight.w600,
-                    color: selected == option.key
-                        ? p.onClaySoft
-                        : p.inkMuted)),
+            label: Text(
+              option.label,
+              style: adminText(
+                size: 13,
+                weight: FontWeight.w600,
+                color: selected == option.key ? p.onClaySoft : p.inkMuted,
+              ),
+            ),
             backgroundColor: p.surfaceAlt,
             selectedColor: p.claySoft,
-            side:
-                BorderSide(color: selected == option.key ? p.clay : p.border),
+            side: BorderSide(color: selected == option.key ? p.clay : p.border),
             showCheckmark: false,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           ),
@@ -502,9 +550,14 @@ class _NotificationManagementScreenState
 
     return Row(
       children: [
-        Text('المسار النهائي',
-            style: adminText(
-                size: 11.5, weight: FontWeight.w700, color: p.inkFaint)),
+        Text(
+          'المسار النهائي',
+          style: adminText(
+            size: 11.5,
+            weight: FontWeight.w700,
+            color: p.inkFaint,
+          ),
+        ),
         const SizedBox(width: 10),
         Flexible(child: _RoutePill(route: route)),
       ],
@@ -527,9 +580,11 @@ class _NotificationManagementScreenState
       autovalidateMode: AutovalidateMode.onUserInteraction,
       style: adminText(color: p.ink, height: 1.6),
       textDirection: ltr ? TextDirection.ltr : null,
-      validator: validator ??
-          (value) =>
-              (value == null || value.trim().isEmpty) ? 'هذا الحقل مطلوب' : null,
+      validator:
+          validator ??
+          (value) => (value == null || value.trim().isEmpty)
+              ? 'هذا الحقل مطلوب'
+              : null,
       decoration: adminFieldDeco(p, label: label, icon: icon, hint: hint),
     );
   }
@@ -556,7 +611,9 @@ class _NotificationManagementScreenState
               width: 18,
               height: 18,
               child: CircularProgressIndicator(
-                  strokeWidth: 2.2, color: Colors.white),
+                strokeWidth: 2.2,
+                color: Colors.white,
+              ),
             )
           else
             const Icon(AdminIcons.campaign, size: 19, color: Colors.white),
@@ -582,7 +639,9 @@ class _NotificationManagementScreenState
             width: 26,
             height: 26,
             child: CircularProgressIndicator(
-                strokeWidth: 2.6, color: p.claySolid),
+              strokeWidth: 2.6,
+              color: p.claySolid,
+            ),
           ),
         ),
       ),
@@ -619,9 +678,14 @@ class _NotificationManagementScreenState
                   child: Icon(AdminIcons.empty, size: 28, color: p.inkFaint),
                 ),
                 const SizedBox(height: 16),
-                Text('لم يتم إرسال أي إشعارات بعد',
-                    style: adminText(
-                        size: 15, weight: FontWeight.bold, color: p.ink)),
+                Text(
+                  'لم يتم إرسال أي إشعارات بعد',
+                  style: adminText(
+                    size: 15,
+                    weight: FontWeight.bold,
+                    color: p.ink,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'أول إشعار ترسله سيظهر هنا مع تاريخ الإرسال ومن أرسله.',
@@ -673,9 +737,14 @@ class _SectionLabel extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text(label,
-            style: adminText(
-                size: 13, weight: FontWeight.w700, color: palette.inkMuted)),
+        Text(
+          label,
+          style: adminText(
+            size: 13,
+            weight: FontWeight.w700,
+            color: palette.inkMuted,
+          ),
+        ),
       ],
     );
   }
@@ -716,8 +785,10 @@ class _TargetHint extends StatelessWidget {
           Icon(icon, size: 17, color: fg),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text,
-                style: adminText(size: 12.5, color: fg, height: 1.6)),
+            child: Text(
+              text,
+              style: adminText(size: 12.5, color: fg, height: 1.6),
+            ),
           ),
         ],
       ),
@@ -730,10 +801,7 @@ class _NotificationCard extends StatelessWidget {
   final Map<String, dynamic> notification;
   final VoidCallback onDelete;
 
-  const _NotificationCard({
-    required this.notification,
-    required this.onDelete,
-  });
+  const _NotificationCard({required this.notification, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -778,25 +846,24 @@ class _NotificationCard extends StatelessWidget {
                           child: Text(
                             titleAr.isEmpty ? 'بدون عنوان' : titleAr,
                             style: adminText(
-                                size: 15,
-                                weight: FontWeight.bold,
-                                color: p.ink,
-                                height: 1.45),
+                              size: 15,
+                              weight: FontWeight.bold,
+                              color: p.ink,
+                              height: 1.45,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _TypePill(
-                          label: type.label,
-                          bg: type.bg,
-                          fg: type.fg,
-                        ),
+                        _TypePill(label: type.label, bg: type.bg, fg: type.fg),
                       ],
                     ),
                     if (titleEn.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(titleEn,
-                          textDirection: TextDirection.ltr,
-                          style: adminText(size: 12.5, color: p.inkMuted)),
+                      Text(
+                        titleEn,
+                        textDirection: TextDirection.ltr,
+                        style: adminText(size: 12.5, color: p.inkMuted),
+                      ),
                     ],
                   ],
                 ),
@@ -811,13 +878,17 @@ class _NotificationCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           if (messageAr.isNotEmpty)
-            Text(messageAr,
-                style: adminText(size: 13.5, color: p.ink, height: 1.7)),
+            Text(
+              messageAr,
+              style: adminText(size: 13.5, color: p.ink, height: 1.7),
+            ),
           if (messageEn.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(messageEn,
-                textDirection: TextDirection.ltr,
-                style: adminText(size: 12.5, color: p.inkMuted, height: 1.6)),
+            Text(
+              messageEn,
+              textDirection: TextDirection.ltr,
+              style: adminText(size: 12.5, color: p.inkMuted, height: 1.6),
+            ),
           ],
           const SizedBox(height: 12),
           _RoutePill(route: route),
@@ -866,8 +937,10 @@ class _TypePill extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(AdminRadii.pill),
       ),
-      child: Text(label,
-          style: adminText(size: 11, weight: FontWeight.w700, color: fg)),
+      child: Text(
+        label,
+        style: adminText(size: 11, weight: FontWeight.w700, color: fg),
+      ),
     );
   }
 }
@@ -901,7 +974,10 @@ class _RoutePill extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textDirection: TextDirection.ltr,
               style: adminText(
-                  size: 11, weight: FontWeight.w700, color: p.nileInk),
+                size: 11,
+                weight: FontWeight.w700,
+                color: p.nileInk,
+              ),
             ),
           ),
         ],
