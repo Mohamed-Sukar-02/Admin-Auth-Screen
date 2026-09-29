@@ -84,43 +84,43 @@ class AdminToastSpec {
 
 extension AdminToastKindSpec on AdminToastKind {
   AdminToastSpec get spec => switch (this) {
-        AdminToastKind.info => AdminToastSpec(
-            icon: AdminIcons.info,
-            accent: const Color(0xFF3B82F6),
-            label: 'معلومة',
-            autoDismiss: const Duration(milliseconds: 2200),
-          ),
-        AdminToastKind.success => AdminToastSpec(
-            icon: AdminIcons.success,
-            accent: const Color(0xFF22C55E),
-            label: 'تم بنجاح',
-            autoDismiss: const Duration(milliseconds: 2000),
-          ),
-        AdminToastKind.warning => AdminToastSpec(
-            icon: AdminIcons.warning,
-            accent: const Color(0xFFF59E0B),
-            label: 'تنبيه',
-            autoDismiss: const Duration(milliseconds: 3200),
-          ),
-        AdminToastKind.error => AdminToastSpec(
-            icon: AdminIcons.danger,
-            accent: const Color(0xFFEF4444),
-            label: 'خطأ',
-            autoDismiss: const Duration(milliseconds: 5500),
-          ),
-        AdminToastKind.loading => AdminToastSpec(
-            icon: Icons.pending_rounded,
-            accent: const Color(0xFF38BDF8),
-            label: 'قيد التنفيذ',
-            autoDismiss: null,
-          ),
-        AdminToastKind.offline => AdminToastSpec(
-            icon: Icons.cloud_off_rounded,
-            accent: const Color(0xFF94A3B8),
-            label: 'حالة الاتصال',
-            autoDismiss: null,
-          ),
-      };
+    AdminToastKind.info => AdminToastSpec(
+      icon: AdminIcons.info,
+      accent: const Color(0xFF3B82F6),
+      label: 'معلومة',
+      autoDismiss: const Duration(milliseconds: 2200),
+    ),
+    AdminToastKind.success => AdminToastSpec(
+      icon: AdminIcons.success,
+      accent: const Color(0xFF22C55E),
+      label: 'تم بنجاح',
+      autoDismiss: const Duration(milliseconds: 2000),
+    ),
+    AdminToastKind.warning => AdminToastSpec(
+      icon: AdminIcons.warning,
+      accent: const Color(0xFFF59E0B),
+      label: 'تنبيه',
+      autoDismiss: const Duration(milliseconds: 3200),
+    ),
+    AdminToastKind.error => AdminToastSpec(
+      icon: AdminIcons.danger,
+      accent: const Color(0xFFEF4444),
+      label: 'خطأ',
+      autoDismiss: const Duration(milliseconds: 5500),
+    ),
+    AdminToastKind.loading => AdminToastSpec(
+      icon: Icons.pending_rounded,
+      accent: const Color(0xFF38BDF8),
+      label: 'قيد التنفيذ',
+      autoDismiss: null,
+    ),
+    AdminToastKind.offline => AdminToastSpec(
+      icon: Icons.cloud_off_rounded,
+      accent: const Color(0xFF94A3B8),
+      label: 'حالة الاتصال',
+      autoDismiss: null,
+    ),
+  };
 }
 
 /// ---------------------------------------------------------------------------
@@ -219,26 +219,27 @@ abstract final class AdminToast {
     Duration? duration,
   }) {
     AdminToastOverlay.mount();
-    return AdminToastHandle(AdminToastRegistry.instance.push(
-      message: message,
-      subtitle: subtitle,
-      kind: kind,
-      onUndo: onUndo,
-      duration: duration,
-    ));
+    return AdminToastHandle(
+      AdminToastRegistry.instance.push(
+        message: message,
+        subtitle: subtitle,
+        kind: kind,
+        onUndo: onUndo,
+        duration: duration,
+      ),
+    );
   }
 
   /// A toast that stays until [AdminToastHandle.resolve] reports the outcome.
   static AdminToastHandle loading({
     required String message,
     String? subtitle,
-  }) =>
-      show(
-        message: message,
-        subtitle: subtitle,
-        kind: AdminToastKind.loading,
-        duration: null,
-      );
+  }) => show(
+    message: message,
+    subtitle: subtitle,
+    kind: AdminToastKind.loading,
+    duration: null,
+  );
 
   static void dismissAll() => AdminToastRegistry.instance.dismissAll();
 }
@@ -335,14 +336,16 @@ class AdminToastRegistry extends ChangeNotifier {
     VoidCallback? onUndo,
   }) {
     final id = 'toast-${_seq++}';
-    _items.add(AdminToastItem(
-      id: id,
-      message: message,
-      subtitle: subtitle,
-      kind: kind,
-      duration: duration,
-      onUndo: onUndo,
-    ));
+    _items.add(
+      AdminToastItem(
+        id: id,
+        message: message,
+        subtitle: subtitle,
+        kind: kind,
+        duration: duration,
+        onUndo: onUndo,
+      ),
+    );
     _history.insert(
       0,
       AdminToastRecord(
@@ -352,7 +355,8 @@ class AdminToastRegistry extends ChangeNotifier {
         time: DateTime.now(),
       ),
     );
-    if (_history.length > maxHistory) _history.removeRange(maxHistory, _history.length);
+    if (_history.length > maxHistory)
+      _history.removeRange(maxHistory, _history.length);
     if (_items.length > maxVisible) {
       _items.removeRange(0, _items.length - maxVisible);
     }
@@ -430,7 +434,8 @@ abstract final class AdminToastOverlay {
     if (_entry != null) return;
     // The root navigator's own overlay: it sits above every route, so the
     // stack survives page changes and nested navigators.
-    final overlay = rootNavigatorKey.currentState?.overlay ??
+    final overlay =
+        rootNavigatorKey.currentState?.overlay ??
         (context == null ? null : Overlay.of(context, rootOverlay: true));
     if (overlay == null) return;
     final entry = OverlayEntry(builder: (_) => const AdminToastStack());
@@ -497,8 +502,10 @@ class _AdminToastStackState extends State<AdminToastStack> {
         width: stackWidth,
         child: ShaderMask(
           blendMode: BlendMode.dstIn,
-          shaderCallback: (rect) =>
-              _fadeShader(rect, screen.height * AdminToastStack.fadeAtViewportFraction),
+          shaderCallback: (rect) => _fadeShader(
+            rect,
+            screen.height * AdminToastStack.fadeAtViewportFraction,
+          ),
           child: items.isEmpty
               ? const SizedBox.shrink()
               : Column(
@@ -533,7 +540,9 @@ class _AdminToastStackState extends State<AdminToastStack> {
       ).createShader(rect);
     }
     final band = math.min(
-        height, math.max(safeHeight * 0.35, height * 0.2 * strength + safeHeight * 0.12));
+      height,
+      math.max(safeHeight * 0.35, height * 0.2 * strength + safeHeight * 0.12),
+    );
     final topAlpha = (1 - 0.94 * strength).clamp(0.0, 1.0);
     return LinearGradient(
       begin: Alignment.topCenter,
@@ -557,11 +566,7 @@ class AdminToastCard extends StatefulWidget {
   /// Only the newest toast (bottom of the stack) drops its gap.
   final bool isBottom;
 
-  const AdminToastCard({
-    super.key,
-    required this.item,
-    required this.isBottom,
-  });
+  const AdminToastCard({super.key, required this.item, required this.isBottom});
 
   @override
   State<AdminToastCard> createState() => _AdminToastCardState();
@@ -597,7 +602,8 @@ class _AdminToastCardState extends State<AdminToastCard>
     super.didUpdateWidget(old);
     // A resolve() can change the kind and therefore the lifetime: re-arm so
     // a loading toast that just succeeded starts counting down now.
-    if (_armedKind != widget.item.kind || _armedLifetime != widget.item.lifetime) {
+    if (_armedKind != widget.item.kind ||
+        _armedLifetime != widget.item.lifetime) {
       _armTimer();
     }
   }
@@ -660,8 +666,7 @@ class _AdminToastCardState extends State<AdminToastCard>
   Widget build(BuildContext context) {
     final item = widget.item;
     final spec = item.kind.spec;
-    final tones =
-        AdminToastTones.forScreen(Theme.of(context).brightness);
+    final tones = AdminToastTones.forScreen(Theme.of(context).brightness);
     final accent = tones.accent(spec.accent);
 
     return AnimatedSize(
@@ -675,11 +680,16 @@ class _AdminToastCardState extends State<AdminToastCard>
               child: FadeTransition(
                 opacity: CurvedAnimation(parent: _enter, curve: Curves.easeOut),
                 child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(1.15, 0),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                      parent: _enter, curve: Curves.easeOutCubic)),
+                  position:
+                      Tween<Offset>(
+                        begin: const Offset(1.15, 0),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: _enter,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
                   child: MouseRegion(
                     onEnter: (_) => _pause(),
                     onExit: (_) => _resume(),
@@ -695,7 +705,9 @@ class _AdminToastCardState extends State<AdminToastCard>
                           children: [
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 13),
+                                horizontal: 14,
+                                vertical: 13,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
@@ -753,7 +765,9 @@ class _AdminToastCardState extends State<AdminToastCard>
                                 ],
                               ),
                             ),
-                            if (_life != null) _LifetimeBar(life: _life!, accent: accent),                          ],
+                            if (_life != null)
+                              _LifetimeBar(life: _life!, accent: accent),
+                          ],
                         ),
                       ),
                     ),
@@ -820,10 +834,7 @@ class _LifetimeBar extends StatelessWidget {
         alignment: AlignmentDirectional.centerStart,
         child: FractionallySizedBox(
           widthFactor: (1 - life.value).clamp(0.0, 1.0),
-          child: Container(
-            height: 2.5,
-            color: accent.withValues(alpha: 0.55),
-          ),
+          child: Container(height: 2.5, color: accent.withValues(alpha: 0.55)),
         ),
       ),
     );
@@ -882,15 +893,8 @@ class _DismissButton extends StatelessWidget {
       child: Container(
         width: 26,
         height: 26,
-        decoration: BoxDecoration(
-          color: background,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          Icons.close_rounded,
-          size: 14,
-          color: foreground,
-        ),
+        decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+        child: Icon(Icons.close_rounded, size: 14, color: foreground),
       ),
     );
   }
@@ -986,7 +990,10 @@ class _HistoryTile extends StatelessWidget {
                 Text(
                   record.message,
                   style: adminText(
-                      size: 12.5, weight: FontWeight.w700, color: p.ink),
+                    size: 12.5,
+                    weight: FontWeight.w700,
+                    color: p.ink,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

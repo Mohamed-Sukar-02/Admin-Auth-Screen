@@ -13,11 +13,7 @@ class AddMealDialog extends ConsumerStatefulWidget {
   final CloudMeal? initialMeal;
   final bool isStaging;
 
-  const AddMealDialog({
-    super.key,
-    this.initialMeal,
-    this.isStaging = false,
-  });
+  const AddMealDialog({super.key, this.initialMeal, this.isStaging = false});
 
   @override
   ConsumerState<AddMealDialog> createState() => _AddMealDialogState();
@@ -165,8 +161,12 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
     final mealToSave = CloudMeal(
       id: widget.initialMeal?.id ?? '',
       name: _nameController.text.trim(),
-      shortName: _shortNameController.text.trim().isEmpty ? null : _shortNameController.text.trim(),
-      imageUrl: _imageUrlController.text.trim().isEmpty ? null : _imageUrlController.text.trim(),
+      shortName: _shortNameController.text.trim().isEmpty
+          ? null
+          : _shortNameController.text.trim(),
+      imageUrl: _imageUrlController.text.trim().isEmpty
+          ? null
+          : _imageUrlController.text.trim(),
       category: _category,
       proteinType: _proteinType,
       carbsType: _carbsType,
@@ -174,20 +174,24 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
       isFridaySpecial: _isFridaySpecial,
       isBudgetFriendly: _isBudgetFriendly,
       isStarterMeal: _isStarterMeal,
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
       createdAt: widget.initialMeal?.createdAt ?? DateTime.now(),
       proposedBy: widget.initialMeal?.proposedBy,
       status: 'approved',
     );
 
     // Start background upload — it reports progress through the toast stack
-    ref.read(backgroundUploadProvider.notifier).startUpload(
-      meal: mealToSave,
-      imageBytes: _pickedImageBytes,
-      imageName: _pickedImageName,
-      isStaging: widget.isStaging,
-      isEdit: widget.initialMeal != null,
-    );
+    ref
+        .read(backgroundUploadProvider.notifier)
+        .startUpload(
+          meal: mealToSave,
+          imageBytes: _pickedImageBytes,
+          imageName: _pickedImageName,
+          isStaging: widget.isStaging,
+          isEdit: widget.initialMeal != null,
+        );
 
     // Close dialog immediately without waiting
     Navigator.of(context).pop(true);
@@ -271,11 +275,15 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
                     style: adminText(color: p.ink),
                     decoration: adminFieldDeco(p, label: 'تصنيف الأكلة'),
                     items: _categories
-                        .map((c) => DropdownMenuItem(
-                              value: c['key'],
-                              child: Text(c['label']!,
-                                  style: adminText(size: 14, color: p.ink)),
-                            ))
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c['key'],
+                            child: Text(
+                              c['label']!,
+                              style: adminText(size: 14, color: p.ink),
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _category = v!),
                   ),
@@ -291,11 +299,15 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
                     style: adminText(color: p.ink),
                     decoration: adminFieldDeco(p, label: 'نوع البروتين'),
                     items: _proteins
-                        .map((x) => DropdownMenuItem(
-                              value: x['key'],
-                              child: Text(x['label']!,
-                                  style: adminText(size: 14, color: p.ink)),
-                            ))
+                        .map(
+                          (x) => DropdownMenuItem(
+                            value: x['key'],
+                            child: Text(
+                              x['label']!,
+                              style: adminText(size: 14, color: p.ink),
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _proteinType = v!),
                   ),
@@ -315,11 +327,15 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
                     style: adminText(color: p.ink),
                     decoration: adminFieldDeco(p, label: 'نوع النشويات'),
                     items: _carbs
-                        .map((c) => DropdownMenuItem(
-                              value: c['key'],
-                              child: Text(c['label']!,
-                                  style: adminText(size: 14, color: p.ink)),
-                            ))
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c['key'],
+                            child: Text(
+                              c['label']!,
+                              style: adminText(size: 14, color: p.ink),
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _carbsType = v!),
                   ),
@@ -340,10 +356,7 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
               ],
             ),
             const SizedBox(height: 22),
-            const AdminSectionLabel(
-              icon: AdminIcons.tags,
-              text: 'الوسوم',
-            ),
+            const AdminSectionLabel(icon: AdminIcons.tags, text: 'الوسوم'),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -455,10 +468,13 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
                                 foregroundColor: p.claySolid,
                                 side: BorderSide(color: p.borderStrong),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 12),
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(AdminRadii.sm),
+                                  borderRadius: BorderRadius.circular(
+                                    AdminRadii.sm,
+                                  ),
                                 ),
                               ),
                               icon: const Icon(AdminIcons.upload, size: 18),
@@ -467,7 +483,9 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
                                     ? 'تغيير الصورة المرفوعة'
                                     : 'رفع صورة من الجهاز',
                                 style: adminText(
-                                    size: 13, weight: FontWeight.bold),
+                                  size: 13,
+                                  weight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -503,10 +521,7 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
               ),
             ),
             const SizedBox(height: 22),
-            const AdminSectionLabel(
-              icon: AdminIcons.notes,
-              text: 'ملاحظات',
-            ),
+            const AdminSectionLabel(icon: AdminIcons.notes, text: 'ملاحظات'),
             const SizedBox(height: 10),
             TextFormField(
               controller: _notesController,
@@ -595,8 +610,11 @@ class _ImagePreview extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: p.surface, width: 1.5),
                     ),
-                    child: const Icon(AdminIcons.close,
-                        size: 12, color: Colors.white),
+                    child: const Icon(
+                      AdminIcons.close,
+                      size: 12,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -622,9 +640,8 @@ class _ImagePreview extends StatelessWidget {
     return _placeholder();
   }
 
-  Widget _placeholder() => Center(
-        child: Icon(AdminIcons.image, size: 26, color: p.inkFaint),
-      );
+  Widget _placeholder() =>
+      Center(child: Icon(AdminIcons.image, size: 26, color: p.inkFaint));
 }
 
 /// Checkbox card used for the "Friday" and "budget" tags.

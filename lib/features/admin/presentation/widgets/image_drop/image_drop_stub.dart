@@ -9,5 +9,4 @@ void Function() watchImageDrop({
   required void Function(Uint8List bytes, String name) onImage,
   required void Function(String name) onNonImage,
   required void Function(bool active) onDrag,
-}) =>
-    () {};
+}) => () {};

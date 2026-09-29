@@ -123,25 +123,46 @@ AdminDialogToneColors adminToneColors(AdminPalette p, AdminDialogTone tone) {
   switch (tone) {
     case AdminDialogTone.brand:
       return AdminDialogToneColors(
-          solid: p.claySolid, soft: p.claySoft, ink: p.onClaySoft);
+        solid: p.claySolid,
+        soft: p.claySoft,
+        ink: p.onClaySoft,
+      );
     case AdminDialogTone.danger:
       return AdminDialogToneColors(
-          solid: p.chiliSolid, soft: p.chiliSoft, ink: p.chiliInk);
+        solid: p.chiliSolid,
+        soft: p.chiliSoft,
+        ink: p.chiliInk,
+      );
     case AdminDialogTone.warn:
       return AdminDialogToneColors(
-          solid: p.honeySolid, soft: p.honeySoft, ink: p.honeyInk);
+        solid: p.honeySolid,
+        soft: p.honeySoft,
+        ink: p.honeyInk,
+      );
     case AdminDialogTone.success:
       return AdminDialogToneColors(
-          solid: p.oliveSolid, soft: p.oliveSoft, ink: p.oliveInk);
+        solid: p.oliveSolid,
+        soft: p.oliveSoft,
+        ink: p.oliveInk,
+      );
     case AdminDialogTone.info:
       return AdminDialogToneColors(
-          solid: p.nileSolid, soft: p.nileSoft, ink: p.nileInk);
+        solid: p.nileSolid,
+        soft: p.nileSoft,
+        ink: p.nileInk,
+      );
     case AdminDialogTone.plum:
       return AdminDialogToneColors(
-          solid: p.plumSolid, soft: p.plumSoft, ink: p.plumInk);
+        solid: p.plumSolid,
+        soft: p.plumSoft,
+        ink: p.plumInk,
+      );
     case AdminDialogTone.neutral:
       return AdminDialogToneColors(
-          solid: p.borderStrong, soft: p.surfaceSunken, ink: p.inkMuted);
+        solid: p.borderStrong,
+        soft: p.surfaceSunken,
+        ink: p.inkMuted,
+      );
   }
 }
 
@@ -158,7 +179,8 @@ Future<T?> showAdminDialog<T>({
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    barrierLabel: barrierLabel ??
+    barrierLabel:
+        barrierLabel ??
         MaterialLocalizations.of(context).modalBarrierDismissLabel,
     barrierColor: p.scrim,
     transitionDuration: const Duration(milliseconds: 220),
@@ -250,7 +272,11 @@ class AdminDialogShell extends StatelessWidget {
               ?hero,
               Padding(
                 padding: EdgeInsetsDirectional.fromSTEB(
-                    22, hero == null ? 22 : 18, 22, 0),
+                  22,
+                  hero == null ? 22 : 18,
+                  22,
+                  0,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -264,12 +290,15 @@ class AdminDialogShell extends StatelessWidget {
                           colors: [
                             t.soft,
                             Color.alphaBlend(
-                                t.solid.withValues(alpha: 0.14), t.soft),
+                              t.solid.withValues(alpha: 0.14),
+                              t.soft,
+                            ),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(15),
-                        border:
-                            Border.all(color: t.solid.withValues(alpha: 0.28)),
+                        border: Border.all(
+                          color: t.solid.withValues(alpha: 0.28),
+                        ),
                       ),
                       child: Icon(icon, size: 22, color: t.ink),
                     ),
@@ -283,17 +312,21 @@ class AdminDialogShell extends StatelessWidget {
                             Text(
                               title,
                               style: adminText(
-                                  size: 16.5,
-                                  weight: FontWeight.bold,
-                                  color: p.ink,
-                                  height: 1.3),
+                                size: 16.5,
+                                weight: FontWeight.bold,
+                                color: p.ink,
+                                height: 1.3,
+                              ),
                             ),
                             if (subtitle != null) ...[
                               const SizedBox(height: 3),
                               Text(
                                 subtitle!,
                                 style: adminText(
-                                    size: 12, color: p.inkMuted, height: 1.5),
+                                  size: 12,
+                                  color: p.inkMuted,
+                                  height: 1.5,
+                                ),
                               ),
                             ],
                           ],
@@ -383,8 +416,10 @@ class AdminDialogButtons {
     VoidCallback? onPressed,
     IconData? icon,
   }) {
-    final text =
-        Text(label, style: adminText(size: 13.5, weight: FontWeight.bold));
+    final text = Text(
+      label,
+      style: adminText(size: 13.5, weight: FontWeight.bold),
+    );
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
@@ -429,13 +464,18 @@ class AdminDialogButtons {
         child: const SizedBox(
           width: 17,
           height: 17,
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Colors.white),
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
         ),
       );
     }
-    final text = Text(label,
-        style: adminText(size: 13.5, weight: FontWeight.bold, color: Colors.white));
+    final text = Text(
+      label,
+      style: adminText(
+        size: 13.5,
+        weight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    );
     if (icon == null) {
       return FilledButton(style: style, onPressed: onPressed, child: text);
     }
@@ -464,7 +504,10 @@ class AdminDialogButtons {
         borderRadius: BorderRadius.circular(AdminRadii.md),
       ),
     );
-    final text = Text(label, style: adminText(size: 13.5, weight: FontWeight.bold));
+    final text = Text(
+      label,
+      style: adminText(size: 13.5, weight: FontWeight.bold),
+    );
     if (icon == null) {
       return FilledButton(style: style, onPressed: onPressed, child: text);
     }
@@ -524,8 +567,10 @@ Future<bool> showAdminConfirmDialog({
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(message,
-              style: adminText(size: 13.5, color: p.inkMuted, height: 1.7)),
+          Text(
+            message,
+            style: adminText(size: 13.5, color: p.inkMuted, height: 1.7),
+          ),
           if (note != null) ...[const SizedBox(height: 14), note],
         ],
       ),
@@ -566,9 +611,15 @@ class AdminDialogBanner extends StatelessWidget {
           Icon(icon, size: 18, color: t.ink),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(message,
-                style: adminText(
-                    size: 12.5, weight: FontWeight.w600, color: t.ink, height: 1.6)),
+            child: Text(
+              message,
+              style: adminText(
+                size: 12.5,
+                weight: FontWeight.w600,
+                color: t.ink,
+                height: 1.6,
+              ),
+            ),
           ),
         ],
       ),
@@ -626,17 +677,29 @@ class AdminDialogNote extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: adminText(
-                        size: 13, weight: FontWeight.w700, color: p.ink, height: 1.4),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  title,
+                  style: adminText(
+                    size: 13,
+                    weight: FontWeight.w700,
+                    color: p.ink,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 3),
-                  Text(subtitle!,
-                      style: adminText(size: 11.5, color: p.inkMuted, height: 1.5),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    subtitle!,
+                    style: adminText(
+                      size: 11.5,
+                      color: p.inkMuted,
+                      height: 1.5,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ],
             ),
@@ -649,9 +712,14 @@ class AdminDialogNote extends StatelessWidget {
                 color: t.soft,
                 borderRadius: BorderRadius.circular(AdminRadii.pill),
               ),
-              child: Text(badge!,
-                  style: adminText(
-                      size: 11, weight: FontWeight.w700, color: t.ink)),
+              child: Text(
+                badge!,
+                style: adminText(
+                  size: 11,
+                  weight: FontWeight.w700,
+                  color: t.ink,
+                ),
+              ),
             ),
           ],
         ],
@@ -729,7 +797,9 @@ class AdminDialogHero extends StatelessWidget {
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: p.inkFaint),
+                        strokeWidth: 2,
+                        color: p.inkFaint,
+                      ),
                     ),
                   ),
                 ),
@@ -775,12 +845,17 @@ class AdminSectionLabel extends StatelessWidget {
           child: Icon(icon, size: 13, color: p.inkMuted),
         ),
         const SizedBox(width: 8),
-        Text(text,
-            style: adminText(size: 12, weight: FontWeight.w700, color: p.inkFaint)),
+        Text(
+          text,
+          style: adminText(
+            size: 12,
+            weight: FontWeight.w700,
+            color: p.inkFaint,
+          ),
+        ),
         if (trailing != null) ...[
           const Spacer(),
-          Text(trailing!,
-              style: adminText(size: 11, color: p.inkFaint)),
+          Text(trailing!, style: adminText(size: 11, color: p.inkFaint)),
         ],
       ],
     );
@@ -814,18 +889,31 @@ class AdminSpecTile extends StatelessWidget {
               Icon(icon, size: 14, color: p.inkFaint),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(label,
-                    style: adminText(size: 11, weight: FontWeight.w600, color: p.inkFaint),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  label,
+                  style: adminText(
+                    size: 11,
+                    weight: FontWeight.w600,
+                    color: p.inkFaint,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(value,
-              style: adminText(size: 13, weight: FontWeight.w700, color: p.ink, height: 1.4),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
+          Text(
+            value,
+            style: adminText(
+              size: 13,
+              weight: FontWeight.w700,
+              color: p.ink,
+              height: 1.4,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -878,8 +966,10 @@ class AdminDialogPanel extends StatelessWidget {
             const SizedBox(width: 9),
           ],
           Expanded(
-            child: Text(text,
-                style: adminText(size: 12.5, color: p.inkMuted, height: 1.7)),
+            child: Text(
+              text,
+              style: adminText(size: 12.5, color: p.inkMuted, height: 1.7),
+            ),
           ),
         ],
       ),
@@ -891,7 +981,7 @@ class AdminDialogPanel extends StatelessWidget {
 /// Role badges (admin management)
 /// ---------------------------------------------------------------------------
 ({String label, String short, AdminDialogTone tone, IconData icon})
-    adminRoleMeta(String role) {
+adminRoleMeta(String role) {
   switch (role) {
     case 'super_admin':
       return (
@@ -943,8 +1033,10 @@ class AdminRoleBadge extends StatelessWidget {
             Icon(meta.icon, size: 12, color: t.ink),
             const SizedBox(width: 5),
           ],
-          Text(meta.label,
-              style: adminText(size: 11, weight: FontWeight.w700, color: t.ink)),
+          Text(
+            meta.label,
+            style: adminText(size: 11, weight: FontWeight.w700, color: t.ink),
+          ),
         ],
       ),
     );
@@ -973,8 +1065,11 @@ InputDecoration adminFieldDeco(
     labelText: label,
     hintText: hint,
     labelStyle: adminText(size: 13, color: p.inkMuted),
-    floatingLabelStyle:
-        adminText(size: 13, weight: FontWeight.w700, color: p.clay),
+    floatingLabelStyle: adminText(
+      size: 13,
+      weight: FontWeight.w700,
+      color: p.clay,
+    ),
     hintStyle: adminText(size: 12.5, color: p.inkFaint),
     helperText: helper,
     helperStyle: adminText(size: 11.5, color: p.inkFaint),
