@@ -1044,6 +1044,97 @@ class AdminRoleBadge extends StatelessWidget {
 }
 
 /// ---------------------------------------------------------------------------
+/// Section header
+/// ---------------------------------------------------------------------------
+/// The one page-section title every admin screen opens a block with, so a new
+/// surface inherits the shared rhythm instead of inventing a local header.
+class AdminSectionHeader extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  const AdminSectionHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = AdminPalette.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: adminText(size: 20, weight: FontWeight.bold, color: p.ink),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(subtitle!, style: adminText(size: 13, color: p.inkMuted)),
+              ],
+            ],
+          ),
+        ),
+        ?trailing,
+      ],
+    );
+  }
+}
+
+/// ---------------------------------------------------------------------------
+/// Icon control
+/// ---------------------------------------------------------------------------
+/// The bordered chip every secondary icon action wears. A bare, tint-less
+/// [IconButton] dissolves into the panel surface, especially on the dark mode,
+/// so secondary controls get a fill, an outline and a full-strength glyph.
+class AdminIconChip extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+  final Color? glyphColor;
+  final double glyphSize;
+
+  const AdminIconChip({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    this.onTap,
+    this.glyphColor,
+    this.glyphSize = 18,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = AdminPalette.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: p.surfaceAlt,
+        borderRadius: BorderRadius.circular(AdminRadii.sm),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AdminRadii.sm),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AdminRadii.sm),
+              border: Border.all(color: p.borderStrong),
+            ),
+            child: Icon(icon, size: glyphSize, color: glyphColor ?? p.ink),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ---------------------------------------------------------------------------
 /// Fields
 /// ---------------------------------------------------------------------------
 /// Filled input style shared by every admin form.

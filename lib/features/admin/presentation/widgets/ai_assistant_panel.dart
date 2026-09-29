@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/localization/app_strings.dart';
 import '../../data/ai_notification_service.dart';
 import '../../data/ai_provider_repository.dart';
 import '../../data/models/ai_notification_result.dart';
@@ -35,7 +36,7 @@ class AiAssistantPanel extends ConsumerStatefulWidget {
 class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   final _promptController = TextEditingController();
 
-  AiProvider? _selectedProvider;
+  AiSelectedTarget? _selectedTarget;
   AiNotificationResult? _lastResult;
   bool _isGenerating = false;
   String? _errorMessage;
@@ -47,7 +48,7 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   }
 
   /// ------------------------------------------------------------- generate ---
-    Future<void> _handleGenerate() async {
+  Future<void> _handleGenerate() async {
     final prompt = _promptController.text.trim();
     final providersAsync = ref.read(activeAiProvidersStreamProvider);
     final allProviders = providersAsync.value ?? [];
@@ -62,7 +63,11 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     try {
       final result = await ref
           .read(aiNotificationServiceProvider)
-          .generateNotification(targetProvider: _selectedProvider, allProviders: allProviders, userPrompt: prompt);
+          .generateNotification(
+            target: _selectedTarget,
+            allProviders: allProviders,
+            userPrompt: prompt,
+          );
       if (!mounted) return;
       setState(() => _lastResult = result);
     } on AiServiceException catch (error) {
@@ -81,23 +86,9 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     final result = _lastResult;
     if (result == null) return;
 
+    // The host screen confirms the fill on the shared toast stack; a second
+    // card here would stack a duplicate for one action.
     widget.onApplyToForm(result);
-    _showSnack(
-      'تم ملء بيانات الإشعار من المساعد الذكي',
-      AdminPalette.of(context).oliveSolid,
-    );
-  }
-
-  void _showSnack(String message, Color background) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message, style: adminText(color: Colors.white)),
-          backgroundColor: background,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
   }
 
   @override
@@ -143,9 +134,9 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
               AiPromptBar(
                 controller: _promptController,
                 providers: providers,
-                selectedProvider: _selectedProvider,
-                onProviderChanged: (provider) =>
-                    setState(() => _selectedProvider = provider),
+                selectedTarget: _selectedTarget,
+                onTargetChanged: (target) =>
+                    setState(() => _selectedTarget = target),
                 onSubmit: _handleGenerate,
                 isGenerating: _isGenerating,
               ),
@@ -158,6 +149,9 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
 
   /// ---------------------------------------------------------------- header ---
   Widget _buildPanelHeader(AdminPalette p) {
+    final strings = AppStrings.of(context);
+    final target = _selectedTarget;
+
     return Row(
       children: [
         Container(
@@ -188,6 +182,36 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
               Text(
                 'توليد صياغات مصرية جذابة للإشعارات',
                 style: adminText(size: 12, color: p.inkMuted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Mirrors the pill in the prompt bar: what the generator is aimed at.
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: p.surfaceSunken,
+            borderRadius: BorderRadius.circular(AdminRadii.pill),
+            border: Border.all(color: p.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 12, color: p.clay),
+              const SizedBox(width: 5),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 150),
+                child: Text(
+                  target?.displayName ?? strings.aiAutoMode,
+                  textDirection: target == null ? null : TextDirection.ltr,
+                  overflow: TextOverflow.ellipsis,
+                  style: adminText(
+                    size: 11,
+                    weight: FontWeight.w600,
+                    color: p.inkMuted,
+                  ),
+                ),
               ),
             ],
           ),

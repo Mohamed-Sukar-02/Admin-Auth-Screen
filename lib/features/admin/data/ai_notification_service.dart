@@ -16,24 +16,29 @@ final aiNotificationServiceProvider = Provider<AiNotificationService>((ref) {
 });
 
 class AiNotificationService {
+  static const String _geminiBaseUrl =
+      'https://generativelanguage.googleapis.com/v1beta/models/';
+
   Future<AiNotificationResult> generateNotification({
-    AiProvider? targetProvider,
+    AiSelectedTarget? target,
     required List<AiProvider> allProviders,
     required String userPrompt,
   }) async {
-    List<AiProvider> providersToTry = [];
+    final List<AiProvider> providersToTry;
 
-    if (targetProvider != null) {
-      providersToTry.add(targetProvider);
-      providersToTry.addAll(
-        allProviders.where(
-          (p) =>
-              p.provider == targetProvider.provider &&
-              p.id != targetProvider.id,
-        ),
-      );
+    if (target == null) {
+      providersToTry = allProviders;
     } else {
-      providersToTry.addAll(allProviders);
+      final wanted = target.provider.toLowerCase();
+      final keys = allProviders
+          .where((p) => p.provider.toLowerCase() == wanted)
+          .toList();
+      if (keys.isEmpty) {
+        throw const AiServiceException('لا يوجد مفاتيح مفعّلة للمزود المحدد.');
+      }
+      providersToTry = [
+        for (final key in keys) _withOverriddenModel(key, target.model),
+      ];
     }
 
     if (providersToTry.isEmpty) {
@@ -54,23 +59,51 @@ class AiNotificationService {
     throw AiServiceException('فشلت جميع المحاولات:\n' + errorLogs.join('\n'));
   }
 
+  /// The selected model wins over whatever the key document stored, so one
+  /// provider group can serve every model it hosts.
+  AiProvider _withOverriddenModel(AiProvider key, String model) {
+    return AiProvider(
+      id: key.id,
+      name: key.name,
+      provider: key.provider,
+      model: model,
+      apiKey: key.apiKey,
+      endpoint: key.endpoint,
+      isActive: key.isActive,
+      isFree: key.isFree,
+      rateLimit: key.rateLimit,
+      notes: key.notes,
+    );
+  }
+
   Future<String> _makeRequest(AiProvider provider, String userPrompt) async {
-    if (provider.provider == 'gemini') {
-      return _buildGeminiRequest(provider, userPrompt);
-    } else if (provider.provider == 'groq' || provider.provider == 'openrouter') {
-      return _buildGroqRequest(provider, userPrompt);
+    switch (provider.provider.toLowerCase()) {
+      case 'gemini':
+        return _buildGeminiRequest(provider, userPrompt);
+      case 'groq':
+      case 'openrouter':
+        return _buildGroqRequest(provider, userPrompt);
+      default:
+        throw const AiServiceException('مزود الذكاء الاصطناعي غير مدعوم.');
     }
-    throw const AiServiceException('مزود الذكاء الاصطناعي غير مدعوم.');
   }
 
   Future<String> _buildGeminiRequest(
     AiProvider provider,
     String userPrompt,
   ) async {
-    final uri = Uri.parse('${provider.endpoint}?key=${provider.apiKey}');
+    final uri = Uri.parse(
+      '$_geminiBaseUrl${provider.model}:generateContent'
+      '?key=${provider.apiKey}',
+    );
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    // Google's newer free-tier keys authenticate by header, not by query key.
+    if (provider.apiKey.startsWith('AQ.')) {
+      headers['Authorization'] = 'Bearer ${provider.apiKey}';
+    }
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({
         "contents": [
           {
@@ -115,6 +148,8 @@ class AiNotificationService {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${provider.apiKey}',
+        // Cloudflare rejects the Dart default client with a 403.
+        'User-Agent': 'Mozilla/5.0',
       },
       body: jsonEncode({
         "model": provider.model,
@@ -152,11 +187,12 @@ class AiNotificationService {
     try {
       final json = jsonDecode(responseBody);
       String textContent = '';
+      final kind = providerType.toLowerCase();
 
-      if (providerType == 'gemini') {
+      if (kind == 'gemini') {
         textContent =
             json['candidates'][0]['content']['parts'][0]['text'] as String;
-      } else if (providerType == 'groq' || providerType == 'openrouter') {
+      } else if (kind == 'groq' || kind == 'openrouter') {
         textContent = json['choices'][0]['message']['content'] as String;
       }
 

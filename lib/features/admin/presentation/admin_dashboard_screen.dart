@@ -685,7 +685,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             },
           ),
           const SizedBox(height: 30),
-          _SectionHeader(
+          AdminSectionHeader(
             title: 'الخزنة العامة',
             subtitle: 'إدارة الأكلات المعتمدة في الخزنة العامة',
             trailing: hasDuplicates
@@ -2295,7 +2295,7 @@ class _Sidebar extends StatelessWidget {
                 width: width,
                 height: constraints.maxHeight,
                 child: collapsed
-                    ? _buildRail(context, p)
+                    ? _buildRail(context)
                     : _buildPanel(context, p),
               ),
             ),
@@ -2344,8 +2344,10 @@ class _Sidebar extends StatelessWidget {
           child: SizedBox(
             width: 48,
             child: Center(
-              child: _slideButton(p, Icons.keyboard_double_arrow_right_rounded,
-                  'طي القائمة'),
+              child: _slideButton(
+                Icons.keyboard_double_arrow_right_rounded,
+                'طي القائمة',
+              ),
             ),
           ),
         ),
@@ -2385,7 +2387,7 @@ class _Sidebar extends StatelessWidget {
     );
   }
 
-  Widget _buildRail(BuildContext context, AdminPalette p) {
+  Widget _buildRail(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2400,8 +2402,10 @@ class _Sidebar extends StatelessWidget {
           child: SizedBox(
             width: 48,
             child: Center(
-              child: _slideButton(p, Icons.keyboard_double_arrow_left_rounded,
-                  'إظهار القائمة'),
+              child: _slideButton(
+                Icons.keyboard_double_arrow_left_rounded,
+                'إظهار القائمة',
+              ),
             ),
           ),
         ),
@@ -2427,25 +2431,11 @@ class _Sidebar extends StatelessWidget {
     );
   }
 
-  Widget _slideButton(AdminPalette p, IconData icon, String tooltip) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: p.surfaceAlt,
-        borderRadius: BorderRadius.circular(AdminRadii.sm),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AdminRadii.sm),
-          onTap: onToggleCollapsed,
-          child: Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AdminRadii.sm),
-              border: Border.all(color: p.borderStrong),
-            ),
-            child: Icon(icon, size: 18, color: p.ink),
-          ),
-        ),
-      ),
+  Widget _slideButton(IconData icon, String tooltip) {
+    return AdminIconChip(
+      icon: icon,
+      tooltip: tooltip,
+      onTap: onToggleCollapsed,
     );
   }
 
@@ -3741,40 +3731,6 @@ class _FilterChip extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-
-  const _SectionHeader({required this.title, this.subtitle, this.trailing});
-
-  @override
-  Widget build(BuildContext context) {
-    final p = AdminPalette.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style:
-                      _cairo(size: 20, weight: FontWeight.bold, color: p.ink)),
-              if (subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(subtitle!,
-                    style: _cairo(size: 13, color: p.inkMuted)),
-              ],
-            ],
-          ),
-        ),
-        ?trailing,
-      ],
     );
   }
 }

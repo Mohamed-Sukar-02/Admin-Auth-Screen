@@ -38,3 +38,28 @@ class AiProvider {
     );
   }
 }
+
+/// A provider+model pair chosen by the admin, independent of which key document
+/// supplies the credentials at request time.
+class AiSelectedTarget {
+  final String provider; // 'gemini', 'groq', 'openrouter'
+  final String model; // e.g. 'qwen/qwen3.8-27b', 'gemini-1.5-flash'
+  final String displayName;
+
+  const AiSelectedTarget({
+    required this.provider,
+    required this.model,
+    required this.displayName,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AiSelectedTarget &&
+          runtimeType == other.runtimeType &&
+          provider == other.provider &&
+          model == other.model;
+
+  @override
+  int get hashCode => provider.hashCode ^ model.hashCode;
+}

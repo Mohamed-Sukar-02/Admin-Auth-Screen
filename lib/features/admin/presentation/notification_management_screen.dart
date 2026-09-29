@@ -8,6 +8,7 @@ import '../data/models/cloud_meal.dart';
 import '../data/vault_admin_repository.dart';
 import 'theme/admin_palette.dart';
 import 'widgets/admin_dialog.dart';
+import 'widgets/admin_toast.dart';
 import 'widgets/ai_assistant_panel.dart';
 
 /// A broadcast template: one type glyph, one label, one tint pair.
@@ -134,9 +135,10 @@ class _NotificationManagementScreenState
     if (targetRoute.isEmpty) {
       // Reachable when the vault stream is still loading on a `meal` target,
       // where no field exists yet to fail form validation.
-      _showSnack(
-        'أكمل وجهة التوجيه قبل الإرسال',
-        AdminPalette.of(context).honeySolid,
+      showAdminToast(
+        context,
+        message: 'أكمل وجهة التوجيه قبل الإرسال',
+        kind: AdminToastKind.warning,
       );
       return;
     }
@@ -171,33 +173,26 @@ class _NotificationManagementScreenState
     }
   }
 
-  void _showSnack(String message, Color background) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message, style: adminText(color: Colors.white)),
-          backgroundColor: background,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
-
   void _reportSuccess() {
     if (!mounted) return;
-    _showSnack('تم إرسال الإشعار بنجاح', AdminPalette.of(context).oliveSolid);
+    showAdminToast(
+      context,
+      message: 'تم إرسال الإشعار بنجاح',
+      kind: AdminToastKind.success,
+    );
   }
 
   void _reportFailure(Object error) {
     if (!mounted) return;
-    _showSnack(
-      'فشل إرسال الإشعار: $error',
-      AdminPalette.of(context).chiliSolid,
+    showAdminToast(
+      context,
+      message: 'فشل إرسال الإشعار',
+      subtitle: error.toString(),
+      kind: AdminToastKind.error,
     );
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> notification) async {
-    final p = AdminPalette.of(context);
     final title = (notification['titleAr'] as String? ?? '').trim();
 
     final confirmed = await showAdminConfirmDialog(
@@ -219,18 +214,12 @@ class _NotificationManagementScreenState
       await ref.read(vaultAdminRepositoryProvider).deleteNotification(id);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'تعذّر حذف الإشعار: $error',
-              style: adminText(color: Colors.white),
-            ),
-            backgroundColor: p.chiliSolid,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      showAdminToast(
+        context,
+        message: 'تعذّر حذف الإشعار',
+        subtitle: error.toString(),
+        kind: AdminToastKind.error,
+      );
     }
   }
 
@@ -244,9 +233,10 @@ class _NotificationManagementScreenState
       _messageEnController.text = result.messageEn;
       _selectedType = result.type;
     });
-    _showSnack(
-      'تم ملء بيانات الإشعار من المساعد الذكي',
-      AdminPalette.of(context).oliveSolid,
+    showAdminToast(
+      context,
+      message: 'تم ملء بيانات الإشعار من المساعد الذكي',
+      kind: AdminToastKind.success,
     );
   }
 
@@ -263,10 +253,8 @@ class _NotificationManagementScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildHeader(p),
-            const SizedBox(height: 28),
-            _SectionLabel(label: 'إنشاء إشعار جديد', palette: p),
-            const SizedBox(height: 10),
+            const AdminSectionHeader(title: 'إنشاء إشعار جديد'),
+            const SizedBox(height: 14),
 
             if (isWide)
               Row(
@@ -287,42 +275,12 @@ class _NotificationManagementScreenState
             ],
 
             const SizedBox(height: 28),
-            _SectionLabel(label: 'سجل الإشعارات المرسلة', palette: p),
-            const SizedBox(height: 10),
+            const AdminSectionHeader(title: 'سجل الإشعارات المرسلة'),
+            const SizedBox(height: 14),
             _buildHistory(p),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader(AdminPalette p) {
-    return Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: p.claySoft,
-            borderRadius: BorderRadius.circular(AdminRadii.md),
-          ),
-          child: Icon(AdminIcons.campaign, size: 22, color: p.claySolid),
-        ),
-        const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'إدارة الإشعارات',
-              style: adminText(size: 20, weight: FontWeight.bold, color: p.ink),
-            ),
-            Text(
-              'إرسال إشعارات عامة لجميع مستخدمي التطبيق',
-              style: adminText(size: 12, color: p.inkMuted),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -594,9 +552,9 @@ class _NotificationManagementScreenState
       onPressed: _isSending ? null : _sendNotification,
       style: FilledButton.styleFrom(
         backgroundColor: p.claySolid,
-        foregroundColor: Colors.white,
+        foregroundColor: p.onClay,
         disabledBackgroundColor: p.claySolid.withValues(alpha: 0.6),
-        disabledForegroundColor: Colors.white70,
+        disabledForegroundColor: p.onClay.withValues(alpha: 0.7),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AdminRadii.md),
@@ -607,16 +565,16 @@ class _NotificationManagementScreenState
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (_isSending)
-            const SizedBox(
+            SizedBox(
               width: 18,
               height: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2.2,
-                color: Colors.white,
+                color: p.onClay,
               ),
             )
           else
-            const Icon(AdminIcons.campaign, size: 19, color: Colors.white),
+            Icon(AdminIcons.campaign, size: 19, color: p.onClay),
           const SizedBox(width: 10),
           Text(
             _isSending ? 'جارٍ الإرسال…' : 'إرسال الإشعار لجميع المستخدمين',
@@ -718,38 +676,6 @@ class _NotificationManagementScreenState
 /// ===========================================================================
 /// Compose card helpers
 /// ===========================================================================
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  final AdminPalette palette;
-
-  const _SectionLabel({required this.label, required this.palette});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 16,
-          decoration: BoxDecoration(
-            color: palette.claySolid,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: adminText(
-            size: 13,
-            weight: FontWeight.w700,
-            color: palette.inkMuted,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// Neutral placeholder for a destination that has no value to show yet: the
 /// vault picker while its stream is loading, failed or empty, and the route
 /// preview while the admin has not finished choosing.
@@ -868,11 +794,12 @@ class _NotificationCard extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: onDelete,
+              AdminIconChip(
+                icon: AdminIcons.delete,
                 tooltip: 'حذف',
-                visualDensity: VisualDensity.compact,
-                icon: Icon(AdminIcons.delete, size: 18, color: p.inkFaint),
+                onTap: onDelete,
+                glyphColor: p.chiliInk,
+                glyphSize: 16,
               ),
             ],
           ),

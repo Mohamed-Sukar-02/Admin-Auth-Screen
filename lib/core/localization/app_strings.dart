@@ -7,6 +7,10 @@ class AppStrings {
 
   bool get isEn => locale.languageCode == 'en';
 
+  /// Strings for the locale the surrounding [Localizations] resolved to.
+  static AppStrings of(BuildContext context) =>
+      AppStrings(Localizations.localeOf(context));
+
   String get appName => isEn ? 'Daily Meal' : 'أكلة النهاردة';
   String get appSubtitle => isEn
       ? 'Smart daily meal suggestions for your home'
@@ -172,4 +176,11 @@ class AppStrings {
       ? 'No AI models configured. Add providers in Firebase Console.'
       : 'لا يوجد موديلات ذكاء اصطناعي. أضف مزودين في Firebase Console.';
   String get aiErrorRetry => isEn ? 'Try again' : 'جرب تاني';
+
+  // AI provider grouping (the admin picks a provider + model, not a key)
+  String get aiAutoMode => isEn ? 'Auto' : 'تلقائي (Auto)';
+  String get aiProviderGoogle => isEn ? 'Google (Gemini)' : 'جوجل (Gemini)';
+  String get aiProviderGroq => isEn ? 'Groq' : 'جروك (Groq)';
+  String get aiProviderOpenRouter =>
+      isEn ? 'OpenRouter' : 'أوبن راوتر (OpenRouter)';
 }
