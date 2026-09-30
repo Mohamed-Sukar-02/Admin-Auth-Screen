@@ -71,7 +71,7 @@ void main() {
   ) async {
     await pumpReview(
       tester,
-      segmentLabel: 'كل المراحل',
+      segmentLabel: 'الجميع',
       segmentRestricted: false,
       screen: 900,
       body: 680,

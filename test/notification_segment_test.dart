@@ -101,9 +101,9 @@ void main() {
 
   test('the day window is spelled out only where it means something', () {
     expect(NotificationSegment.describe('new', 7), 'مستخدمون جدد — أول 7 أيام');
-    expect(NotificationSegment.describe('all', 7), 'كل المراحل');
+    expect(NotificationSegment.describe('all', 7), 'الجميع');
     expect(NotificationSegment.describe('returning', 45), 'مستخدمون قدامى');
     // An unresolvable kind has no window to describe either.
-    expect(NotificationSegment.describe('active', 45), 'كل المراحل');
+    expect(NotificationSegment.describe('active', 45), 'الجميع');
   });
 }

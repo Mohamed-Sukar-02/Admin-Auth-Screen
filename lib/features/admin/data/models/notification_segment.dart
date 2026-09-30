@@ -1,10 +1,9 @@
 /// ===========================================================================
 /// Lifecycle segment
 ///
-/// An audience has two independent halves. The interface language travels as
-/// the top-level `audience` string; this is the other half — which stage of a
-/// user's life in the app a broadcast is announced to. It is written as a
-/// nested map on both `admin_notifications` and `admin_notification_drafts`:
+/// Which stage of a user's life in the app a broadcast is announced to. It is
+/// written as a nested map on both `admin_notifications` and
+/// `admin_notification_drafts`:
 ///
 ///   `segment: { v: 1, kind: 'all' | 'new' | 'returning', days: 1..365 }`
 ///
@@ -34,7 +33,7 @@ abstract final class NotificationSegment {
   /// The stage names the admin picks. Kept next to the coercion so a label and
   /// its key can never drift apart.
   static const Map<String, String> stageLabels = {
-    kindAll: 'كل المراحل',
+    kindAll: 'الجميع',
     kindNew: 'مستخدمون جدد',
     kindReturning: 'مستخدمون قدامى',
   };

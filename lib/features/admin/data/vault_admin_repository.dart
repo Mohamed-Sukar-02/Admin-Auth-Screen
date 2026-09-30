@@ -361,11 +361,11 @@ class VaultAdminRepository {
 
   /// Broadcast a new notification, stamped with the server's clock.
   /// [route] is the in-app destination the mobile app opens when the user taps
-  /// the notification; it defaults to the home screen. [audience] limits who
-  /// the app announces it to by interface language, [segment] by how long they
-  /// have been cooking — the app has no push channel, so it is still the next
-  /// app open that decides. Both always travel: `firestore.rules` closes the
-  /// write on a segment outside its contract.
+  /// the notification; it defaults to the home screen. [segment] says who the
+  /// app announces it to by how long they have been cooking — the app has no
+  /// push channel, so it is still the next app open that decides. It always
+  /// travels: `firestore.rules` closes the write on a segment outside its
+  /// contract.
   Future<void> sendNotification({
     required String type,
     required String titleAr,
@@ -375,7 +375,6 @@ class VaultAdminRepository {
     required String sentBy,
     required Map<String, dynamic> segment,
     String route = '/',
-    String audience = 'all',
   }) async {
     final docRef = _notificationsRef.doc();
     await docRef.set({
@@ -386,7 +385,6 @@ class VaultAdminRepository {
       'messageAr': messageAr,
       'messageEn': messageEn,
       'route': route,
-      'audience': audience,
       'segment': segment,
       'sentAt': FieldValue.serverTimestamp(),
       'sentBy': sentBy,
@@ -421,8 +419,8 @@ class VaultAdminRepository {
 
   /// Save a draft, creating it when [id] is null and overwriting it otherwise.
   /// Returns the document id so the compose tab can keep editing one record.
-  /// The audience pair — [audience] and [segment] — travels with the copy so a
-  /// reopened draft resumes the same targeting, not just the same text.
+  /// The [segment] travels with the copy so a reopened draft resumes the same
+  /// targeting, not just the same text.
   Future<String> saveDraft({
     String? id,
     required String type,
@@ -433,7 +431,6 @@ class VaultAdminRepository {
     required String savedBy,
     required Map<String, dynamic> segment,
     String route = '/',
-    String audience = 'all',
   }) async {
     final body = <String, dynamic>{
       'type': type,
@@ -442,7 +439,6 @@ class VaultAdminRepository {
       'messageAr': messageAr,
       'messageEn': messageEn,
       'route': route,
-      'audience': audience,
       'segment': segment,
       'savedBy': savedBy,
       'updatedAt': FieldValue.serverTimestamp(),

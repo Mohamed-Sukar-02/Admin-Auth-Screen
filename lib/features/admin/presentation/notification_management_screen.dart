@@ -231,7 +231,6 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             sentBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: targetRoute,
-            audience: 'all',
             segment: _segment,
           );
 
@@ -384,7 +383,6 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             savedBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: _resolveRoute(const <CloudMeal>[]),
-            audience: 'all',
             segment: _segment,
           );
       if (!mounted) return;
@@ -1016,27 +1014,34 @@ class _NotificationManagementScreenState
           maxLength: maxLength,
         ),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          style: ltr
-              ? adminLatinText(size: 12.5, color: p.ink, height: 1.7)
-              : adminText(size: 13, color: p.ink, height: 1.7),
-          textDirection: ltr ? TextDirection.ltr : null,
-          validator:
-              validator ??
-              (value) => (value == null || value.trim().isEmpty)
-                  ? 'هذا الحقل مطلوب'
-                  : null,
-          decoration: adminFieldDeco(
-            p,
-            label: label,
-            hint: hint,
-            floatingLabel: false,
-            counter: maxLength == null,
-            fill: p.surface,
+        // The English copy is typed left-to-right, and the field's own
+        // `textDirection` only moves the caret — the placeholder, the helper and
+        // the error line are laid out by the decorator, which follows the
+        // ambient RTL. The label row above stays RTL so its counter keeps its
+        // place at the left.
+        Directionality(
+          textDirection: ltr ? TextDirection.ltr : TextDirection.rtl,
+          child: TextFormField(
+            controller: controller,
+            maxLines: maxLines,
+            maxLength: maxLength,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            style: ltr
+                ? adminLatinText(size: 12.5, color: p.ink, height: 1.7)
+                : adminText(size: 13, color: p.ink, height: 1.7),
+            validator:
+                validator ??
+                (value) => (value == null || value.trim().isEmpty)
+                    ? 'هذا الحقل مطلوب'
+                    : null,
+            decoration: adminFieldDeco(
+              p,
+              label: label,
+              hint: hint,
+              floatingLabel: false,
+              counter: maxLength == null,
+              fill: p.surface,
+            ),
           ),
         ),
       ],
