@@ -93,11 +93,12 @@ service cloud.firestore {
     function isValidAdminNotification(notificationId) {
       let data = request.resource.data;
       let allowedKeys = ['id', 'type', 'titleAr', 'titleEn', 'messageAr',
-                         'messageEn', 'route', 'sentAt', 'sentBy', 'createdBy'];
+                         'messageEn', 'route', 'audience', 'sentAt', 'sentBy', 'createdBy'];
       return (
         data.keys().hasOnly(allowedKeys) &&
         (!('id' in data) || data.id == notificationId) &&
         (!('type' in data) || (data.type is string && data.type.size() <= 40)) &&
+        (!('audience' in data) || (data.audience is string && data.audience in ['all', 'ar', 'en'])) &&
         (!('titleAr' in data) || (data.titleAr is string && data.titleAr.size() <= 200)) &&
         (!('titleEn' in data) || (data.titleEn is string && data.titleEn.size() <= 200)) &&
         (!('messageAr' in data) || (data.messageAr is string && data.messageAr.size() <= 1000)) &&
@@ -115,10 +116,11 @@ service cloud.firestore {
     function isValidNotificationDraft(draftId) {
       let data = request.resource.data;
       let allowedKeys = ['id', 'type', 'titleAr', 'titleEn', 'messageAr',
-                         'messageEn', 'route', 'savedBy', 'createdAt', 'updatedAt'];
+                         'messageEn', 'route', 'audience', 'savedBy', 'createdAt', 'updatedAt'];
       return (
         data.keys().hasOnly(allowedKeys) &&
         (!('type' in data) || (data.type is string && data.type.size() <= 40)) &&
+        (!('audience' in data) || (data.audience is string && data.audience in ['all', 'ar', 'en'])) &&
         (!('id' in data) || data.id == draftId) &&
         (!('titleAr' in data) || (data.titleAr is string && data.titleAr.size() <= 200)) &&
         (!('titleEn' in data) || (data.titleEn is string && data.titleEn.size() <= 200)) &&

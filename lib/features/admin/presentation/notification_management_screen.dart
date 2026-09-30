@@ -78,6 +78,20 @@ class _NotificationManagementScreenState
     (key: 'custom', label: 'رابط مخصص', route: '', icon: AdminIcons.link),
   ];
 
+  /// Who the broadcast is announced to. Language is the only segment the app
+  /// can actually resolve today: it has no device registry, so "active" and
+  /// "new" users would be a label on nothing. Delivery is also pull-based —
+  /// the app has no push channel — so this decides what is announced the next
+  /// time a user opens the app, not whether it reaches their phone.
+  static const List<({String key, String label, IconData icon})> _audiences = [
+    (key: 'all', label: 'كل المستخدمين', icon: AdminIcons.users),
+    (key: 'ar', label: 'العربية فقط', icon: AdminIcons.language),
+    (key: 'en', label: 'الإنجليزية فقط', icon: AdminIcons.language),
+  ];
+
+  String get _audienceLabel =>
+      _audiences.firstWhere((a) => a.key == _selectedAudience).label;
+
   final _formKey = GlobalKey<FormState>();
   final _titleArController = TextEditingController();
   final _titleEnController = TextEditingController();
@@ -87,6 +101,7 @@ class _NotificationManagementScreenState
 
   String _selectedType = 'meal';
   String _selectedDestination = 'home';
+  String _selectedAudience = 'all';
   String? _selectedMealId;
   bool _isSending = false;
 
@@ -185,6 +200,7 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             sentBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: targetRoute,
+            audience: _selectedAudience,
           );
 
       _titleArController.clear();
@@ -336,6 +352,7 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             savedBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: _resolveRoute(const <CloudMeal>[]),
+            audience: _selectedAudience,
           );
       if (!mounted) return;
       setState(() => _editingDraftId = id);
@@ -367,6 +384,10 @@ class _NotificationManagementScreenState
       _messageArController.text = draft['messageAr'] as String? ?? '';
       _messageEnController.text = draft['messageEn'] as String? ?? '';
       _selectedType = draft['type'] as String? ?? 'meal';
+      final audience = draft['audience'] as String? ?? 'all';
+      _selectedAudience = _audiences.any((a) => a.key == audience)
+          ? audience
+          : 'all';
     });
   }
 
@@ -597,39 +618,80 @@ class _NotificationManagementScreenState
     final destination = _destinations.firstWhere(
       (d) => d.key == _selectedDestination,
     );
+    final audience = _audiences.firstWhere((a) => a.key == _selectedAudience);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _buildSelect(
-            label: 'نوع الإشعار',
-            icon: type.icon,
-            value: type.key,
-            options: [
-              for (final option in _types)
-                (value: option.key, label: option.label, icon: option.icon),
-            ],
-            onChanged: (key) => setState(() => _selectedType = key),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Three choices on one line when the card is wide enough for them to
+        // stay readable, otherwise the audience drops under the type.
+        final oneLine = constraints.maxWidth >= 520;
+        final selects = [
+          Expanded(
+            child: _buildSelect(
+              label: 'نوع الإشعار',
+              icon: type.icon,
+              value: type.key,
+              options: [
+                for (final option in _types)
+                  (value: option.key, label: option.label, icon: option.icon),
+              ],
+              onChanged: (key) => setState(() => _selectedType = key),
+            ),
           ),
-        ),
-        const SizedBox(width: 13),
-        Expanded(
-          child: _buildSelect(
-            label: 'وجهة التوجيه',
-            icon: destination.icon,
-            value: destination.key,
-            options: [
-              for (final option in _destinations)
-                (value: option.key, label: option.label, icon: option.icon),
-            ],
-            onChanged: (key) => setState(() {
-              _selectedDestination = key;
-              if (key != 'meal') _selectedMealId = null;
-            }),
+          Expanded(
+            child: _buildSelect(
+              label: 'وجهة التوجيه',
+              icon: destination.icon,
+              value: destination.key,
+              options: [
+                for (final option in _destinations)
+                  (value: option.key, label: option.label, icon: option.icon),
+              ],
+              onChanged: (key) => setState(() {
+                _selectedDestination = key;
+                if (key != 'meal') _selectedMealId = null;
+              }),
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            child: _buildSelect(
+              label: 'الجمهور المستهدف',
+              icon: audience.icon,
+              value: audience.key,
+              options: [
+                for (final option in _audiences)
+                  (value: option.key, label: option.label, icon: option.icon),
+              ],
+              onChanged: (key) => setState(() => _selectedAudience = key),
+            ),
+          ),
+        ];
+
+        if (oneLine) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              selects[0],
+              const SizedBox(width: 13),
+              selects[1],
+              const SizedBox(width: 13),
+              selects[2],
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [selects[0], const SizedBox(width: 13), selects[1]],
+            ),
+            const SizedBox(height: 12),
+            selects[2],
+          ],
+        );
+      },
     );
   }
 
@@ -808,6 +870,7 @@ class _NotificationManagementScreenState
           titleEn: _titleEnController.text.trim(),
           messageEn: _messageEnController.text.trim(),
           typeLabel: _typeStyle(p, _selectedType).label,
+          audienceLabel: _audienceLabel,
           route: route,
           allowSend: allowSend,
           onDecision: (decision) => Navigator.of(dialogContext).pop(decision),

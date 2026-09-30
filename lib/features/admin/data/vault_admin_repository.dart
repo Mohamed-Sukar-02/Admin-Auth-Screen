@@ -361,7 +361,9 @@ class VaultAdminRepository {
 
   /// Broadcast a new notification, stamped with the server's clock.
   /// [route] is the in-app destination the mobile app opens when the user taps
-  /// the notification; it defaults to the home screen.
+  /// the notification; it defaults to the home screen. [audience] limits who
+  /// the app announces it to by interface language — the app has no push
+  /// channel, so it is still the next app open that decides.
   Future<void> sendNotification({
     required String type,
     required String titleAr,
@@ -370,6 +372,7 @@ class VaultAdminRepository {
     required String messageEn,
     required String sentBy,
     String route = '/',
+    String audience = 'all',
   }) async {
     final docRef = _notificationsRef.doc();
     await docRef.set({
@@ -380,6 +383,7 @@ class VaultAdminRepository {
       'messageAr': messageAr,
       'messageEn': messageEn,
       'route': route,
+      'audience': audience,
       'sentAt': FieldValue.serverTimestamp(),
       'sentBy': sentBy,
     });
@@ -422,6 +426,7 @@ class VaultAdminRepository {
     required String messageEn,
     required String savedBy,
     String route = '/',
+    String audience = 'all',
   }) async {
     final body = <String, dynamic>{
       'type': type,
@@ -430,6 +435,7 @@ class VaultAdminRepository {
       'messageAr': messageAr,
       'messageEn': messageEn,
       'route': route,
+      'audience': audience,
       'savedBy': savedBy,
       'updatedAt': FieldValue.serverTimestamp(),
     };

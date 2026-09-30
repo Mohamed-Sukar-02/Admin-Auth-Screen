@@ -21,6 +21,7 @@ class NotificationReview extends StatefulWidget {
   final String titleEn;
   final String messageEn;
   final String typeLabel;
+  final String audienceLabel;
   final String route;
 
   /// False when the dialog is opened just to look, without the send offer.
@@ -35,6 +36,7 @@ class NotificationReview extends StatefulWidget {
     required this.titleEn,
     required this.messageEn,
     required this.typeLabel,
+    required this.audienceLabel,
     required this.route,
     this.allowSend = true,
     this.sending = false,
@@ -75,6 +77,7 @@ class _NotificationReviewState extends State<NotificationReview> {
       title: _title,
       message: _message,
       typeLabel: widget.typeLabel,
+      audienceLabel: widget.audienceLabel,
       route: widget.route,
     );
 
@@ -168,6 +171,7 @@ class _Summary extends StatelessWidget {
   final String title;
   final String message;
   final String typeLabel;
+  final String audienceLabel;
   final String route;
 
   const _Summary({
@@ -175,6 +179,7 @@ class _Summary extends StatelessWidget {
     required this.title,
     required this.message,
     required this.typeLabel,
+    required this.audienceLabel,
     required this.route,
   });
 
@@ -189,7 +194,7 @@ class _Summary extends StatelessWidget {
         _FactRow(
           icon: AdminIcons.users,
           label: 'الجمهور',
-          value: 'كل المستخدمين',
+          value: audienceLabel,
         ),
         const SizedBox(height: 12),
         _FactRow(
@@ -231,6 +236,14 @@ class _Summary extends StatelessWidget {
           arabic
               ? 'راجع الصياغة قبل ما تبعتها — دي آخر خطوة.'
               : 'Review the English copy before it goes out.',
+          style: adminText(size: 11, color: p.inkFaint, height: 1.7),
+        ),
+        // The app has no push channel: an announcement is pulled the next time
+        // the user opens it, and the audience decides whether it is announced
+        // then. Saying so here stops the selector from being read as a send.
+        const SizedBox(height: 4),
+        Text(
+          'الإشعار يوصل أول ما المستخدم يفتح التطبيق — مفيش دفع فوري.',
           style: adminText(size: 11, color: p.inkFaint, height: 1.7),
         ),
       ],
