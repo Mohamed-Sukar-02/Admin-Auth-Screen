@@ -197,17 +197,26 @@ class AppStrings {
   String get aiStopGenerating => isEn ? 'Stop generating' : 'إيقاف التوليد';
 
   // AI assistant panel — welcome state
-  String get aiWelcomeTitle =>
-      isEn ? 'An idea from you, words from us.' : 'فكرة منك، وصياغة علينا.';
+  String get aiIdeasLabel => isEn ? 'We can start with' : 'ممكن نبدأ بـ';
   String get aiWelcomeSubtitle => isEn
-      ? 'Tell me what is on your mind, and I will turn it into a bilingual '
-            'notification… with the flavor of Aklet El Naharda.'
-      : 'قولّي في بالك إيه، وأنا أحوّله لإشعار\n'
-            'بالمصري والإنجليزي… بطعم أكلة النهاردة.';
+      ? 'Tell me what is on your mind, and I will turn it into a notification.'
+      : 'قولّي في بالك إيه، وأنا أحوّله لإشعار.';
   String get aiChipKoshari => isEn ? 'Koshari for lunch' : 'كشري على الغدا';
   String get aiChipRamadan => isEn ? 'Ramadan gathering' : 'لمّة رمضان';
   String get aiChipReminder =>
       isEn ? 'Gentle lunch reminder' : 'تذكير لطيف للغدا';
+
+  // The chips print a short name but seed the capsule with the fuller brief,
+  // so the admin sees what the idea actually asks for.
+  String get aiChipKoshariPrompt => isEn
+      ? 'Encourage people to try the koshari recipe for lunch'
+      : 'شجّع الناس يجربوا وصفة الكشري على الغدا';
+  String get aiChipRamadanPrompt => isEn
+      ? 'A notification about Ramadan recipes and the family iftar gathering'
+      : 'إشعار عن وصفات رمضان ولمّة العيلة على الإفطار';
+  String get aiChipReminderPrompt => isEn
+      ? 'A gentle lunch reminder, without rushing anyone'
+      : 'إشعار تذكير لطيف للغدا، من غير استعجال';
 
   // AI assistant panel — result card
   String get aiEgyptianSection => isEn ? 'In Egyptian' : 'بالمصري';
@@ -232,6 +241,8 @@ class AppStrings {
   String get aiSendTooltip => isEn ? 'Write the notification' : 'صياغة الإشعار';
 
   // AI assistant panel — footnotes
+  String get aiOfflineMode => isEn ? 'Local preview' : 'تجربة محلية';
+  String get aiOnlineMode => isEn ? 'Connected' : 'متصل بالموديلات';
   String get aiFooterPillars => isEn
       ? 'Egyptian Arabic · Spirited English · No emoji unless requested'
       : 'عامية مصرية · إنجليزي بروحها · بدون إيموجي إلا بطلبك';

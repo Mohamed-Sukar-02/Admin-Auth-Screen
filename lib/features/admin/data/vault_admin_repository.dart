@@ -29,6 +29,12 @@ final adminNotificationsStreamProvider =
       return repo.getNotifications();
     });
 
+final adminDraftsStreamProvider =
+    StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+      final repo = ref.watch(vaultAdminRepositoryProvider);
+      return repo.getDrafts();
+    });
+
 class VaultAdminRepository {
   final FirebaseFirestore _firestore;
 
@@ -388,5 +394,62 @@ class VaultAdminRepository {
   Future<int> getNotificationCount() async {
     final aggregate = await _notificationsRef.count().get();
     return aggregate.count ?? 0;
+  }
+
+  CollectionReference<Map<String, dynamic>> get _draftsRef =>
+      _firestore.collection('admin_notification_drafts');
+
+  /// Stream saved drafts, newest first. Kept in its own collection so a draft
+  /// can never reach the mobile app, which reads `admin_notifications`.
+  Stream<List<Map<String, dynamic>>> getDrafts() {
+    return _draftsRef.orderBy('updatedAt', descending: true).snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .map((doc) => <String, dynamic>{...doc.data(), 'id': doc.id})
+          .toList();
+    });
+  }
+
+  /// Save a draft, creating it when [id] is null and overwriting it otherwise.
+  /// Returns the document id so the compose tab can keep editing one record.
+  Future<String> saveDraft({
+    String? id,
+    required String type,
+    required String titleAr,
+    required String titleEn,
+    required String messageAr,
+    required String messageEn,
+    required String savedBy,
+    String route = '/',
+  }) async {
+    final body = <String, dynamic>{
+      'type': type,
+      'titleAr': titleAr,
+      'titleEn': titleEn,
+      'messageAr': messageAr,
+      'messageEn': messageEn,
+      'route': route,
+      'savedBy': savedBy,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (id == null) {
+      final docRef = _draftsRef.doc();
+      await docRef.set({
+        ...body,
+        'id': docRef.id,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return docRef.id;
+    }
+
+    await _draftsRef.doc(id).update(body);
+    return id;
+  }
+
+  /// Drop a draft once it has been sent or discarded.
+  Future<void> deleteDraft(String id) async {
+    await _draftsRef.doc(id).delete();
   }
 }
