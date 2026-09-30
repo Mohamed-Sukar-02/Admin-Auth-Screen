@@ -611,8 +611,9 @@ class _NotificationManagementScreenState
     );
   }
 
-  /// Type and destination share one row of two dropdowns, the way the mockups
-  /// group the two choices that decide what a broadcast is and where it lands.
+  /// The three choices that define a broadcast — what it is, where it lands,
+  /// who it is addressed to — grouped on one row the way the mockups group
+  /// their selects.
   Widget _buildSelectRow(AdminPalette p) {
     final type = _types.firstWhere((t) => t.key == _selectedType);
     final destination = _destinations.firstWhere(
@@ -622,60 +623,53 @@ class _NotificationManagementScreenState
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Three choices on one line when the card is wide enough for them to
-        // stay readable, otherwise the audience drops under the type.
-        final oneLine = constraints.maxWidth >= 520;
         final selects = [
-          Expanded(
-            child: _buildSelect(
-              label: 'نوع الإشعار',
-              icon: type.icon,
-              value: type.key,
-              options: [
-                for (final option in _types)
-                  (value: option.key, label: option.label, icon: option.icon),
-              ],
-              onChanged: (key) => setState(() => _selectedType = key),
-            ),
+          _buildSelect(
+            label: 'نوع الإشعار',
+            icon: type.icon,
+            value: type.key,
+            options: [
+              for (final option in _types)
+                (value: option.key, label: option.label, icon: option.icon),
+            ],
+            onChanged: (key) => setState(() => _selectedType = key),
           ),
-          Expanded(
-            child: _buildSelect(
-              label: 'وجهة التوجيه',
-              icon: destination.icon,
-              value: destination.key,
-              options: [
-                for (final option in _destinations)
-                  (value: option.key, label: option.label, icon: option.icon),
-              ],
-              onChanged: (key) => setState(() {
-                _selectedDestination = key;
-                if (key != 'meal') _selectedMealId = null;
-              }),
-            ),
+          _buildSelect(
+            label: 'وجهة التوجيه',
+            icon: destination.icon,
+            value: destination.key,
+            options: [
+              for (final option in _destinations)
+                (value: option.key, label: option.label, icon: option.icon),
+            ],
+            onChanged: (key) => setState(() {
+              _selectedDestination = key;
+              if (key != 'meal') _selectedMealId = null;
+            }),
           ),
-          Expanded(
-            child: _buildSelect(
-              label: 'الجمهور المستهدف',
-              icon: audience.icon,
-              value: audience.key,
-              options: [
-                for (final option in _audiences)
-                  (value: option.key, label: option.label, icon: option.icon),
-              ],
-              onChanged: (key) => setState(() => _selectedAudience = key),
-            ),
+          _buildSelect(
+            label: 'الجمهور المستهدف',
+            icon: audience.icon,
+            value: audience.key,
+            options: [
+              for (final option in _audiences)
+                (value: option.key, label: option.label, icon: option.icon),
+            ],
+            onChanged: (key) => setState(() => _selectedAudience = key),
           ),
         ];
 
-        if (oneLine) {
+        // Three selects stay on one line only while each keeps a readable
+        // width; below that the audience drops under the type and destination.
+        if (constraints.maxWidth >= 520) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              selects[0],
+              Expanded(child: selects[0]),
               const SizedBox(width: 13),
-              selects[1],
+              Expanded(child: selects[1]),
               const SizedBox(width: 13),
-              selects[2],
+              Expanded(child: selects[2]),
             ],
           );
         }
@@ -685,7 +679,11 @@ class _NotificationManagementScreenState
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [selects[0], const SizedBox(width: 13), selects[1]],
+              children: [
+                Expanded(child: selects[0]),
+                const SizedBox(width: 13),
+                Expanded(child: selects[1]),
+              ],
             ),
             const SizedBox(height: 12),
             selects[2],
