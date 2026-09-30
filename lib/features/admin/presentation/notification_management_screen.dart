@@ -28,9 +28,8 @@ typedef _DestinationPreset = ({
   IconData icon,
 });
 
-/// One entry of either audience half — language and lifecycle stage are picked
-/// from the same shape but stored differently: `audience` string vs `segment`
-/// map.
+/// One option in the target-audience select — the lifecycle stage the app
+/// narrows a broadcast to.
 typedef _AudienceOption = ({String key, String label, IconData icon});
 
 /// ===========================================================================
@@ -85,17 +84,6 @@ class _NotificationManagementScreenState
     (key: 'custom', label: 'رابط مخصص', route: '', icon: AdminIcons.link),
   ];
 
-  /// Who the broadcast is announced to, split into the two halves the app can
-  /// actually resolve: interface language, and how long the device has been
-  /// cooking. Delivery is also pull-based — the app has no push channel — so
-  /// this decides what is announced the next time a user opens the app, not
-  /// whether it reaches their phone.
-  static const List<_AudienceOption> _languages = [
-    (key: 'all', label: 'الكل', icon: AdminIcons.language),
-    (key: 'ar', label: 'العربية', icon: AdminIcons.language),
-    (key: 'en', label: 'الإنجليزية', icon: AdminIcons.language),
-  ];
-
   /// The glyph per stage, keyed by the wire value. Labels and the list of kinds
   /// both come from [NotificationSegment], so the panel can never offer a stage
   /// the security rules would reject.
@@ -113,9 +101,6 @@ class _NotificationManagementScreenState
         icon: _stageIcons[kind]!,
       ),
   ];
-
-  String get _languageLabel =>
-      _languages.firstWhere((a) => a.key == _selectedLanguage).label;
 
   /// The stage sentence shown in the review dialog: the name, plus the window
   /// while the broadcast is narrowed to brand-new devices.
@@ -146,7 +131,6 @@ class _NotificationManagementScreenState
 
   String _selectedType = 'meal';
   String _selectedDestination = 'home';
-  String _selectedLanguage = 'all';
   String _selectedStage = NotificationSegment.kindAll;
   String? _selectedMealId;
   bool _isSending = false;
@@ -247,7 +231,7 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             sentBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: targetRoute,
-            audience: _selectedLanguage,
+            audience: 'all',
             segment: _segment,
           );
 
@@ -400,7 +384,7 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             savedBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: _resolveRoute(const <CloudMeal>[]),
-            audience: _selectedLanguage,
+            audience: 'all',
             segment: _segment,
           );
       if (!mounted) return;
@@ -433,10 +417,6 @@ class _NotificationManagementScreenState
       _messageArController.text = draft['messageAr'] as String? ?? '';
       _messageEnController.text = draft['messageEn'] as String? ?? '';
       _selectedType = draft['type'] as String? ?? 'meal';
-      final language = draft['audience'] as String? ?? 'all';
-      _selectedLanguage = _languages.any((a) => a.key == language)
-          ? language
-          : 'all';
       // A draft saved before lifecycle targeting existed carries no map at all,
       // so both halves of the segment fall back inside `NotificationSegment`.
       final segment = draft['segment'];
@@ -570,6 +550,22 @@ class _NotificationManagementScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _buildSelectRow(p),
+                  if (pickingMeal) ...[
+                    const SizedBox(height: 12),
+                    _buildMealTarget(p, mealsAsync!),
+                  ],
+                  if (_selectedDestination == 'custom') ...[
+                    const SizedBox(height: 12),
+                    _buildField(
+                      controller: _customRouteController,
+                      label: 'رابط مخصص',
+                      hint: '/promo/ramadan',
+                      ltr: true,
+                      validator: _validateCustomRoute,
+                    ),
+                  ],
+                  const SizedBox(height: 20),
                   _buildField(
                     controller: _titleArController,
                     label: 'عنوان الإشعار بالعربي',
@@ -601,22 +597,6 @@ class _NotificationManagementScreenState
                     ltr: true,
                     maxLength: 180,
                   ),
-                  const SizedBox(height: 20),
-                  _buildSelectRow(p),
-                  if (pickingMeal) ...[
-                    const SizedBox(height: 12),
-                    _buildMealTarget(p, mealsAsync!),
-                  ],
-                  if (_selectedDestination == 'custom') ...[
-                    const SizedBox(height: 12),
-                    _buildField(
-                      controller: _customRouteController,
-                      label: 'رابط مخصص',
-                      hint: '/promo/ramadan',
-                      ltr: true,
-                      validator: _validateCustomRoute,
-                    ),
-                  ],
                   const SizedBox(height: 14),
                   _buildRoutePreview(p, _resolveRoute(meals)),
                 ],
@@ -667,15 +647,15 @@ class _NotificationManagementScreenState
     );
   }
 
-  /// The choices that define a broadcast — what it is, where it lands, and the
-  /// two halves of who it is addressed to — grouped the way the mockups group
-  /// their selects.
+  /// The three choices that define a broadcast — what it is, where it lands,
+  /// and who it is addressed to — sit side by side in one row at the top of the
+  /// form. Past the card's 560px threshold they share the width as three equal
+  /// columns; narrower, each takes a full line so its options never ellipsize.
   Widget _buildSelectRow(AdminPalette p) {
     final type = _types.firstWhere((t) => t.key == _selectedType);
     final destination = _destinations.firstWhere(
       (d) => d.key == _selectedDestination,
     );
-    final language = _languages.firstWhere((a) => a.key == _selectedLanguage);
     final stage = _stages.firstWhere((s) => s.key == _selectedStage);
 
     final selects = [
@@ -703,7 +683,7 @@ class _NotificationManagementScreenState
         }),
       ),
       _buildSelect(
-        label: 'مرحلة المستخدمين',
+        label: 'الجمهور المستهدف',
         icon: stage.icon,
         value: stage.key,
         options: [
@@ -714,60 +694,46 @@ class _NotificationManagementScreenState
           () => _selectedStage = NotificationSegment.coerceKind(key),
         ),
       ),
-      _buildSelect(
-        label: 'لغة المستخدمين',
-        icon: language.icon,
-        value: language.key,
-        options: [
-          for (final option in _languages)
-            (value: option.key, label: option.label, icon: option.icon),
-        ],
-        onChanged: (key) => setState(() => _selectedLanguage = key),
-      ),
     ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Four selects never keep a readable width on one line, so past the
-        // card's 520px threshold they go out as two pairs: the broadcast and its
-        // destination above, the two audience halves below. Under the same
-        // threshold every control takes a full line rather than ellipsizing its
-        // own options.
-        final twoUp = constraints.maxWidth >= 520;
-        final lines = twoUp
-            ? [
-                _pairSelects(selects[0], selects[1]),
-                _pairSelects(selects[2], selects[3]),
-              ]
-            : selects;
+        final threeUp = constraints.maxWidth >= 560;
+
+        final controls = threeUp
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: selects[0]),
+                  const SizedBox(width: 13),
+                  Expanded(child: selects[1]),
+                  const SizedBox(width: 13),
+                  Expanded(child: selects[2]),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < selects.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 12),
+                    selects[i],
+                  ],
+                ],
+              );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var i = 0; i < lines.length; i++) ...[
-              if (i > 0) const SizedBox(height: 12),
-              lines[i],
-            ],
+            controls,
             // Progressive disclosure: the window is a property of `new` alone,
             // so it is not on screen while the stage ignores it.
             if (_selectedStage == NotificationSegment.kindNew) ...[
               const SizedBox(height: 12),
-              _buildSegmentDaysField(p, compact: twoUp),
+              _buildSegmentDaysField(p, compact: threeUp),
             ],
           ],
         );
       },
-    );
-  }
-
-  Widget _pairSelects(Widget first, Widget second) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: first),
-        const SizedBox(width: 13),
-        Expanded(child: second),
-      ],
     );
   }
 
@@ -997,7 +963,6 @@ class _NotificationManagementScreenState
           titleEn: _titleEnController.text.trim(),
           messageEn: _messageEnController.text.trim(),
           typeLabel: _typeStyle(p, _selectedType).label,
-          audienceLabel: _languageLabel,
           segmentLabel: _segmentLabel,
           segmentRestricted: _selectedStage != NotificationSegment.kindAll,
           route: route,

@@ -21,7 +21,6 @@ class NotificationReview extends StatefulWidget {
   final String titleEn;
   final String messageEn;
   final String typeLabel;
-  final String audienceLabel;
 
   /// The lifecycle half of the audience, spelled out with its day window.
   final String segmentLabel;
@@ -42,7 +41,6 @@ class NotificationReview extends StatefulWidget {
     required this.titleEn,
     required this.messageEn,
     required this.typeLabel,
-    required this.audienceLabel,
     required this.segmentLabel,
     this.segmentRestricted = false,
     required this.route,
@@ -85,7 +83,6 @@ class _NotificationReviewState extends State<NotificationReview> {
       title: _title,
       message: _message,
       typeLabel: widget.typeLabel,
-      audienceLabel: widget.audienceLabel,
       segmentLabel: widget.segmentLabel,
       segmentRestricted: widget.segmentRestricted,
       route: widget.route,
@@ -181,7 +178,6 @@ class _Summary extends StatelessWidget {
   final String title;
   final String message;
   final String typeLabel;
-  final String audienceLabel;
   final String segmentLabel;
   final bool segmentRestricted;
   final String route;
@@ -191,7 +187,6 @@ class _Summary extends StatelessWidget {
     required this.title,
     required this.message,
     required this.typeLabel,
-    required this.audienceLabel,
     required this.segmentLabel,
     required this.segmentRestricted,
     required this.route,
@@ -206,14 +201,8 @@ class _Summary extends StatelessWidget {
         _FactRow(icon: AdminIcons.tags, label: 'نوع الإشعار', value: typeLabel),
         const SizedBox(height: 12),
         _FactRow(
-          icon: AdminIcons.language,
-          label: 'لغة المستخدمين',
-          value: audienceLabel,
-        ),
-        const SizedBox(height: 12),
-        _FactRow(
           icon: AdminIcons.users,
-          label: 'مرحلة المستخدمين',
+          label: 'الجمهور المستهدف',
           value: segmentLabel,
         ),
         const SizedBox(height: 12),

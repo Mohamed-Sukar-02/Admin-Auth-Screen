@@ -2,9 +2,9 @@ import 'package:daily_meal/features/admin/presentation/widgets/notification_revi
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The audience half of the review dialog: the two targeting dimensions printed
-/// as separate facts, and the honest caveat that an app build from before stage
-/// filtering cannot honour it.
+/// The audience half of the review dialog: the target-audience stage printed as
+/// a fact, and the honest caveat that an app build from before stage filtering
+/// cannot honour it.
 void main() {
   /// [screen] is the viewport the dialog was opened in and [body] the width the
   /// shell actually gives the review — the real dialog is wider on screen than
@@ -33,7 +33,6 @@ void main() {
                       titleEn: 'Ready to cook',
                       messageEn: "Today's pick is waiting",
                       typeLabel: 'وجبة / اقتراح',
-                      audienceLabel: 'العربية',
                       segmentLabel: segmentLabel,
                       segmentRestricted: segmentRestricted,
                       route: '/vault?tab=explore',
@@ -49,7 +48,7 @@ void main() {
     );
   }
 
-  testWidgets('language and stage are reviewed as two separate facts', (
+  testWidgets('the target audience is reviewed as its own fact', (
     tester,
   ) async {
     await pumpReview(
@@ -60,11 +59,10 @@ void main() {
       body: 680,
     );
 
-    expect(find.text('لغة المستخدمين:'), findsOneWidget);
-    expect(find.text('مرحلة المستخدمين:'), findsOneWidget);
+    // The language selector is gone: only the stage fact remains.
+    expect(find.text('لغة المستخدمين:'), findsNothing);
+    expect(find.text('الجمهور المستهدف:'), findsOneWidget);
     expect(find.text('مستخدمون جدد — أول 7 أيام'), findsOneWidget);
-    // The old single-line audience fact is gone rather than doubled up.
-    expect(find.text('الجمهور:'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -105,7 +103,7 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('مرحلة المستخدمين:'), findsOneWidget);
+    expect(find.text('الجمهور المستهدف:'), findsOneWidget);
     expect(find.text('مستخدمون جدد — أول 365 أيام'), findsOneWidget);
   });
 }
