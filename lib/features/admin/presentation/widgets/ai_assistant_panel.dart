@@ -383,10 +383,9 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
                   // request.
                   onTap: () {
                     _promptController.text = idea.prompt;
-                    _promptController.selection =
-                        TextSelection.collapsed(
-                          offset: idea.prompt.length,
-                        );
+                    _promptController.selection = TextSelection.collapsed(
+                      offset: idea.prompt.length,
+                    );
                     _focus.requestFocus();
                   },
                 ),
