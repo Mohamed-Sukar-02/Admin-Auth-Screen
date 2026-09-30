@@ -20,9 +20,8 @@ class _AdminRootScreenState extends ConsumerState<AdminRootScreen> {
     final authState = ref.watch(authStateProvider);
 
     return authState.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (err, _) => Scaffold(
         body: Center(child: Text('خطأ في التحقق من تسجيل الدخول: $err')),
       ),
@@ -34,9 +33,8 @@ class _AdminRootScreenState extends ConsumerState<AdminRootScreen> {
         final adminStatusAsync = ref.watch(isAdminProvider(user.email));
 
         return adminStatusAsync.when(
-          loading: () => const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
           error: (err, _) {
             const unauthorizedMsg =
                 'غير مصرح لك بالوصول إلى لوحة التحكم كمسؤول. تم تسجيل الخروج تلقائياً.';
@@ -44,9 +42,7 @@ class _AdminRootScreenState extends ConsumerState<AdminRootScreen> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ref.read(adminAuthServiceProvider).signOut();
             });
-            return const AdminAuthScreen(
-              initialErrorMessage: unauthorizedMsg,
-            );
+            return const AdminAuthScreen(initialErrorMessage: unauthorizedMsg);
           },
           data: (isAuthorized) {
             if (!isAuthorized) {

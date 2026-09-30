@@ -9,11 +9,10 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
 
   /// Watch all meals in the vault, ordered alphabetically by name, then by id DESC
   Stream<List<Meal>> watchAllMeals() {
-    return (select(meals)
-          ..orderBy([
-            (t) => OrderingTerm.asc(t.name),
-            (t) => OrderingTerm.desc(t.id),
-          ]))
+    return (select(meals)..orderBy([
+          (t) => OrderingTerm.asc(t.name),
+          (t) => OrderingTerm.desc(t.id),
+        ]))
         .watch();
   }
 
@@ -70,11 +69,10 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
 
   /// One-shot query to fetch all meals
   Future<List<Meal>> getAllMeals() {
-    return (select(meals)
-          ..orderBy([
-            (t) => OrderingTerm.asc(t.name),
-            (t) => OrderingTerm.desc(t.id),
-          ]))
+    return (select(meals)..orderBy([
+          (t) => OrderingTerm.asc(t.name),
+          (t) => OrderingTerm.desc(t.id),
+        ]))
         .get();
   }
 
@@ -147,8 +145,9 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
 
   /// Update meal via companion
   Future<int> updateMealCompanion(int id, MealsCompanion companion) {
-    return (update(meals)..where((t) => t.id.equals(id)))
-        .write(companion.copyWith(updatedAt: Value(DateTime.now())));
+    return (update(meals)..where((t) => t.id.equals(id))).write(
+      companion.copyWith(updatedAt: Value(DateTime.now())),
+    );
   }
 
   /// Delete a meal by ID (triggers KeyAction.setNull on MealHistory)

@@ -15,9 +15,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin',
         name: 'admin',
-        pageBuilder: (context, state) => const NoTransitionPage(
-          child: AdminRootScreen(),
-        ),
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: AdminRootScreen()),
       ),
       GoRoute(
         path: '/admin/forgot-password',

@@ -26,7 +26,8 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   // Default constructor uses driftDatabase(name: 'daily_meal_db')
   // Optional executor parameter allows in-memory test database (NativeDatabase.memory())
-  AppDatabase([QueryExecutor? e]) : super(e ?? driftDatabase(name: 'daily_meal_db'));
+  AppDatabase([QueryExecutor? e])
+    : super(e ?? driftDatabase(name: 'daily_meal_db'));
 
   @override
   int get schemaVersion => 6;

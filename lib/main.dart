@@ -24,11 +24,7 @@ void main() async {
     debugPrint('Firebase initialization warning: $e');
   }
   await NotificationService.instance.init();
-  runApp(
-    const ProviderScope(
-      child: DailyMealApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: DailyMealApp()));
 }
 
 class DailyMealApp extends ConsumerWidget {
@@ -76,10 +72,7 @@ class _ThemeFadeTransition extends StatefulWidget {
   final Brightness brightness;
   final Widget child;
 
-  const _ThemeFadeTransition({
-    required this.brightness,
-    required this.child,
-  });
+  const _ThemeFadeTransition({required this.brightness, required this.child});
 
   @override
   State<_ThemeFadeTransition> createState() => _ThemeFadeTransitionState();

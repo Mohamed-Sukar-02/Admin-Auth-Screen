@@ -11,7 +11,8 @@ class MealHistoryWithMeal {
 }
 
 @DriftAccessor(tables: [MealHistory, Meals])
-class MealHistoryDao extends DatabaseAccessor<AppDatabase> with _$MealHistoryDaoMixin {
+class MealHistoryDao extends DatabaseAccessor<AppDatabase>
+    with _$MealHistoryDaoMixin {
   MealHistoryDao(super.db);
 
   /// Reactive stream of history entries ordered descending by cookedAt
@@ -29,12 +30,13 @@ class MealHistoryDao extends DatabaseAccessor<AppDatabase> with _$MealHistoryDao
 
   /// Reactive stream joining history with meals (meal may be null if deleted)
   Stream<List<MealHistoryWithMeal>> watchHistoryWithMeal() {
-    final query = select(mealHistory).join([
-      leftOuterJoin(meals, meals.id.equalsExp(mealHistory.mealId)),
-    ])..orderBy([
-      OrderingTerm.desc(mealHistory.cookedAt),
-      OrderingTerm.desc(mealHistory.id),
-    ]);
+    final query =
+        select(mealHistory).join([
+          leftOuterJoin(meals, meals.id.equalsExp(mealHistory.mealId)),
+        ])..orderBy([
+          OrderingTerm.desc(mealHistory.cookedAt),
+          OrderingTerm.desc(mealHistory.id),
+        ]);
 
     return query.watch().map((rows) {
       return rows.map((row) {
@@ -59,22 +61,22 @@ class MealHistoryDao extends DatabaseAccessor<AppDatabase> with _$MealHistoryDao
 
   /// Snapshot of all history entries
   Future<List<MealHistoryData>> getAllHistory() {
-    return (select(mealHistory)
-          ..orderBy([
-            (t) => OrderingTerm.desc(t.cookedAt),
-            (t) => OrderingTerm.desc(t.id),
-          ]))
+    return (select(mealHistory)..orderBy([
+          (t) => OrderingTerm.desc(t.cookedAt),
+          (t) => OrderingTerm.desc(t.id),
+        ]))
         .get();
   }
 
   /// Fetch recent history entries up to [limit]
   Future<List<MealHistoryData>> getRecentHistory({int limit = 60}) {
     return (select(mealHistory)
-      ..orderBy([
-        (t) => OrderingTerm.desc(t.cookedAt),
-        (t) => OrderingTerm.desc(t.id),
-      ])
-      ..limit(limit)).get();
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.cookedAt),
+            (t) => OrderingTerm.desc(t.id),
+          ])
+          ..limit(limit))
+        .get();
   }
 
   /// Fetch history within the last [days] days
@@ -85,11 +87,12 @@ class MealHistoryDao extends DatabaseAccessor<AppDatabase> with _$MealHistoryDao
     final ref = referenceDate ?? DateTime.now();
     final cutoff = ref.subtract(Duration(days: days));
     return (select(mealHistory)
-      ..where((t) => t.cookedAt.isBiggerOrEqualValue(cutoff))
-      ..orderBy([
-        (t) => OrderingTerm.desc(t.cookedAt),
-        (t) => OrderingTerm.desc(t.id),
-      ])).get();
+          ..where((t) => t.cookedAt.isBiggerOrEqualValue(cutoff))
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.cookedAt),
+            (t) => OrderingTerm.desc(t.id),
+          ]))
+        .get();
   }
 
   /// Fetch the latest single cooked meal entry
@@ -150,12 +153,22 @@ class MealHistoryDao extends DatabaseAccessor<AppDatabase> with _$MealHistoryDao
 
   /// Quick helper to log cooked meal
   Future<int> logCookedMeal(Meal meal, {DateTime? cookedAt, String? notes}) {
-    return logMealFromMeal(meal, cookedAt: cookedAt, entryType: MealEntryType.cooked, notes: notes);
+    return logMealFromMeal(
+      meal,
+      cookedAt: cookedAt,
+      entryType: MealEntryType.cooked,
+      notes: notes,
+    );
   }
 
   /// Quick helper to log leftover meal
   Future<int> logLeftoverMeal(Meal meal, {DateTime? cookedAt, String? notes}) {
-    return logMealFromMeal(meal, cookedAt: cookedAt, entryType: MealEntryType.leftover, notes: notes);
+    return logMealFromMeal(
+      meal,
+      cookedAt: cookedAt,
+      entryType: MealEntryType.leftover,
+      notes: notes,
+    );
   }
 
   /// Delete a single history log entry
