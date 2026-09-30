@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/router/app_router.dart';
 import '../theme/admin_palette.dart';
@@ -67,7 +66,6 @@ enum AdminToastKind {
 
 class AdminToastSpec {
   final IconData icon;
-  final Color accent;
   final String label;
 
   /// How long a *status* toast of this kind stays on its own; `null` means it
@@ -76,7 +74,6 @@ class AdminToastSpec {
 
   const AdminToastSpec({
     required this.icon,
-    required this.accent,
     required this.label,
     required this.autoDismiss,
   });
@@ -86,40 +83,45 @@ extension AdminToastKindSpec on AdminToastKind {
   AdminToastSpec get spec => switch (this) {
     AdminToastKind.info => AdminToastSpec(
       icon: AdminIcons.info,
-      accent: const Color(0xFF3B82F6),
       label: 'معلومة',
       autoDismiss: const Duration(milliseconds: 2200),
     ),
     AdminToastKind.success => AdminToastSpec(
       icon: AdminIcons.success,
-      accent: const Color(0xFF22C55E),
       label: 'تم بنجاح',
       autoDismiss: const Duration(milliseconds: 2000),
     ),
     AdminToastKind.warning => AdminToastSpec(
       icon: AdminIcons.warning,
-      accent: const Color(0xFFF59E0B),
       label: 'تنبيه',
       autoDismiss: const Duration(milliseconds: 3200),
     ),
     AdminToastKind.error => AdminToastSpec(
       icon: AdminIcons.danger,
-      accent: const Color(0xFFEF4444),
       label: 'خطأ',
       autoDismiss: const Duration(milliseconds: 5500),
     ),
     AdminToastKind.loading => AdminToastSpec(
-      icon: Icons.pending_rounded,
-      accent: const Color(0xFF38BDF8),
+      icon: AdminIcons.loading,
       label: 'قيد التنفيذ',
       autoDismiss: null,
     ),
     AdminToastKind.offline => AdminToastSpec(
-      icon: Icons.cloud_off_rounded,
-      accent: const Color(0xFF94A3B8),
+      icon: AdminIcons.offline,
       label: 'حالة الاتصال',
       autoDismiss: null,
     ),
+  };
+
+  /// Which palette token this kind's accent resolves to. Kept out of [spec]
+  /// because the tokens are per-brightness and cannot be const.
+  Color accentOn(AdminPalette p) => switch (this) {
+    AdminToastKind.info => p.nileSolid,
+    AdminToastKind.success => p.oliveSolid,
+    AdminToastKind.warning => p.honeySolid,
+    AdminToastKind.error => p.chiliSolid,
+    AdminToastKind.loading => p.clay,
+    AdminToastKind.offline => p.inkFaint,
   };
 }
 
@@ -127,13 +129,17 @@ extension AdminToastKindSpec on AdminToastKind {
 /// Toast surface
 /// ---------------------------------------------------------------------------
 
-/// The card is painted on the opposite brightness of the screen behind it:
-/// light over the dark dashboard, dark over the light one. A toast that shares
-/// its background's tone reads as part of the page instead of as feedback, so
-/// the inversion is deliberate and not a theme bug.
+/// The toast card is painted on the *opposite* brightness of the page behind
+/// it — light over the dark dashboard, dark over the light one. He asked for
+/// that deliberately: the ambient mode is the benchmark, and feedback has to
+/// stand out from it rather than blend into it. What changed since the old
+/// system is only where the colours come from: the opposite side of
+/// [AdminPalette] now, not a separate slate set, so the card still belongs to
+/// the same design language as the screen it covers.
 class AdminToastTones {
-  /// True when the card itself is the light surface (dark dashboard).
-  final bool isLightCard;
+  /// The palette the card is painted with — the opposite of the screen's.
+  /// Accents resolve against this one so they stay legible on the card.
+  final AdminPalette palette;
   final Color card;
   final Color title;
   final Color subtitle;
@@ -141,7 +147,7 @@ class AdminToastTones {
   final Color dismissFg;
 
   const AdminToastTones({
-    required this.isLightCard,
+    required this.palette,
     required this.card,
     required this.title,
     required this.subtitle,
@@ -149,31 +155,17 @@ class AdminToastTones {
     required this.dismissFg,
   });
 
-  static const AdminToastTones darkCard = AdminToastTones(
-    isLightCard: false,
-    card: Color(0xFF1E293B),
-    title: Color(0xFFF1F5F9),
-    subtitle: Color(0xFF94A3B8),
-    dismissBg: Color(0xFF334155),
-    dismissFg: Color(0xFF94A3B8),
-  );
-
-  static const AdminToastTones lightCard = AdminToastTones(
-    isLightCard: true,
-    card: Color(0xFFF8FAFC),
-    title: Color(0xFF0F172A),
-    subtitle: Color(0xFF475569),
-    dismissBg: Color(0xFFE2E8F0),
-    dismissFg: Color(0xFF334155),
-  );
-
-  static AdminToastTones forScreen(Brightness screen) =>
-      screen == Brightness.dark ? lightCard : darkCard;
-
-  /// The taxonomy accents are mid-tones tuned for the dark card; on the light
-  /// card they sink, so they are pulled down toward slate.
-  Color accent(Color base) =>
-      isLightCard ? Color.lerp(base, const Color(0xFF1E293B), 0.32)! : base;
+  factory AdminToastTones.forScreen(AdminPalette screen) {
+    final p = screen.isDark ? AdminPalette.light : AdminPalette.dark;
+    return AdminToastTones(
+      palette: p,
+      card: p.surfaceAlt,
+      title: p.ink,
+      subtitle: p.inkMuted,
+      dismissBg: p.surfaceSunken,
+      dismissFg: p.inkMuted,
+    );
+  }
 }
 
 /// ---------------------------------------------------------------------------
@@ -665,9 +657,10 @@ class _AdminToastCardState extends State<AdminToastCard>
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final p = AdminPalette.of(context);
     final spec = item.kind.spec;
-    final tones = AdminToastTones.forScreen(Theme.of(context).brightness);
-    final accent = tones.accent(spec.accent);
+    final tones = AdminToastTones.forScreen(p);
+    final accent = item.kind.accentOn(tones.palette);
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 220),
@@ -696,78 +689,94 @@ class _AdminToastCardState extends State<AdminToastCard>
                     child: Semantics(
                       label: '${spec.label}: ${item.message}',
                       liveRegion: true,
-                      child: Material(
-                        color: tones.card,
-                        borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: tones.card,
+                          borderRadius: BorderRadius.circular(AdminRadii.md),
+                          border: Border.all(
+                            color: accent.withValues(alpha: 0.45),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: tones.palette.shadow,
+                              blurRadius: 22,
+                              offset: const Offset(0, 7),
+                            ),
+                          ],
+                        ),
                         clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 13,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  _LeadingIcon(
-                                    spec: spec,
-                                    accent: accent,
-                                    spins: item.kind == AdminToastKind.loading,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          item.message,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: GoogleFonts.cairo(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: tones.title,
-                                          ),
-                                        ),
-                                        if (item.subtitle != null) ...[
-                                          const SizedBox(height: 1),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 13,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    _LeadingIcon(
+                                      spec: spec,
+                                      accent: accent,
+                                      spins:
+                                          item.kind == AdminToastKind.loading,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
                                           Text(
-                                            item.subtitle!,
-                                            maxLines: 1,
+                                            item.message,
+                                            maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.cairo(
-                                              fontSize: 11.5,
-                                              color: tones.subtitle,
+                                            style: adminText(
+                                              size: 13,
+                                              weight: FontWeight.w600,
+                                              color: tones.title,
                                             ),
                                           ),
+                                          if (item.subtitle != null) ...[
+                                            const SizedBox(height: 1),
+                                            Text(
+                                              item.subtitle!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: adminText(
+                                                size: 11.5,
+                                                color: tones.subtitle,
+                                              ),
+                                            ),
+                                          ],
                                         ],
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  if (item.onUndo != null) ...[
-                                    _PillAction(
-                                      label: 'تراجع',
-                                      background: const Color(0xFF16A34A),
-                                      onPressed: _runUndo,
+                                    const SizedBox(width: 8),
+                                    if (item.onUndo != null) ...[
+                                      _PillAction(
+                                        label: 'تراجع',
+                                        background: tones.palette.oliveSolid,
+                                        onPressed: _runUndo,
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    _DismissButton(
+                                      background: tones.dismissBg,
+                                      foreground: tones.dismissFg,
+                                      onPressed: _dismiss,
                                     ),
-                                    const SizedBox(width: 6),
                                   ],
-                                  _DismissButton(
-                                    background: tones.dismissBg,
-                                    foreground: tones.dismissFg,
-                                    onPressed: _dismiss,
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                            if (_life != null)
-                              _LifetimeBar(life: _life!, accent: accent),
-                          ],
+                              if (_life != null)
+                                _LifetimeBar(life: _life!, accent: accent),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -860,14 +869,14 @@ class _PillAction extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AdminRadii.sm),
         ),
         child: Text(
           label,
-          style: GoogleFonts.cairo(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+          style: adminText(
+            size: 12,
+            weight: FontWeight.w600,
+            color: AdminPalette.of(context).onSolid(background),
           ),
         ),
       ),
@@ -894,7 +903,7 @@ class _DismissButton extends StatelessWidget {
         width: 26,
         height: 26,
         decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-        child: Icon(Icons.close_rounded, size: 14, color: foreground),
+        child: Icon(AdminIcons.close, size: 14, color: foreground),
       ),
     );
   }
@@ -912,7 +921,7 @@ Future<void> showAdminNotificationCenter(BuildContext context) {
   return showAdminDialog<void>(
     context: context,
     builder: (dialogCtx) => AdminDialogShell(
-      icon: Icons.notifications_rounded,
+      icon: AdminIcons.notifications,
       tone: AdminDialogTone.brand,
       title: 'مركز الإشعارات',
       subtitle: 'آخر ما صدر عن لوحة التحكم، مرتّباً حسب نوع الإشعار',
@@ -966,6 +975,7 @@ class _HistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = palette;
     final spec = record.kind.spec;
+    final accent = record.kind.accentOn(p);
     return Container(
       padding: const EdgeInsetsDirectional.fromSTEB(11, 10, 11, 10),
       decoration: p.panel(color: p.surfaceAlt, radius: AdminRadii.md),
@@ -976,10 +986,10 @@ class _HistoryTile extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: spec.accent.withValues(alpha: 0.14),
+              color: accent.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(spec.icon, size: 16, color: spec.accent),
+            child: Icon(spec.icon, size: 16, color: accent),
           ),
           const SizedBox(width: 11),
           Expanded(

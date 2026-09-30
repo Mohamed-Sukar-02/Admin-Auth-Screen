@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Indigo-on-slate design tokens for the admin dashboard.
+/// Admin design tokens.
 ///
-/// Every colour the dashboard paints comes from here — no raw hex values are
-/// allowed in the screens. The system is anchored on the app's own brand
-/// indigo (`#635BFF`, the same one the admin sign-in screens already use) and
-/// a cool slate neutral scale, with four supporting hues:
-///   indigo (brand)  • amber (attention)  • green (positive)  • red (negative)
-/// plus sky and pink reserved for secondary data accents.
+/// Two colour libraries, adopted verbatim from the approved mockups:
+///   • light  — the sage-green editorial set (page `#F7F8F5`, flat white cards
+///     on hairline `#E7EAE4` borders, brand green `#2D7853`, and warm clay/sand
+///     standing in for errors and attention instead of red).
+///   • dark   — the olive-black set (root `#131513`, panels `#1B1E1A`, inputs
+///     sunk to `#151A13`, terracotta accent `#E3A079`).
 ///
-/// All solid tokens are tuned so plain white text clears WCAG AA (4.5:1)
-/// on them in both modes, because the screens hardcode `Colors.white` on
-/// solid pills, buttons and snackbars.
+/// Depth comes from borders and 3px focus rings, not elevation, so `panel()`
+/// keeps its shadow barely-there in both modes.
+///
+/// Never hardcode `Colors.white` on a `*Solid` token: the dark library's solids
+/// are light-on-dark, so take the foreground from [onSolid] instead.
 class AdminPalette {
   const AdminPalette({
     required this.isDark,
@@ -52,7 +54,7 @@ class AdminPalette {
 
   final bool isDark;
 
-  // --- Neutrals: cool slate, clean and calm ---
+  // --- Neutrals ---
   final Color canvas;
   final Color surface;
   final Color surfaceAlt;
@@ -64,7 +66,7 @@ class AdminPalette {
   final Color inkFaint;
   final Color scrim;
 
-  // --- Clay: the brand indigo, used for primary actions and nav ---
+  // --- Clay: the brand colour — primary actions, nav, focus lines ---
   final Color clay;
   final Color claySolid;
   final Color clayDeep;
@@ -102,40 +104,40 @@ class AdminPalette {
 
   static const AdminPalette light = AdminPalette(
     isDark: false,
-    canvas: Color(0xFFF8FAFC),
+    canvas: Color(0xFFF7F8F5),
     surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFF1F5F9),
-    surfaceSunken: Color(0xFFE9EEF5),
-    border: Color(0xFFE2E8F0),
-    borderStrong: Color(0xFFCBD5E1),
-    ink: Color(0xFF0F172A),
-    inkMuted: Color(0xFF64748B),
-    inkFaint: Color(0xFF94A3B8),
-    scrim: Color(0x660F172A),
-    clay: Color(0xFF635BFF),
-    claySolid: Color(0xFF635BFF),
-    clayDeep: Color(0xFF5149D9),
+    surfaceAlt: Color(0xFFF5F7F2),
+    surfaceSunken: Color(0xFFF1F5E9),
+    border: Color(0xFFE7EAE4),
+    borderStrong: Color(0xFFD8DFCC),
+    ink: Color(0xFF263B32),
+    inkMuted: Color(0xFF8B938D),
+    inkFaint: Color(0xFFA3A89F),
+    scrim: Color(0x66203428),
+    clay: Color(0xFF448162),
+    claySolid: Color(0xFF2D7853),
+    clayDeep: Color(0xFF215C40),
     onClay: Color(0xFFFFFFFF),
-    claySoft: Color(0xFFECEDFD),
-    onClaySoft: Color(0xFF5149D9),
-    honeySolid: Color(0xFFB45309),
-    honeySoft: Color(0xFFFEF3C7),
-    honeyInk: Color(0xFF92400E),
-    oliveSolid: Color(0xFF15803D),
-    oliveSoft: Color(0xFFDCFCE7),
-    oliveInk: Color(0xFF166534),
-    chiliSolid: Color(0xFFDC2626),
-    chiliSoft: Color(0xFFFEE2E2),
-    chiliInk: Color(0xFFB91C1C),
-    nileSolid: Color(0xFF0369A1),
-    nileSoft: Color(0xFFE0F2FE),
-    nileInk: Color(0xFF075985),
-    plumSolid: Color(0xFFDB2777),
-    plumSoft: Color(0xFFFCE7F3),
-    plumInk: Color(0xFFBE185D),
-    shadow: Color(0x140F172A),
+    claySoft: Color(0xFFEDF5EB),
+    onClaySoft: Color(0xFF215C40),
+    honeySolid: Color(0xFF8F6A2F),
+    honeySoft: Color(0xFFF7F1E5),
+    honeyInk: Color(0xFF8A6A33),
+    oliveSolid: Color(0xFF4C7C44),
+    oliveSoft: Color(0xFFEDF5E8),
+    oliveInk: Color(0xFF45763C),
+    chiliSolid: Color(0xFFA65E3F),
+    chiliSoft: Color(0xFFFBF6ED),
+    chiliInk: Color(0xFF96552F),
+    nileSolid: Color(0xFF3F6B66),
+    nileSoft: Color(0xFFEDF2F1),
+    nileInk: Color(0xFF41696B),
+    plumSolid: Color(0xFF7A5566),
+    plumSoft: Color(0xFFF4EEF0),
+    plumInk: Color(0xFF6C4A5B),
+    shadow: Color(0x0A263C23),
     brandGradient: LinearGradient(
-      colors: [Color(0xFF716AFF), Color(0xFF5149D9)],
+      colors: [Color(0xFF2D7853), Color(0xFF215C40)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
@@ -143,40 +145,40 @@ class AdminPalette {
 
   static const AdminPalette dark = AdminPalette(
     isDark: true,
-    canvas: Color(0xFF0F172A),
-    surface: Color(0xFF1A2436),
-    surfaceAlt: Color(0xFF222E45),
-    surfaceSunken: Color(0xFF0B1220),
-    border: Color(0xFF2B3752),
-    borderStrong: Color(0xFF3E4C6E),
-    ink: Color(0xFFF1F5F9),
-    inkMuted: Color(0xFF94A3B8),
-    inkFaint: Color(0xFF64748B),
-    scrim: Color(0x990B1220),
-    clay: Color(0xFF818CF8),
-    claySolid: Color(0xFF5149D9),
-    clayDeep: Color(0xFF463FBF),
-    onClay: Color(0xFFFFFFFF),
-    claySoft: Color(0xFF201F45),
-    onClaySoft: Color(0xFFA5B4FC),
-    honeySolid: Color(0xFFB45309),
-    honeySoft: Color(0xFF382711),
-    honeyInk: Color(0xFFFBBF24),
-    oliveSolid: Color(0xFF15803D),
-    oliveSoft: Color(0xFF12301E),
-    oliveInk: Color(0xFF86EFAC),
-    chiliSolid: Color(0xFFDC2626),
-    chiliSoft: Color(0xFF391A1D),
-    chiliInk: Color(0xFFFCA5A5),
-    nileSolid: Color(0xFF0B7AB8),
-    nileSoft: Color(0xFF0D2A3D),
-    nileInk: Color(0xFF7DD3FC),
-    plumSolid: Color(0xFFDB2777),
-    plumSoft: Color(0xFF371A2B),
-    plumInk: Color(0xFFF9A8D4),
-    shadow: Color(0x66000000),
+    canvas: Color(0xFF131513),
+    surface: Color(0xFF1B1E1A),
+    surfaceAlt: Color(0xFF23281E),
+    surfaceSunken: Color(0xFF151A13),
+    border: Color(0xFF31362C),
+    borderStrong: Color(0xFF4B5B3D),
+    ink: Color(0xFFECEEE8),
+    inkMuted: Color(0xFF939B88),
+    inkFaint: Color(0xFF6E756A),
+    scrim: Color(0xBD0C130B),
+    clay: Color(0xFFE3A079),
+    claySolid: Color(0xFFE3A079),
+    clayDeep: Color(0xFFB48159),
+    onClay: Color(0xFF262A1E),
+    claySoft: Color(0xFF352A21),
+    onClaySoft: Color(0xFFEDB08B),
+    honeySolid: Color(0xFF8A6A3A),
+    honeySoft: Color(0xFF393323),
+    honeyInk: Color(0xFFCCAD83),
+    oliveSolid: Color(0xFF5F7D46),
+    oliveSoft: Color(0xFF304226),
+    oliveInk: Color(0xFFC5DCAC),
+    chiliSolid: Color(0xFF966040),
+    chiliSoft: Color(0xFF3A2820),
+    chiliInk: Color(0xFFECB99A),
+    nileSolid: Color(0xFF4E7168),
+    nileSoft: Color(0xFF1E2B28),
+    nileInk: Color(0xFFA8CCC2),
+    plumSolid: Color(0xFF6E5566),
+    plumSoft: Color(0xFF2A2229),
+    plumInk: Color(0xFFD3BCCB),
+    shadow: Color(0x40000000),
     brandGradient: LinearGradient(
-      colors: [Color(0xFF716AFF), Color(0xFF5149D9)],
+      colors: [Color(0xFFE3A079), Color(0xFFB48159)],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ),
@@ -184,6 +186,13 @@ class AdminPalette {
 
   static AdminPalette of(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? dark : light;
+
+  /// Foreground that stays readable on a solid token. The dark library paints
+  /// light solids (terracotta on olive), so white cannot be assumed. The 0.2
+  /// cut-off is what keeps the light library's mid-greens on white while the
+  /// dark library's warm accents flip to ink.
+  Color onSolid(Color background) =>
+      background.computeLuminance() > 0.2 ? surfaceSunken : Colors.white;
 
   /// Panel used by every card, dialog and sidebar block.
   BoxDecoration panel({
@@ -203,8 +212,8 @@ class AdminPalette {
           ? [
               BoxShadow(
                 color: this.shadow,
-                blurRadius: 18,
-                offset: const Offset(0, 6),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
             ]
           : null,
@@ -231,9 +240,9 @@ class AdminPalette {
 class AdminRadii {
   AdminRadii._();
 
-  static const double sm = 10;
-  static const double md = 12;
-  static const double lg = 16;
-  static const double xl = 22;
+  static const double sm = 7;
+  static const double md = 10;
+  static const double lg = 12;
+  static const double xl = 15;
   static const double pill = 999;
 }

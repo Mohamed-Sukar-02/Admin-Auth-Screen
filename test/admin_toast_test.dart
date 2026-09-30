@@ -1,4 +1,5 @@
 import 'package:daily_meal/core/router/app_router.dart';
+import 'package:daily_meal/features/admin/presentation/theme/admin_palette.dart';
 import 'package:daily_meal/features/admin/presentation/widgets/admin_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,11 +16,13 @@ void main() {
   }
 
   /// The painted card surface of the newest toast.
-  Color cardSurface(WidgetTester tester) => tester
-      .widgetList<Material>(find.descendant(
-          of: find.byType(AdminToastCard), matching: find.byType(Material)))
-      .first
-      .color!;
+  Color cardSurface(WidgetTester tester) {
+    final card = tester
+        .widgetList<Container>(find.descendant(
+            of: find.byType(AdminToastCard), matching: find.byType(Container)))
+        .first;
+    return (card.decoration! as BoxDecoration).color!;
+  }
 
   setUp(() {
     AdminToastRegistry.instance.debugReset();
@@ -175,7 +178,7 @@ void main() {
     AdminToast.show(message: 'تم الحفظ');
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(cardSurface(tester), AdminToastTones.darkCard.card);
+    expect(cardSurface(tester), AdminPalette.dark.surfaceAlt);
   });
 
   testWidgets('a dark dashboard gets a light toast card so it stands out',
@@ -184,6 +187,6 @@ void main() {
     AdminToast.show(message: 'تم الحفظ');
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(cardSurface(tester), AdminToastTones.lightCard.card);
+    expect(cardSurface(tester), AdminPalette.light.surfaceAlt);
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../theme/admin_palette.dart';
 
@@ -17,22 +18,43 @@ import '../theme/admin_palette.dart';
 ///     close affordance (no duplicate close buttons in the footer).
 ///   • Tone-driven colour: each dialog declares intent (brand / danger / warn
 ///     / success / info / neutral) and every accent derives from it.
-///   • Rectangular-soft buttons (radius 12) — never stadium capsules.
+///   • Rectangular-soft buttons (radius 7) on cards at radius 12 — the mockups
+///     keep shapes tight and let hairline borders carry the depth.
 ///   • Entrance motion: fade + 0.94→1 scale, 220ms easeOutCubic.
 /// ============================================================================
 
-/// Shared typography for the admin surface (Cairo, RTL-friendly).
+/// Shared typography for the admin surface (IBM Plex Sans Arabic, RTL-friendly).
 TextStyle adminText({
-  double size = 14,
+  double size = 13.5,
   FontWeight weight = FontWeight.w500,
   Color? color,
   double? height,
+  double? letterSpacing,
 }) {
-  return GoogleFonts.cairo(
+  return GoogleFonts.ibmPlexSansArabic(
     fontSize: size,
     fontWeight: weight,
     color: color,
     height: height,
+    letterSpacing: letterSpacing,
+  );
+}
+
+/// Latin face for numerals, dates, routes and English copy — the mockups always
+/// switch face rather than shrinking Arabic to fit.
+TextStyle adminLatinText({
+  double size = 13.5,
+  FontWeight weight = FontWeight.w500,
+  Color? color,
+  double? height,
+  double? letterSpacing,
+}) {
+  return GoogleFonts.inter(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
   );
 }
 
@@ -41,73 +63,106 @@ TextStyle adminText({
 /// ---------------------------------------------------------------------------
 /// Exactly one glyph per concept, all from the filled `_rounded` family so
 /// stroke weight, corners and optical size stay consistent everywhere.
+/// Exactly one glyph per concept, all from the Lucide line set — the same
+/// library the approved mockups are drawn with, so stroke weight, corners and
+/// optical size match the reference instead of approximating it with Material's
+/// filled glyphs. Member names are unchanged; only the source moved.
 abstract final class AdminIcons {
   // Chrome & navigation
-  static const IconData dashboard = Icons.space_dashboard_rounded;
-  static const IconData suggestions = Icons.pending_actions_rounded;
-  static const IconData settings = Icons.tune_rounded;
-  static const IconData close = Icons.close_rounded;
-  static const IconData expand = Icons.expand_more_rounded;
-  static const IconData search = Icons.search_rounded;
-  static const IconData add = Icons.add_rounded;
-  static const IconData edit = Icons.edit_rounded;
-  static const IconData delete = Icons.delete_rounded;
-  static const IconData refresh = Icons.refresh_rounded;
-  static const IconData logout = Icons.logout_rounded;
-  static const IconData palette = Icons.palette_rounded;
-  static const IconData lock = Icons.lock_rounded;
-  static const IconData verified = Icons.verified_user_rounded;
+  static const IconData dashboard = LucideIcons.layoutDashboard;
+  static const IconData suggestions = LucideIcons.clipboardList;
+  static const IconData notifications = LucideIcons.bellRing;
+  static const IconData settings = LucideIcons.settings2;
+  static const IconData close = LucideIcons.x;
+  static const IconData expand = LucideIcons.chevronDown;
+  static const IconData chevronStart = LucideIcons.chevronLeft;
+  static const IconData more = LucideIcons.ellipsis;
+  static const IconData search = LucideIcons.search;
+  static const IconData add = LucideIcons.plus;
+  static const IconData edit = LucideIcons.penLine;
+  static const IconData save = LucideIcons.save;
+  static const IconData delete = LucideIcons.trash2;
+  static const IconData refresh = LucideIcons.refreshCw;
+  static const IconData logout = LucideIcons.logOut;
+  static const IconData palette = LucideIcons.palette;
+  static const IconData lock = LucideIcons.lock;
+  static const IconData verified = LucideIcons.shieldCheck;
+  static const IconData help = LucideIcons.circleHelp;
+  static const IconData lightMode = LucideIcons.sun;
+  static const IconData darkMode = LucideIcons.moon;
+  static const IconData language = LucideIcons.languages;
+  static const IconData back = LucideIcons.arrowLeft;
+  static const IconData forward = LucideIcons.arrowRight;
 
   // Feedback tones
-  static const IconData warning = Icons.error_rounded;
-  static const IconData danger = Icons.dangerous_rounded;
-  static const IconData success = Icons.check_circle_rounded;
-  static const IconData info = Icons.info_rounded;
-  static const IconData empty = Icons.inbox_rounded;
+  static const IconData warning = LucideIcons.triangleAlert;
+  static const IconData danger = LucideIcons.circleAlert;
+  static const IconData success = LucideIcons.circleCheck;
+  static const IconData info = LucideIcons.info;
+  static const IconData empty = LucideIcons.inbox;
 
   // Meals
-  static const IconData meal = Icons.ramen_dining_rounded;
-  static const IconData category = Icons.local_dining_rounded;
-  static const IconData protein = Icons.egg_alt_rounded;
-  static const IconData carbs = Icons.rice_bowl_rounded;
-  static const IconData time = Icons.schedule_rounded;
-  static const IconData friday = Icons.celebration_rounded;
-  static const IconData money = Icons.savings_rounded;
-  static const IconData starter = Icons.stars_rounded;
-  static const IconData notes = Icons.sticky_note_2_rounded;
-  static const IconData source = Icons.person_rounded;
-  static const IconData basicInfo = Icons.badge_rounded;
-  static const IconData tags = Icons.sell_rounded;
-  static const IconData photo = Icons.photo_camera_rounded;
-  static const IconData image = Icons.image_rounded;
-  static const IconData upload = Icons.cloud_upload_rounded;
-  static const IconData link = Icons.link_rounded;
+  static const IconData meal = LucideIcons.utensilsCrossed;
+  static const IconData category = LucideIcons.layers;
+  static const IconData protein = LucideIcons.egg;
+  static const IconData carbs = LucideIcons.wheat;
+  static const IconData time = LucideIcons.clock;
+  static const IconData friday = LucideIcons.partyPopper;
+  static const IconData money = LucideIcons.coins;
+  static const IconData starter = LucideIcons.star;
+  static const IconData notes = LucideIcons.stickyNote;
+  static const IconData source = LucideIcons.user;
+  static const IconData basicInfo = LucideIcons.badge;
+  static const IconData tags = LucideIcons.tag;
+  static const IconData photo = LucideIcons.camera;
+  static const IconData image = LucideIcons.image;
+  static const IconData upload = LucideIcons.cloudUpload;
+  static const IconData link = LucideIcons.link;
 
   // System & admins
-  static const IconData backup = Icons.backup_rounded;
-  static const IconData restore = Icons.settings_backup_restore_rounded;
-  static const IconData cleanup = Icons.cleaning_services_rounded;
-  static const IconData update = Icons.system_update_alt_rounded;
-  static const IconData campaign = Icons.campaign_rounded;
-  static const IconData password = Icons.key_rounded;
-  static const IconData admins = Icons.shield_rounded;
-  static const IconData adminAdd = Icons.person_add_rounded;
-  static const IconData adminRemove = Icons.person_remove_rounded;
-  static const IconData person = Icons.person_rounded;
-  static const IconData email = Icons.alternate_email_rounded;
-  static const IconData visibility = Icons.visibility_rounded;
-  static const IconData visibilityOff = Icons.visibility_off_rounded;
-  static const IconData role = Icons.military_tech_rounded;
-  static const IconData checkbox = Icons.check_box_rounded;
-  static const IconData checkboxOff = Icons.check_box_outline_blank_rounded;
+  static const IconData backup = LucideIcons.databaseBackup;
+  static const IconData restore = LucideIcons.rotateCcw;
+  static const IconData cleanup = LucideIcons.sprayCan;
+  static const IconData update = LucideIcons.download;
+  static const IconData campaign = LucideIcons.megaphone;
+  static const IconData password = LucideIcons.keyRound;
+  static const IconData admins = LucideIcons.userCog;
+  static const IconData adminAdd = LucideIcons.userPlus;
+  static const IconData adminRemove = LucideIcons.userMinus;
+  static const IconData person = LucideIcons.user;
+  static const IconData email = LucideIcons.mail;
+  static const IconData visibility = LucideIcons.eye;
+  static const IconData visibilityOff = LucideIcons.eyeOff;
+  static const IconData role = LucideIcons.award;
+  static const IconData checkbox = LucideIcons.squareCheck;
+  static const IconData checkboxOff = LucideIcons.square;
+  static const IconData chart = LucideIcons.chartNoAxesColumn;
+  static const IconData users = LucideIcons.users;
+
+  // Added for the surfaces that used to reach for a raw Material glyph.
+  static const IconData reminder = LucideIcons.alarmClock;
+  static const IconData explore = LucideIcons.compass;
+  static const IconData performance = LucideIcons.gauge;
+  static const IconData searchOff = LucideIcons.searchX;
+  static const IconData loading = LucideIcons.loaderCircle;
+  static const IconData notificationQuiet = LucideIcons.bell;
+  static const IconData collapseRail = LucideIcons.chevronsRight;
+  static const IconData expandRail = LucideIcons.chevronsLeft;
+  static const IconData vault = LucideIcons.archive;
+  static const IconData home = LucideIcons.house;
+  static const IconData trophy = LucideIcons.trophy;
+  static const IconData offline = LucideIcons.cloudOff;
+  static const IconData autoMode = LucideIcons.sunMoon;
+  static const IconData route = LucideIcons.route;
 
   // AI assistant
-  static const IconData aiMagic = Icons.auto_awesome_rounded;
-  static const IconData aiSparkle = Icons.auto_fix_high_rounded;
-  static const IconData aiSend = Icons.arrow_upward_rounded;
-  static const IconData aiApply = Icons.north_west_rounded;
-  static const IconData copy = Icons.copy_rounded;
-  static const IconData check = Icons.check_rounded;
+  static const IconData aiMagic = LucideIcons.wandSparkles;
+  static const IconData aiSparkle = LucideIcons.sparkles;
+  static const IconData aiSend = LucideIcons.arrowUp;
+  static const IconData aiApply = LucideIcons.arrowUpLeft;
+  static const IconData send = LucideIcons.send;
+  static const IconData copy = LucideIcons.copy;
+  static const IconData check = LucideIcons.check;
 }
 
 /// ---------------------------------------------------------------------------
@@ -457,9 +512,10 @@ class AdminDialogButtons {
     bool loading = false,
   }) {
     final t = adminToneColors(p, tone);
+    final on = p.onSolid(t.solid);
     final style = FilledButton.styleFrom(
       backgroundColor: t.solid,
-      foregroundColor: Colors.white,
+      foregroundColor: on,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AdminRadii.md),
@@ -469,20 +525,16 @@ class AdminDialogButtons {
       return FilledButton(
         style: style,
         onPressed: null,
-        child: const SizedBox(
+        child: SizedBox(
           width: 17,
           height: 17,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+          child: CircularProgressIndicator(strokeWidth: 2, color: on),
         ),
       );
     }
     final text = Text(
       label,
-      style: adminText(
-        size: 13.5,
-        weight: FontWeight.bold,
-        color: Colors.white,
-      ),
+      style: adminText(size: 13.5, weight: FontWeight.bold, color: on),
     );
     if (icon == null) {
       return FilledButton(style: style, onPressed: onPressed, child: text);
@@ -1080,7 +1132,11 @@ class AdminSectionHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: adminText(size: 20, weight: FontWeight.bold, color: p.ink),
+                style: adminText(
+                  size: 20,
+                  weight: FontWeight.bold,
+                  color: p.ink,
+                ),
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
@@ -1091,6 +1147,76 @@ class AdminSectionHeader extends StatelessWidget {
         ),
         ?trailing,
       ],
+    );
+  }
+}
+
+/// ---------------------------------------------------------------------------
+/// Card header
+/// ---------------------------------------------------------------------------
+/// The band that opens a panel/card: a tinted glyph chip, a title, a one-line
+/// note, and whatever the card wants to say about its own state. Distinct from
+/// [AdminSectionHeader], which opens a page section and is printed by the shell
+/// for page titles.
+class AdminCardHeading extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  const AdminCardHeading({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = AdminPalette.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 15),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: p.border)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: p.surfaceAlt,
+              borderRadius: BorderRadius.circular(AdminRadii.md),
+            ),
+            child: Icon(icon, size: 19, color: p.inkMuted),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: adminText(
+                    size: 15,
+                    weight: FontWeight.w600,
+                    color: p.ink,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle!,
+                    style: adminText(size: 11.5, color: p.inkFaint),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
     );
   }
 }
@@ -1146,6 +1272,11 @@ class AdminIconChip extends StatelessWidget {
 /// Fields
 /// ---------------------------------------------------------------------------
 /// Filled input style shared by every admin form.
+///
+/// [floatingLabel] is the Material habit of parking the label inside the box.
+/// The adopted mockups instead print the label above a white field and keep the
+/// placeholder as the only in-box text, so forms that copy that layout pass
+/// `floatingLabel: false` and render the label themselves.
 InputDecoration adminFieldDeco(
   AdminPalette p, {
   required String label,
@@ -1153,6 +1284,9 @@ InputDecoration adminFieldDeco(
   IconData? icon,
   Widget? suffixIcon,
   String? helper,
+  bool floatingLabel = true,
+  bool counter = true,
+  Color? fill,
 }) {
   OutlineInputBorder border(Color color, [double width = 1]) =>
       OutlineInputBorder(
@@ -1161,8 +1295,8 @@ InputDecoration adminFieldDeco(
       );
 
   return InputDecoration(
-    labelText: label,
-    hintText: hint,
+    labelText: floatingLabel ? label : null,
+    hintText: floatingLabel ? hint : (hint ?? label),
     labelStyle: adminText(size: 13, color: p.inkMuted),
     floatingLabelStyle: adminText(
       size: 13,
@@ -1172,10 +1306,14 @@ InputDecoration adminFieldDeco(
     hintStyle: adminText(size: 12.5, color: p.inkFaint),
     helperText: helper,
     helperStyle: adminText(size: 11.5, color: p.inkFaint),
+    counterStyle: adminLatinText(size: 11, color: p.inkFaint),
+    // The mockups print the live counter in the label row, so the field's own
+    // counter has to be silenced rather than left to stack under the box.
+    counterText: counter ? null : '',
     prefixIcon: icon == null ? null : Icon(icon, size: 18, color: p.inkFaint),
     suffixIcon: suffixIcon,
     filled: true,
-    fillColor: p.surfaceAlt,
+    fillColor: fill ?? p.surfaceAlt,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
     border: border(p.border),
     enabledBorder: border(p.border),
