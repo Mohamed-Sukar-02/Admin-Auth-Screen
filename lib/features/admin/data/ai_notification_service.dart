@@ -26,6 +26,34 @@ class _EgyptianDish {
 class AiNotificationService {
   static const String _geminiBaseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/';
+
+  /// Chat-completion endpoints for the OpenAI-compatible providers. Firestore
+  /// only supplies the API keys, so these URLs live in code: a missing or
+  /// mistyped `endpoint` field used to send every Groq/OpenRouter request to
+  /// an empty URL (404) or straight to the Gemini host (403), which looked
+  /// exactly like a dead key.
+  static const Map<String, String> _defaultEndpoints = {
+    'groq': 'https://api.groq.com/openai/v1/chat/completions',
+    'openrouter': 'https://openrouter.ai/api/v1/chat/completions',
+  };
+
+  /// Google's own error text when a key is fine but the model id does not
+  /// exist under that name — the case a bare HTTP status cannot tell apart
+  /// from a revoked key.
+  static final RegExp _modelNotFound = RegExp(
+    r'model .*(?:not found|does not exist)|publisher model .* not found',
+    caseSensitive: false,
+  );
+
+  /// A key pasted with a space, newline or quote glued to it fails
+  /// authentication on every provider before the request ever reaches the
+  /// model, so say so instead of blaming Firebase.
+  static bool _keyLooksMalformed(String key) =>
+      key.isEmpty ||
+      key.length < 20 ||
+      key.trim() != key ||
+      key.contains(RegExp(r'[\s"\'`,;]'));
+
   static const int _maxOutputTokens = 1536;
   static const double _temperature = 0.85;
 
@@ -208,6 +236,15 @@ class AiNotificationService {
 
     final errorLogs = <String>[];
     for (final provider in providersToTry) {
+      final label = _providerLabel(provider);
+      if (_keyLooksMalformed(provider.apiKey)) {
+        // No point burning a request: the key as stored cannot authenticate.
+        errorLogs.add(
+          '$label: مفتاح الـ API في Firestore مشفّر غلط — فاضي، أو فيه مسافة/'
+          'سطر جديد/علامة تنصيص ملزقة بيه. انسخ المفتاح من غير فراغات وحدّث الوثيقة.',
+        );
+        continue;
+      }
       try {
         final responseBody = await _makeRequest(
           provider,
@@ -216,7 +253,7 @@ class AiNotificationService {
         );
         return _parseResponse(responseBody, provider.provider, allowEmoji);
       } catch (e) {
-        errorLogs.add('${provider.name}: $e');
+        errorLogs.add('$label: $e');
       }
     }
 
@@ -228,6 +265,17 @@ class AiNotificationService {
     throw AiServiceException('فشلت جميع المحاولات:\n${errorLogs.join('\n')}');
   }
 
+  /// Name the failure log shows. The Firestore `name` field is free text, so a
+  /// bare "Gemini 1" never told the admin which model id actually went out on
+  /// the wire — and an unknown model id is one of the real reasons a request
+  /// fails while the key is perfectly valid.
+  String _providerLabel(AiProvider provider) {
+    final name = provider.name.trim().isEmpty
+        ? provider.provider
+        : provider.name.trim();
+    return '$name [${provider.model}]';
+  }
+
   /// The selected model wins over whatever the key document stored, so one
   /// provider group can serve every model it hosts.
   AiProvider _withOverriddenModel(AiProvider key, String model) {
@@ -236,8 +284,8 @@ class AiNotificationService {
       name: key.name,
       provider: key.provider,
       model: model,
-      apiKey: key.apiKey,
-      endpoint: key.endpoint,
+      apiKey: key.apiKey.trim(),
+      endpoint: key.endpoint.trim(),
       isActive: key.isActive,
       isFree: key.isFree,
       rateLimit: key.rateLimit,
@@ -276,9 +324,11 @@ class AiNotificationService {
     String systemPrompt,
     String userPayload,
   ) async {
+    // The model id goes through Uri.encodeComponent: a stray space or a colon
+    // glued to the name used to break the URL and get blamed on the key.
     final uri = Uri.parse(
-      '$_geminiBaseUrl${provider.model}:generateContent'
-      '?key=${provider.apiKey}',
+      '$_geminiBaseUrl${Uri.encodeComponent(provider.model)}:generateContent'
+      '?key=${Uri.encodeQueryComponent(provider.apiKey)}',
     );
     final headers = <String, String>{'Content-Type': 'application/json'};
     // Google's newer free-tier keys authenticate by header, not by query key.
@@ -335,7 +385,7 @@ class AiNotificationService {
       }),
     );
 
-    _assertHttpOk(response);
+    _assertHttpOk(response, provider.model);
     return response.body;
   }
 
@@ -344,7 +394,19 @@ class AiNotificationService {
     String systemPrompt,
     String userPayload,
   ) async {
-    final uri = Uri.parse(provider.endpoint);
+    final kind = provider.provider.toLowerCase();
+    // Firestore only has to hold the key. The URL comes from code unless the
+    // document deliberately points somewhere else (a proxy, a regional host).
+    final storedEndpoint = provider.endpoint.trim();
+    final fallback = _defaultEndpoints[kind];
+    final endpoint = storedEndpoint.isEmpty ? (fallback ?? '') : storedEndpoint;
+    if (endpoint.isEmpty) {
+      throw const AiServiceException(
+        'لا يوجد endpoint لهذا المزود، والمزود مش معروف عندنا.',
+      );
+    }
+
+    final uri = Uri.parse(endpoint);
     final response = await http.post(
       uri,
       headers: {
@@ -352,6 +414,12 @@ class AiNotificationService {
         'Authorization': 'Bearer ${provider.apiKey}',
         // Cloudflare rejects the Dart default client with a 403.
         'User-Agent': 'Mozilla/5.0',
+        // OpenRouter asks for attribution headers; without them free routes
+        // are throttled and some models refuse the request outright.
+        if (kind == 'openrouter') ...{
+          'HTTP-Referer': 'https://daily-meal000.web.app',
+          'X-Title': 'Aklet El Naharda Admin',
+        },
       },
       body: jsonEncode({
         'model': provider.model,
@@ -365,14 +433,31 @@ class AiNotificationService {
       }),
     );
 
-    _assertHttpOk(response);
+    _assertHttpOk(response, provider.model);
     return response.body;
   }
 
-  void _assertHttpOk(http.Response response) {
+  /// Turns a bare HTTP status into the reason the admin can act on. A 401/403
+  /// from Google is not always a dead key: the same pair comes back when the
+  /// model id in the URL does not exist, which used to send everyone hunting
+  /// for a broken API key that was never broken.
+  void _assertHttpOk(http.Response response, String model) {
+    final body = response.body;
     if (response.statusCode == 401 || response.statusCode == 403) {
+      if (_modelNotFound.hasMatch(body)) {
+        throw AiServiceException(
+          'الموديل «$model» مش موجود أو مش متاح بالمفتاح ده. '
+          'اختار موديل تاني من القائمة.',
+        );
+      }
       throw const AiServiceException(
         'مفتاح الـ API غير صالح أو منتهي. راجع إعدادات المزود في Firebase.',
+      );
+    }
+    if (response.statusCode == 404) {
+      throw AiServiceException(
+        'المسار غلط (404): الموديل «$model» مش موجود على المزود ده، '
+        'أو إن الـ endpoint في وثيقة Firestore غلط.',
       );
     }
     if (response.statusCode == 429) {

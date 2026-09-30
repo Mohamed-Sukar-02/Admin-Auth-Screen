@@ -330,14 +330,14 @@ abstract final class _AiModelCatalog {
       icon: Icons.bubble_chart_rounded,
       options: [
         _AiModelOption(
-          model: 'gemini-3.8-flash',
-          label: 'Gemini 3.8 Flash (New)',
-          pillLabel: 'Gemini: 3.8 Flash',
+          model: 'gemini-2.5-flash',
+          label: 'Gemini 2.5 Flash',
+          pillLabel: 'Gemini: 2.5 Flash',
         ),
         _AiModelOption(
-          model: 'gemini-3.6-flash',
-          label: 'Gemini 3.6 Flash',
-          pillLabel: 'Gemini: 3.6 Flash',
+          model: 'gemini-2.0-flash',
+          label: 'Gemini 2.0 Flash',
+          pillLabel: 'Gemini: 2.0 Flash',
         ),
         _AiModelOption(
           model: 'gemini-2.5-pro',
@@ -371,9 +371,9 @@ abstract final class _AiModelCatalog {
           pillLabel: 'Groq: DeepSeek R1 70B',
         ),
         _AiModelOption(
-          model: 'qwen/qwen3.8-27b',
-          label: 'Qwen 3.8 27B',
-          pillLabel: 'Groq: Qwen 3.8 27B',
+          model: 'qwen/qwen3-32b',
+          label: 'Qwen 3 32B',
+          pillLabel: 'Groq: Qwen 3 32B',
         ),
         _AiModelOption(
           model: 'allam-2-7b',
@@ -412,9 +412,9 @@ abstract final class _AiModelCatalog {
           pillLabel: 'OpenRouter: DeepSeek Chat (Free)',
         ),
         _AiModelOption(
-          model: 'qwen/qwen3.8-27b:free',
-          label: 'Qwen 3.8 27B (Free)',
-          pillLabel: 'OpenRouter: Qwen 3.8 (Free)',
+          model: 'qwen/qwen3-coder-30b-a3b-instruct:free',
+          label: 'Qwen 3 Coder 30B (Free)',
+          pillLabel: 'OpenRouter: Qwen 3 Coder (Free)',
         ),
       ],
     ),
