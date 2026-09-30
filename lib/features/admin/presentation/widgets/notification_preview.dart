@@ -109,7 +109,6 @@ class _NotificationPreviewState extends State<NotificationPreview> {
   Widget build(BuildContext context) {
     final p = AdminPalette.of(context);
     final phone = _PhoneSurface.of(p);
-    final mockup = _devices[_device];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -379,7 +378,7 @@ class _LockScreen extends StatelessWidget {
         Positioned(
           left: u * (mockup.iOs ? 0.062 : 0.048),
           top: mockup.iOs
-              ? cutout.centerDY - u * 0.026
+              ? cutout.center.dy - u * 0.026
               : cutout.bottom + v * 0.004,
           child: Text(
             '9:41',
@@ -394,7 +393,7 @@ class _LockScreen extends StatelessWidget {
         Positioned(
           right: u * (mockup.iOs ? 0.052 : 0.044),
           top: mockup.iOs
-              ? cutout.centerDY - u * 0.020
+              ? cutout.center.dy - u * 0.020
               : cutout.bottom + v * 0.006,
           child: _StatusBarGlyphs(phone: phone, width: u, iOs: mockup.iOs),
         ),
@@ -571,7 +570,7 @@ class _IosPush extends StatelessWidget {
                   width: icon,
                   height: icon,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _FallbackGlyph(icon, phone),
+                  errorBuilder: (_, _, _) => _fallbackGlyph(icon, phone),
                 ),
               ),
               SizedBox(width: s * 0.024),
@@ -683,7 +682,7 @@ class _AndroidPush extends StatelessWidget {
               height: icon,
               color: phone.pushInk,
               colorBlendMode: BlendMode.srcIn,
-              errorBuilder: (_, _, _) => _FallbackGlyph(icon, phone),
+              errorBuilder: (_, _, _) => _fallbackGlyph(icon, phone),
             ),
           ),
           SizedBox(width: s * 0.034),
@@ -753,7 +752,7 @@ class _AndroidPush extends StatelessWidget {
   }
 }
 
-Widget _FallbackGlyph(double size, _PhoneSurface phone) => Icon(
+Widget _fallbackGlyph(double size, _PhoneSurface phone) => Icon(
   AdminIcons.notifications,
   size: size,
   color: phone.pushInk,
