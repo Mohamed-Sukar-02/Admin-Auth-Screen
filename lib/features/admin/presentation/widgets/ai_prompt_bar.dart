@@ -98,24 +98,26 @@ class AiPromptBar extends StatelessWidget {
 /// ---------------------------------------------------------------------------
 /// Capsule palette
 /// ---------------------------------------------------------------------------
-/// The prompt capsule is one deliberate dark island inside the panel, so it
-/// keeps the same olive values in both dashboard themes instead of following
-/// [AdminPalette]; every other colour in the assistant stays token-driven.
+/// The prompt capsule is the one dark island in the adopted light library —
+/// the mockups keep every other surface pale and let only this capsule go deep
+/// olive, so it holds its own values in both dashboard themes instead of
+/// following [AdminPalette]; every other colour in the assistant stays
+/// token-driven.
 abstract final class AiCapsule {
   /// Capsule body.
-  static const Color ink = Color(0xFF27392E);
+  static const Color ink = Color(0xFF2B3B31);
 
   /// Model picker pill, menu surface and hover fills.
-  static const Color surface = Color(0xFF304536);
+  static const Color surface = Color(0xFF344337);
 
   /// Send button.
-  static const Color accent = Color(0xFF82A96C);
+  static const Color accent = Color(0xFF86A874);
 
   /// Placeholder and muted labels sitting on [ink].
-  static const Color muted = Color(0xFFABB9A4);
+  static const Color muted = Color(0xFFA1AE9A);
 
   /// Primary text sitting on [ink].
-  static const Color onInk = Color(0xFFFFFFFF);
+  static const Color onInk = Color(0xFFD7DFD1);
 
   /// Hairline that separates a menu group from the surface behind it.
   static const Color hairline = Color(0x33FFFFFF);
@@ -327,15 +329,47 @@ abstract final class _AiModelCatalog {
       provider: 'gemini',
       icon: Icons.bubble_chart_rounded,
       options: [
-        _AiModelOption(model: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash'),
-        _AiModelOption(model: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash'),
-        _AiModelOption(model: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro'),
+        _AiModelOption(
+          model: 'gemini-3.8-flash',
+          label: 'Gemini 3.8 Flash (New)',
+          pillLabel: 'Gemini: 3.8 Flash',
+        ),
+        _AiModelOption(
+          model: 'gemini-3.6-flash',
+          label: 'Gemini 3.6 Flash',
+          pillLabel: 'Gemini: 3.6 Flash',
+        ),
+        _AiModelOption(
+          model: 'gemini-2.5-pro',
+          label: 'Gemini 2.5 Pro',
+          pillLabel: 'Gemini: 2.5 Pro',
+        ),
+        _AiModelOption(
+          model: 'gemini-2.5-flash',
+          label: 'Gemini 2.5 Flash',
+          pillLabel: 'Gemini: 2.5 Flash',
+        ),
       ],
     ),
     _AiModelGroup(
       provider: 'groq',
       icon: Icons.speed_rounded,
       options: [
+        _AiModelOption(
+          model: 'llama-3.3-70b-versatile',
+          label: 'Llama 3.3 70B',
+          pillLabel: 'Groq: Llama 3.3 70B',
+        ),
+        _AiModelOption(
+          model: 'openai/gpt-oss-120b',
+          label: 'GPT-OSS 120B',
+          pillLabel: 'Groq: GPT-OSS 120B',
+        ),
+        _AiModelOption(
+          model: 'deepseek-r1-distill-llama-70b',
+          label: 'DeepSeek R1 Distill 70B',
+          pillLabel: 'Groq: DeepSeek R1 70B',
+        ),
         _AiModelOption(
           model: 'qwen/qwen3.8-27b',
           label: 'Qwen 3.8 27B',
@@ -347,9 +381,9 @@ abstract final class _AiModelCatalog {
           pillLabel: 'Groq: Allam 2 7B (علام)',
         ),
         _AiModelOption(
-          model: 'llama-3.3-70b-versatile',
-          label: 'Llama 3.3 70B',
-          pillLabel: 'Groq: Llama 3.3 70B',
+          model: 'llama-3.1-8b-instant',
+          label: 'Llama 3.1 8B Instant',
+          pillLabel: 'Groq: Llama 3.1 8B',
         ),
       ],
     ),
@@ -358,14 +392,29 @@ abstract final class _AiModelCatalog {
       icon: Icons.alt_route_rounded,
       options: [
         _AiModelOption(
-          model: 'google/gemini-2.0-flash-exp:free',
-          label: 'Gemini 2.0 Flash (Free)',
-          pillLabel: 'OpenRouter: Gemini 2.0 Flash (Free)',
+          model: 'openrouter/free',
+          label: 'Auto Free Router',
+          pillLabel: 'OpenRouter: Auto Free',
         ),
         _AiModelOption(
-          model: 'meta-llama/llama-3-8b-instruct:free',
-          label: 'Llama 3 8B (Free)',
-          pillLabel: 'OpenRouter: Llama 3 8B (Free)',
+          model: 'meta-llama/llama-3.3-70b-instruct:free',
+          label: 'Llama 3.3 70B (Free)',
+          pillLabel: 'OpenRouter: Llama 3.3 (Free)',
+        ),
+        _AiModelOption(
+          model: 'deepseek/deepseek-r1:free',
+          label: 'DeepSeek R1 (Free)',
+          pillLabel: 'OpenRouter: DeepSeek R1 (Free)',
+        ),
+        _AiModelOption(
+          model: 'deepseek/deepseek-chat:free',
+          label: 'DeepSeek Chat (Free)',
+          pillLabel: 'OpenRouter: DeepSeek Chat (Free)',
+        ),
+        _AiModelOption(
+          model: 'qwen/qwen3.8-27b:free',
+          label: 'Qwen 3.8 27B (Free)',
+          pillLabel: 'OpenRouter: Qwen 3.8 (Free)',
         ),
       ],
     ),
