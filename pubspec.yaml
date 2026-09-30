@@ -95,6 +95,8 @@ flutter:
   assets:
     - assets/
     - assets/icons/
+    # The device mockups the notification preview draws on.
+    - assets/images/
     # google_fonts looks here first, so the panel keeps its own type even when
     # the runtime fetch from fonts.gstatic.com is blocked or slow.
     - google_fonts/
