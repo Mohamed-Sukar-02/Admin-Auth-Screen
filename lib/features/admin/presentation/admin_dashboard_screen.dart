@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../settings/providers/settings_providers.dart';
@@ -22,27 +21,14 @@ import 'widgets/admin_toast.dart';
 /// -------------------------------------------------------------------------
 /// Helpers
 /// -------------------------------------------------------------------------
-TextStyle _cairo({
-  double size = 14,
-  FontWeight weight = FontWeight.w500,
-  Color? color,
-  double? height,
-}) {
-  return GoogleFonts.cairo(
-    fontSize: size,
-    fontWeight: weight,
-    color: color,
-    height: height,
-  );
-}
-
 String _themeModeLabel(AppThemeModePreference mode) => switch (mode) {
-      AppThemeModePreference.light => 'الوضع النهاري',
-      AppThemeModePreference.dark => 'الوضع الداكن',
-      AppThemeModePreference.system => 'مظهر النظام',
-    };
+  AppThemeModePreference.light => 'الوضع النهاري',
+  AppThemeModePreference.dark => 'الوضع الداكن',
+  AppThemeModePreference.system => 'مظهر النظام',
+};
 
-Color _categoryColor(String category, AdminPalette p) {  switch (category) {
+Color _categoryColor(String category, AdminPalette p) {
+  switch (category) {
     case 'tabeekh':
       return p.claySolid;
     case 'casserole':
@@ -111,11 +97,16 @@ String _translateCarbs(String carbs) {
   }
 }
 
+/// Sidebar order, and therefore the page index: workspace group first
+/// (الرئيسية، الاقتراحات), then system group (الإشعارات، الإعدادات).
 const List<({String title, String subtitle})> _pageMeta = [
   (title: 'نظرة عامة', subtitle: 'الخزنة العامة وأداء المحتوى في لمحة'),
   (title: 'المقترحات', subtitle: 'مراجعة واعتماد أكلات المستخدمين'),
+  (
+    title: 'إدارة الإشعارات',
+    subtitle: 'إرسال وتتبع إشعارات التطبيق لجميع المستخدمين',
+  ),
   (title: 'الإعدادات', subtitle: 'النظام والصلاحيات والنسخ الاحتياطي'),
-  (title: 'إدارة الإشعارات', subtitle: 'إرسال وتتبع إشعارات التطبيق لجميع المستخدمين'),
 ];
 
 /// -------------------------------------------------------------------------
@@ -137,7 +128,7 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   int _navIndex =
-      0; // 0 = الرئيسية, 1 = الاقتراحات, 2 = الإعدادات, 3 = الإشعارات
+      0; // 0 = الرئيسية, 1 = الاقتراحات, 2 = الإشعارات, 3 = الإعدادات
   String _searchQuery = '';
   String _selectedCategory = 'all';
   bool _isProcessingBackup = false;
@@ -460,7 +451,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       if (mounted) {
         showAdminToast(
           context,
-          message: removed > 0 ? 'تم تنظيف الخزنة بنجاح' : 'الخزنة نظيفة بالفعل',
+          message: removed > 0
+              ? 'تم تنظيف الخزنة بنجاح'
+              : 'الخزنة نظيفة بالفعل',
           subtitle: removed > 0
               ? 'حُذفت $removed أكلة مكررة، الخزنة الآن فريدة تماماً'
               : 'لا توجد أكلات مكررة في الخزنة',
@@ -510,7 +503,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   pageIndex: _navIndex,
                   searchController: _searchController,
                   onSearchChanged: _onSearchChanged,
-                  onAddMeal: isViewingAdmin ? null : () => _openAddMealDialog(null),
+                  onAddMeal: isViewingAdmin
+                      ? null
+                      : () => _openAddMealDialog(null),
                   showAddButton: _navIndex == 0,
                 ),
                 Expanded(
@@ -518,11 +513,18 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     index: _navIndex,
                     children: [
                       _buildOverviewPage(
-                          vaultMealsAsync, pendingCount, p, isViewingAdmin),
+                        vaultMealsAsync,
+                        pendingCount,
+                        p,
+                        isViewingAdmin,
+                      ),
                       _buildSuggestionsPage(
-                          stagingMealsAsync, p, isViewingAdmin),
-                      _buildSettingsPage(user, p, isSuperAdmin),
+                        stagingMealsAsync,
+                        p,
+                        isViewingAdmin,
+                      ),
                       const NotificationManagementScreen(),
+                      _buildSettingsPage(user, p, isSuperAdmin),
                     ],
                   ),
                 ),
@@ -533,10 +535,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           final sidebarWidth = _sidebarCollapsed
               ? _sidebarRailWidth
               : _sidebarWidth
-                  .clamp(
+                    .clamp(
                       _sidebarMinWidth,
-                      math.min(_sidebarMaxWidth, constraints.maxWidth - 560))
-                  .toDouble();
+                      math.min(_sidebarMaxWidth, constraints.maxWidth - 560),
+                    )
+                    .toDouble();
 
           return Scaffold(
             backgroundColor: p.canvas,
@@ -606,7 +609,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     final cards = <Widget>[
       _StatCard(
-        icon: Icons.restaurant_rounded,
+        icon: AdminIcons.meal,
         bg: p.nileSoft,
         accent: p.nileInk,
         label: 'إجمالي الأكلات',
@@ -676,10 +679,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               }
               return Column(
                 children: [
-                  for (final c in cards) ...[
-                    c,
-                    const SizedBox(height: 14),
-                  ],
+                  for (final c in cards) ...[c, const SizedBox(height: 14)],
                 ],
               );
             },
@@ -694,22 +694,26 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ? null
                         : () => _handleDeduplication(p),
                     icon: _isDeduplicating
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2,
+                              color: p.onSolid(p.honeySolid),
+                            ),
                           )
-                        : const Icon(Icons.auto_fix_high_rounded, size: 16),
+                        : const Icon(AdminIcons.aiMagic, size: 16),
                     label: Text(
                       _isDeduplicating ? 'جاري التنظيف...' : 'حذف التكرار',
-                      style: _cairo(size: 13, weight: FontWeight.bold),
+                      style: adminText(size: 13, weight: FontWeight.bold),
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: p.honeySolid,
-                      foregroundColor: Colors.white,
+                      foregroundColor: p.onSolid(p.honeySolid),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AdminRadii.md),
                       ),
@@ -720,7 +724,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           if (hasDuplicates) ...[
             const SizedBox(height: 14),
             _NoticeBanner(
-              icon: Icons.warning_amber_rounded,
+              icon: AdminIcons.warning,
               message:
                   'تم اكتشاف أكلات مكررة في الخزنة! اضغط على زر "حذف التكرار" لحذف جميع النسخ المكررة والإبقاء على نسخة أصلية واحدة فقط بضغطة زر واحدة.',
               bg: p.honeySoft,
@@ -736,13 +740,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.tune_rounded, size: 18, color: p.inkMuted),
+                    Icon(AdminIcons.settings, size: 18, color: p.inkMuted),
                     const SizedBox(width: 8),
-                    Text('تصفية حسب التصنيف',
-                        style: _cairo(
-                            size: 13,
-                            weight: FontWeight.w600,
-                            color: p.inkMuted)),
+                    Text(
+                      'تصفية حسب التصنيف',
+                      style: adminText(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: p.inkMuted,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -761,8 +768,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           label: c['label']!,
                           dotColor: dot,
                           selected: isSelected,
-                          onTap: () =>
-                              setState(() => _selectedCategory = key),
+                          onTap: () => setState(() => _selectedCategory = key),
                         ),
                       );
                     }).toList(),
@@ -780,25 +786,25 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             error: (err, stack) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
-                child: Text('تعذر جلب الأكلات: $err',
-                    style: _cairo(color: p.inkMuted)),
+                child: Text(
+                  'تعذر جلب الأكلات: $err',
+                  style: adminText(color: p.inkMuted),
+                ),
               ),
             ),
             data: (meals) {
               final query = _searchQuery.trim().toLowerCase();
               final filtered = meals.where((m) {
-                final matchesSearch =
-                    m.name.toLowerCase().contains(query);
+                final matchesSearch = m.name.toLowerCase().contains(query);
                 final matchesCat =
-                    _selectedCategory == 'all' || m.category == _selectedCategory;
+                    _selectedCategory == 'all' ||
+                    m.category == _selectedCategory;
                 return matchesSearch && matchesCat;
               }).toList();
 
               if (filtered.isEmpty) {
                 return _EmptyState(
-                  icon: meals.isEmpty
-                      ? Icons.restaurant_menu_rounded
-                      : Icons.search_off_rounded,
+                  icon: meals.isEmpty ? AdminIcons.meal : AdminIcons.searchOff,
                   title: meals.isEmpty
                       ? 'لا توجد أكلات في الخزنة حتى الآن'
                       : 'لا توجد نتائج مطابقة',
@@ -814,12 +820,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 children: [
                   Row(
                     children: [
-                      Text('${filtered.length}',
-                          style: _cairo(
-                              size: 14, weight: FontWeight.bold, color: p.clay)),
+                      Text(
+                        '${filtered.length}',
+                        style: adminText(
+                          size: 14,
+                          weight: FontWeight.bold,
+                          color: p.clay,
+                        ),
+                      ),
                       const SizedBox(width: 6),
-                      Text('نتيجة معروضة',
-                          style: _cairo(size: 13, color: p.inkMuted)),
+                      Text(
+                        'نتيجة معروضة',
+                        style: adminText(size: 13, color: p.inkMuted),
+                      ),
                       const Spacer(),
                       if (_searchQuery.trim().isNotEmpty)
                         TextButton.icon(
@@ -827,10 +840,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                             _searchController.clear();
                             _onSearchChanged('');
                           },
-                          icon: Icon(Icons.close_rounded,
-                              size: 16, color: p.inkMuted),
-                          label: Text('مسح البحث',
-                              style: _cairo(size: 12, color: p.inkMuted)),
+                          icon: Icon(
+                            AdminIcons.close,
+                            size: 16,
+                            color: p.inkMuted,
+                          ),
+                          label: Text(
+                            'مسح البحث',
+                            style: adminText(size: 12, color: p.inkMuted),
+                          ),
                         ),
                     ],
                   ),
@@ -840,20 +858,22 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 330,
-                      crossAxisSpacing: 18,
-                      mainAxisSpacing: 18,
-                      mainAxisExtent: 322,
-                    ),
+                          maxCrossAxisExtent: 330,
+                          crossAxisSpacing: 18,
+                          mainAxisSpacing: 18,
+                          mainAxisExtent: 322,
+                        ),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final meal = filtered[index];
                       return _VaultMealCard(
                         meal: meal,
-                        onEdit:
-                            isViewingAdmin ? null : () => _openAddMealDialog(meal),
-                        onDelete:
-                            isViewingAdmin ? null : () => _confirmDelete(meal, p),
+                        onEdit: isViewingAdmin
+                            ? null
+                            : () => _openAddMealDialog(meal),
+                        onDelete: isViewingAdmin
+                            ? null
+                            : () => _confirmDelete(meal, p),
                         onDetails: () => _showMealDetails(meal),
                       );
                     },
@@ -880,8 +900,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     return stagingAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(
-        child: Text('خطأ في جلب المقترحات: $err',
-            style: _cairo(color: p.inkMuted)),
+        child: Text(
+          'خطأ في جلب المقترحات: $err',
+          style: adminText(color: p.inkMuted),
+        ),
       ),
       data: (stagingMeals) {
         return Padding(
@@ -904,14 +926,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('المقترحات المعلقة',
-                              style: _cairo(
-                                  size: 16,
-                                  weight: FontWeight.bold,
-                                  color: p.ink)),
+                          Text(
+                            'المقترحات المعلقة',
+                            style: adminText(
+                              size: 16,
+                              weight: FontWeight.bold,
+                              color: p.ink,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text('راجع واعتمد المقترحات الجديدة من المستخدمين',
-                              style: _cairo(size: 12, color: p.inkMuted)),
+                          Text(
+                            'راجع واعتمد المقترحات الجديدة من المستخدمين',
+                            style: adminText(size: 12, color: p.inkMuted),
+                          ),
                         ],
                       ),
                     ),
@@ -919,7 +946,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       _Pill(
                         label: '${stagingMeals.length}',
                         bg: p.honeySolid,
-                        fg: Colors.white,
+                        fg: p.onSolid(p.honeySolid),
                       ),
                   ],
                 ),
@@ -928,9 +955,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               Expanded(
                 child: stagingMeals.isEmpty
                     ? _EmptyState(
-                        icon: Icons.check_circle_outline_rounded,
+                        icon: AdminIcons.success,
                         title: 'لا توجد مقترحات معلقة حالياً!',
-                        message: 'كل الاقتراحات تمت مراجعتها. هتلاقي الجديد هنا فور وصوله.',
+                        message:
+                            'كل الاقتراحات تمت مراجعتها. هتلاقي الجديد هنا فور وصوله.',
                         fg: p.oliveSolid,
                       )
                     : ListView.separated(
@@ -941,12 +969,15 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           final meal = stagingMeals[index];
                           return _SuggestionRow(
                             meal: meal,
-                            onApprove:
-                                isViewingAdmin ? null : () => _approveStaging(meal),
-                            onReject:
-                                isViewingAdmin ? null : () => _rejectStaging(meal),
-                            onEdit:
-                                isViewingAdmin ? null : () => _editStaging(meal),
+                            onApprove: isViewingAdmin
+                                ? null
+                                : () => _approveStaging(meal),
+                            onReject: isViewingAdmin
+                                ? null
+                                : () => _rejectStaging(meal),
+                            onEdit: isViewingAdmin
+                                ? null
+                                : () => _editStaging(meal),
                             onDetails: () => _showMealDetails(meal),
                           );
                         },
@@ -970,33 +1001,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Page header ────────────────────────────────────────────────
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: p.claySoft,
-                    borderRadius: BorderRadius.circular(AdminRadii.md),
-                  ),
-                  child: Icon(AdminIcons.settings, size: 22, color: p.claySolid),
-                ),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('الإعدادات',
-                        style: _cairo(
-                            size: 20, weight: FontWeight.bold, color: p.ink)),
-                    Text('إدارة الحساب وتخصيص النظام',
-                        style: _cairo(size: 12, color: p.inkMuted)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-
+            // The shell's top bar already prints this page's title and
+            // subtitle, so the page opens straight on its first section.
             // ── Profile section ─────────────────────────────────────────────
             _SettingsSectionLabel(label: 'الحساب', palette: p),
             const SizedBox(height: 10),
@@ -1024,13 +1030,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                 height: 56,
                                 decoration: BoxDecoration(
                                   gradient: p.brandGradient,
-                                  borderRadius:
-                                      BorderRadius.circular(AdminRadii.md),
+                                  borderRadius: BorderRadius.circular(
+                                    AdminRadii.md,
+                                  ),
                                   border: Border.all(
-                                      color: p.surface, width: 3),
+                                    color: p.surface,
+                                    width: 3,
+                                  ),
                                 ),
-                                child: const Icon(Icons.person_rounded,
-                                    color: Colors.white, size: 28),
+                                child: Icon(
+                                  AdminIcons.person,
+                                  color: p.onSolid(
+                                    p.brandGradient.colors.first,
+                                  ),
+                                  size: 28,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1040,16 +1054,20 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(user?.email ?? 'المشرف',
-                                        style: _cairo(
-                                            size: 14,
-                                            weight: FontWeight.bold,
-                                            color: p.ink),
-                                        overflow: TextOverflow.ellipsis),
+                                    Text(
+                                      user?.email ?? 'المشرف',
+                                      style: adminText(
+                                        size: 14,
+                                        weight: FontWeight.bold,
+                                        color: p.ink,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                     const SizedBox(height: 5),
                                     _Pill(
-                                      label:
-                                          isSuperAdmin ? 'Super Admin' : 'Admin',
+                                      label: isSuperAdmin
+                                          ? 'Super Admin'
+                                          : 'Admin',
                                       bg: isSuperAdmin
                                           ? p.claySoft
                                           : p.surfaceSunken,
@@ -1057,8 +1075,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                           ? p.onClaySoft
                                           : p.inkMuted,
                                       icon: isSuperAdmin
-                                          ? Icons.verified_user_rounded
-                                          : Icons.person_outline_rounded,
+                                          ? AdminIcons.verified
+                                          : AdminIcons.person,
                                     ),
                                   ],
                                 ),
@@ -1072,18 +1090,25 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () =>
                                 ref.read(adminAuthProvider).signOut(),
-                            icon: Icon(Icons.logout_rounded,
-                                size: 17, color: p.chiliInk),
-                            label: Text('تسجيل الخروج',
-                                style: _cairo(size: 13, color: p.chiliInk)),
+                            icon: Icon(
+                              AdminIcons.logout,
+                              size: 17,
+                              color: p.chiliInk,
+                            ),
+                            label: Text(
+                              'تسجيل الخروج',
+                              style: adminText(size: 13, color: p.chiliInk),
+                            ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: p.chiliInk,
                               side: BorderSide(
-                                  color: p.chiliSolid.withValues(alpha: 0.4)),
+                                color: p.chiliSolid.withValues(alpha: 0.4),
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 13),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AdminRadii.md),
+                                borderRadius: BorderRadius.circular(
+                                  AdminRadii.md,
+                                ),
                               ),
                             ),
                           ),
@@ -1142,8 +1167,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       color: p.plumSolid,
                       bg: p.plumSoft,
                       enabled: isSuperAdmin,
-                      onTap: () =>
-                          _showAdminManagementDialog(p, user?.email),
+                      onTap: () => _showAdminManagementDialog(p, user?.email),
                     ),
                   ),
                 ],
@@ -1173,7 +1197,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: p.honeySolid))
+                              strokeWidth: 2,
+                              color: p.honeySolid,
+                            ),
+                          )
                         : _SettingsChevronButton(
                             label: 'تنظيف',
                             color: p.honeyInk,
@@ -1201,20 +1228,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Text('النسخ الاحتياطي والاستعادة',
-                                      style: _cairo(
-                                          size: 14,
-                                          weight: FontWeight.bold,
-                                          color: isSuperAdmin
-                                              ? p.ink
-                                              : p.inkMuted)),
+                                  Text(
+                                    'النسخ الاحتياطي والاستعادة',
+                                    style: adminText(
+                                      size: 14,
+                                      weight: FontWeight.bold,
+                                      color: isSuperAdmin ? p.ink : p.inkMuted,
+                                    ),
+                                  ),
                                   if (!isSuperAdmin) ...[
                                     const SizedBox(width: 8),
                                     _Pill(
                                       label: 'Super Admin فقط',
                                       bg: p.surfaceSunken,
                                       fg: p.inkFaint,
-                                      icon: Icons.lock_rounded,
+                                      icon: AdminIcons.lock,
                                     ),
                                   ],
                                 ],
@@ -1222,7 +1250,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                               const SizedBox(height: 3),
                               Text(
                                 'حفظ أو استعادة بيانات الخزنة الكاملة',
-                                style: _cairo(size: 12, color: p.inkMuted),
+                                style: adminText(size: 12, color: p.inkMuted),
                               ),
                               const SizedBox(height: 12),
                               Opacity(
@@ -1232,24 +1260,27 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                     Expanded(
                                       child: OutlinedButton.icon(
                                         onPressed:
-                                            (!isSuperAdmin || _isProcessingBackup)
-                                                ? null
-                                                : () async {
-                                                    final confirmed =
-                                                        await showAdminConfirmDialog(
+                                            (!isSuperAdmin ||
+                                                _isProcessingBackup)
+                                            ? null
+                                            : () async {
+                                                final confirmed =
+                                                    await showAdminConfirmDialog(
                                                       context: context,
                                                       icon: AdminIcons.restore,
-                                                      tone:
-                                                          AdminDialogTone.danger,
+                                                      tone: AdminDialogTone
+                                                          .danger,
                                                       title:
                                                           'استعادة النسخة الاحتياطية',
                                                       message:
                                                           'سيتم مسح جميع الأكلات الموجودة حالياً في الخزنة واستبدالها بالكامل بالنسخة الاحتياطية المرفوعة مسبقاً.',
                                                       note: AdminDialogNote(
-                                                        tone:
-                                                            AdminDialogTone.danger,
-                                                        icon: AdminIcons.warning,
-                                                        badge: 'لا يمكن التراجع',
+                                                        tone: AdminDialogTone
+                                                            .danger,
+                                                        icon:
+                                                            AdminIcons.warning,
+                                                        badge:
+                                                            'لا يمكن التراجع',
                                                         title:
                                                             'الخزنة الحالية سيتم استبدالها بالكامل',
                                                       ),
@@ -1258,55 +1289,64 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                                       confirmIcon:
                                                           AdminIcons.restore,
                                                     );
-                                                    if (!confirmed) return;
-                                                    setState(() =>
-                                                        _isProcessingBackup =
-                                                            true);
-                                                    try {
-                                                      await ref
-                                                          .read(vaultAdminRepositoryProvider)
-                                                          .restoreVault();
-                                                      if (mounted) {
-                                                        showAdminToast(
-                                                          context,
-                                                          message:
-                                                              'تمت الاستعادة بنجاح',
-                                                          subtitle:
-                                                              'تم استبدال الخزنة بالنسخة الاحتياطية',
-                                                          kind: AdminToastKind
-                                                              .success,
-                                                        );
-                                                      }
-                                                    } catch (e) {
-                                                      if (mounted) {
-                                                        showAdminToast(
-                                                          context,
-                                                          message:
-                                                              'خطأ أثناء الاستعادة',
-                                                          subtitle: e.toString(),
-                                                          kind: AdminToastKind
-                                                              .error,
-                                                        );
-                                                      }
-                                                    } finally {
-                                                      if (mounted) {
-                                                        setState(() =>
-                                                            _isProcessingBackup =
-                                                                false);
-                                                      }
-                                                    }
-                                                  },
+                                                if (!confirmed) return;
+                                                setState(
+                                                  () => _isProcessingBackup =
+                                                      true,
+                                                );
+                                                try {
+                                                  await ref
+                                                      .read(
+                                                        vaultAdminRepositoryProvider,
+                                                      )
+                                                      .restoreVault();
+                                                  if (mounted) {
+                                                    showAdminToast(
+                                                      context,
+                                                      message:
+                                                          'تمت الاستعادة بنجاح',
+                                                      subtitle:
+                                                          'تم استبدال الخزنة بالنسخة الاحتياطية',
+                                                      kind: AdminToastKind
+                                                          .success,
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  if (mounted) {
+                                                    showAdminToast(
+                                                      context,
+                                                      message:
+                                                          'خطأ أثناء الاستعادة',
+                                                      subtitle: e.toString(),
+                                                      kind:
+                                                          AdminToastKind.error,
+                                                    );
+                                                  }
+                                                } finally {
+                                                  if (mounted) {
+                                                    setState(
+                                                      () =>
+                                                          _isProcessingBackup =
+                                                              false,
+                                                    );
+                                                  }
+                                                }
+                                              },
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: p.nileInk,
                                           side: BorderSide(
-                                              color: p.nileSolid
-                                                  .withValues(alpha: 0.5)),
+                                            color: p.nileSolid.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                          ),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
-                                                AdminRadii.md),
+                                              AdminRadii.md,
+                                            ),
                                           ),
                                           padding: const EdgeInsets.symmetric(
-                                              vertical: 12),
+                                            vertical: 12,
+                                          ),
                                         ),
                                         icon: _isProcessingBackup
                                             ? const SizedBox(
@@ -1314,98 +1354,126 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                                                 height: 14,
                                                 child:
                                                     CircularProgressIndicator(
-                                                        strokeWidth: 2))
-                                            : const Icon(AdminIcons.restore,
-                                                size: 15),
-                                        label: Text('استعادة',
-                                            style: adminText(size: 13)),
+                                                      strokeWidth: 2,
+                                                    ),
+                                              )
+                                            : const Icon(
+                                                AdminIcons.restore,
+                                                size: 15,
+                                              ),
+                                        label: Text(
+                                          'استعادة',
+                                          style: adminText(size: 13),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: FilledButton.icon(
                                         onPressed:
-                                            (!isSuperAdmin || _isProcessingBackup)
-                                                ? null
-                                                : () async {
-                                                    final confirmed =
-                                                        await showAdminConfirmDialog(
+                                            (!isSuperAdmin ||
+                                                _isProcessingBackup)
+                                            ? null
+                                            : () async {
+                                                final confirmed =
+                                                    await showAdminConfirmDialog(
                                                       context: context,
                                                       icon: AdminIcons.backup,
-                                                      tone: AdminDialogTone.info,
-                                                      title: 'رفع نسخة احتياطية',
+                                                      tone:
+                                                          AdminDialogTone.info,
+                                                      title:
+                                                          'رفع نسخة احتياطية',
                                                       message:
                                                           'سيتم مسح النسخة الاحتياطية القديمة بالكامل واستبدالها بالبيانات الحالية الموجودة في الخزنة.',
                                                       note: AdminDialogNote(
-                                                        tone: AdminDialogTone.info,
+                                                        tone: AdminDialogTone
+                                                            .info,
                                                         icon: AdminIcons.info,
                                                         title:
                                                             'النسخة القديمة ستُستبدل بالبيانات الحالية',
                                                       ),
-                                                      confirmLabel: 'رفع النسخة',
+                                                      confirmLabel:
+                                                          'رفع النسخة',
                                                       confirmIcon:
                                                           AdminIcons.backup,
                                                     );
-                                                    if (!confirmed) return;
-                                                    setState(() =>
-                                                        _isProcessingBackup =
-                                                            true);
-                                                    try {
-                                                      await ref
-                                                          .read(vaultAdminRepositoryProvider)
-                                                          .backupVault();
-                                                      if (mounted) {
-                                                        showAdminToast(
-                                                          context,
-                                                          message:
-                                                              'تم رفع النسخة الاحتياطية',
-                                                          subtitle:
-                                                              'البيانات الحالية محفوظة بأمان',
-                                                          kind: AdminToastKind
-                                                              .success,
-                                                        );
-                                                      }
-                                                    } catch (e) {
-                                                      if (mounted) {
-                                                        showAdminToast(
-                                                          context,
-                                                          message:
-                                                              'خطأ أثناء النسخ الاحتياطي',
-                                                          subtitle: e.toString(),
-                                                          kind: AdminToastKind
-                                                              .error,
-                                                        );
-                                                      }
-                                                    } finally {
-                                                      if (mounted) {
-                                                        setState(() =>
-                                                            _isProcessingBackup =
-                                                                false);
-                                                      }
-                                                    }
-                                                  },
+                                                if (!confirmed) return;
+                                                setState(
+                                                  () => _isProcessingBackup =
+                                                      true,
+                                                );
+                                                try {
+                                                  await ref
+                                                      .read(
+                                                        vaultAdminRepositoryProvider,
+                                                      )
+                                                      .backupVault();
+                                                  if (mounted) {
+                                                    showAdminToast(
+                                                      context,
+                                                      message:
+                                                          'تم رفع النسخة الاحتياطية',
+                                                      subtitle:
+                                                          'البيانات الحالية محفوظة بأمان',
+                                                      kind: AdminToastKind
+                                                          .success,
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  if (mounted) {
+                                                    showAdminToast(
+                                                      context,
+                                                      message:
+                                                          'خطأ أثناء النسخ الاحتياطي',
+                                                      subtitle: e.toString(),
+                                                      kind:
+                                                          AdminToastKind.error,
+                                                    );
+                                                  }
+                                                } finally {
+                                                  if (mounted) {
+                                                    setState(
+                                                      () =>
+                                                          _isProcessingBackup =
+                                                              false,
+                                                    );
+                                                  }
+                                                }
+                                              },
                                         style: FilledButton.styleFrom(
                                           backgroundColor: p.nileSolid,
-                                          foregroundColor: Colors.white,
+                                          foregroundColor: p.onSolid(
+                                            p.nileSolid,
+                                          ),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
-                                                AdminRadii.md),
+                                              AdminRadii.md,
+                                            ),
                                           ),
                                           padding: const EdgeInsets.symmetric(
-                                              vertical: 12),
+                                            vertical: 12,
+                                          ),
                                         ),
                                         icon: _isProcessingBackup
-                                            ? const SizedBox(
+                                            ? SizedBox(
                                                 width: 14,
                                                 height: 14,
                                                 child:
                                                     CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: Colors.white))
-                                            : const Icon(AdminIcons.backup,
-                                                size: 15),
-                                        label: Text('نسخ احتياطي',
-                                            style: adminText(size: 13)),
+                                                      strokeWidth: 2,
+                                                      color: p.onSolid(
+                                                        p.nileSolid,
+                                                      ),
+                                                    ),
+                                              )
+                                            : const Icon(
+                                                AdminIcons.backup,
+                                                size: 15,
+                                              ),
+                                        label: Text(
+                                          'نسخ احتياطي',
+                                          style: adminText(size: 13),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -1454,25 +1522,27 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(title,
-                          style: _cairo(
-                              size: 14,
-                              weight: FontWeight.bold,
-                              color: locked ? p.inkMuted : p.ink)),
+                      Text(
+                        title,
+                        style: adminText(
+                          size: 14,
+                          weight: FontWeight.bold,
+                          color: locked ? p.inkMuted : p.ink,
+                        ),
+                      ),
                       if (locked) ...[
                         const SizedBox(width: 8),
                         _Pill(
                           label: 'Super Admin فقط',
                           bg: p.surfaceSunken,
                           fg: p.inkFaint,
-                          icon: Icons.lock_rounded,
+                          icon: AdminIcons.lock,
                         ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text(subtitle,
-                      style: _cairo(size: 12, color: p.inkMuted)),
+                  Text(subtitle, style: adminText(size: 12, color: p.inkMuted)),
                 ],
               ),
             ),
@@ -1498,7 +1568,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           Row(
             children: [
               _IconTile(
-                icon: Icons.palette_rounded,
+                icon: AdminIcons.palette,
                 fg: p.claySolid,
                 bg: p.claySoft,
               ),
@@ -1507,12 +1577,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('وضع العرض',
-                        style: _cairo(
-                            size: 14, weight: FontWeight.bold, color: p.ink)),
+                    Text(
+                      'وضع العرض',
+                      style: adminText(
+                        size: 14,
+                        weight: FontWeight.bold,
+                        color: p.ink,
+                      ),
+                    ),
                     const SizedBox(height: 3),
-                    Text('اختر بين الوضع النهاري والداكن أو اتبع إعدادات الجهاز',
-                        style: _cairo(size: 12, color: p.inkMuted)),
+                    Text(
+                      'اختر بين الوضع النهاري والداكن أو اتبع إعدادات الجهاز',
+                      style: adminText(size: 12, color: p.inkMuted),
+                    ),
                   ],
                 ),
               ),
@@ -1522,13 +1599,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           Row(
             children: [
               _appearanceOption(
-                  p, AppThemeModePreference.light, 'نهاري', Icons.light_mode_rounded, current),
+                p,
+                AppThemeModePreference.light,
+                'نهاري',
+                AdminIcons.lightMode,
+                current,
+              ),
               const SizedBox(width: 10),
               _appearanceOption(
-                  p, AppThemeModePreference.dark, 'داكن', Icons.dark_mode_rounded, current),
+                p,
+                AppThemeModePreference.dark,
+                'داكن',
+                AdminIcons.darkMode,
+                current,
+              ),
               const SizedBox(width: 10),
-              _appearanceOption(p, AppThemeModePreference.system, 'النظام',
-                  Icons.brightness_auto_rounded, current),
+              _appearanceOption(
+                p,
+                AppThemeModePreference.system,
+                'النظام',
+                AdminIcons.autoMode,
+                current,
+              ),
             ],
           ),
         ],
@@ -1563,15 +1655,20 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
             child: Column(
               children: [
-                Icon(icon,
-                    size: 20, color: selected ? p.onClaySoft : p.inkMuted),
+                Icon(
+                  icon,
+                  size: 20,
+                  color: selected ? p.onClaySoft : p.inkMuted,
+                ),
                 const SizedBox(height: 6),
-                Text(label,
-                    style: _cairo(
-                      size: 12,
-                      weight: selected ? FontWeight.bold : FontWeight.w500,
-                      color: selected ? p.onClaySoft : p.inkMuted,
-                    )),
+                Text(
+                  label,
+                  style: adminText(
+                    size: 12,
+                    weight: selected ? FontWeight.bold : FontWeight.w500,
+                    color: selected ? p.onClaySoft : p.inkMuted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1582,9 +1679,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   Future<void> _setThemeMode(AppThemeModePreference mode) async {
     try {
-      await ref
-          .read(settingsControllerProvider.notifier)
-          .updateThemeMode(mode);
+      await ref.read(settingsControllerProvider.notifier).updateThemeMode(mode);
       if (!mounted) return;
       showAdminToast(
         context,
@@ -1602,175 +1697,190 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     }
   }
 
-
   void _showSystemConfigDialog(AdminPalette p) {
     showAdminDialog(
       context: context,
       builder: (dialogCtx) {
-        return Consumer(builder: (ctx, ref, child) {
-          final configAsync = ref.watch(systemConfigStreamProvider);
+        return Consumer(
+          builder: (ctx, ref, child) {
+            final configAsync = ref.watch(systemConfigStreamProvider);
 
-          return configAsync.when(
-            loading: () => const AdminDialogShell(
-              icon: AdminIcons.settings,
-              tone: AdminDialogTone.brand,
-              title: 'إعدادات النظام',
-              child: SizedBox(
-                  height: 100, child: Center(child: CircularProgressIndicator())),
-            ),
-            error: (e, _) => AdminDialogShell(
-              icon: AdminIcons.settings,
-              tone: AdminDialogTone.brand,
-              title: 'إعدادات النظام',
-              child: AdminDialogBanner(
-                tone: AdminDialogTone.danger,
-                icon: AdminIcons.warning,
-                message: 'تعذر تحميل الإعدادات: $e',
+            return configAsync.when(
+              loading: () => const AdminDialogShell(
+                icon: AdminIcons.settings,
+                tone: AdminDialogTone.brand,
+                title: 'إعدادات النظام',
+                child: SizedBox(
+                  height: 100,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               ),
-            ),
-            data: (config) {
-              int cooldownDays = config?['cooldownDays'] ?? 14;
-              String minAppVersion = config?['minAppVersion'] ?? '1.0.0';
-              String announcement = config?['announcement'] ?? '';
-              bool saving = false;
+              error: (e, _) => AdminDialogShell(
+                icon: AdminIcons.settings,
+                tone: AdminDialogTone.brand,
+                title: 'إعدادات النظام',
+                child: AdminDialogBanner(
+                  tone: AdminDialogTone.danger,
+                  icon: AdminIcons.warning,
+                  message: 'تعذر تحميل الإعدادات: $e',
+                ),
+              ),
+              data: (config) {
+                int cooldownDays = config?['cooldownDays'] ?? 14;
+                String minAppVersion = config?['minAppVersion'] ?? '1.0.0';
+                String announcement = config?['announcement'] ?? '';
+                bool saving = false;
 
-              return StatefulBuilder(
-                builder: (ctx, setState) => AdminDialogShell(
-                  icon: AdminIcons.settings,
-                  tone: AdminDialogTone.brand,
-                  title: 'إعدادات النظام',
-                  subtitle: 'أيام التبريد، إصدار التطبيق، والإعلان العام',
-                  maxWidth: 470,
-                  actions: [
-                    AdminDialogButtons.ghost(
-                      p,
-                      label: 'إلغاء',
-                      onPressed:
-                          saving ? null : () => Navigator.of(ctx).pop(),
-                    ),
-                    AdminDialogButtons.primary(
-                      p,
-                      label: 'حفظ التغييرات',
-                      tone: AdminDialogTone.brand,
-                      icon: AdminIcons.verified,
-                      loading: saving,
-                      onPressed: saving
-                          ? null
-                          : () async {
-                              setState(() => saving = true);
-                              final progress = AdminToast.loading(
-                                message: 'جارٍ حفظ إعدادات النظام',
-                              );
-                              try {
-                                await ref
-                                    .read(
-                                        adminSystemConfigRepositoryProvider)
-                                    .updateSystemConfig(
-                                      cooldownDays: cooldownDays,
-                                      minAppVersion: minAppVersion,
-                                      announcement: announcement,
-                                    );
-                                progress.resolve(
-                                  message: 'تم حفظ إعدادات النظام',
-                                  subtitle:
-                                      'التغييرات سارية على كل الأجهزة الآن',
-                                  kind: AdminToastKind.success,
+                return StatefulBuilder(
+                  builder: (ctx, setState) => AdminDialogShell(
+                    icon: AdminIcons.settings,
+                    tone: AdminDialogTone.brand,
+                    title: 'إعدادات النظام',
+                    subtitle: 'أيام التبريد، إصدار التطبيق، والإعلان العام',
+                    maxWidth: 470,
+                    actions: [
+                      AdminDialogButtons.ghost(
+                        p,
+                        label: 'إلغاء',
+                        onPressed: saving
+                            ? null
+                            : () => Navigator.of(ctx).pop(),
+                      ),
+                      AdminDialogButtons.primary(
+                        p,
+                        label: 'حفظ التغييرات',
+                        tone: AdminDialogTone.brand,
+                        icon: AdminIcons.verified,
+                        loading: saving,
+                        onPressed: saving
+                            ? null
+                            : () async {
+                                setState(() => saving = true);
+                                final progress = AdminToast.loading(
+                                  message: 'جارٍ حفظ إعدادات النظام',
                                 );
-                                if (ctx.mounted) Navigator.of(ctx).pop();
-                              } catch (e) {
-                                progress.resolve(
-                                  message: 'تعذر حفظ إعدادات النظام',
-                                  subtitle: e.toString(),
-                                  kind: AdminToastKind.error,
-                                );
-                                if (ctx.mounted) {
-                                  setState(() => saving = false);
+                                try {
+                                  await ref
+                                      .read(adminSystemConfigRepositoryProvider)
+                                      .updateSystemConfig(
+                                        cooldownDays: cooldownDays,
+                                        minAppVersion: minAppVersion,
+                                        announcement: announcement,
+                                      );
+                                  progress.resolve(
+                                    message: 'تم حفظ إعدادات النظام',
+                                    subtitle:
+                                        'التغييرات سارية على كل الأجهزة الآن',
+                                    kind: AdminToastKind.success,
+                                  );
+                                  if (ctx.mounted) Navigator.of(ctx).pop();
+                                } catch (e) {
+                                  progress.resolve(
+                                    message: 'تعذر حفظ إعدادات النظام',
+                                    subtitle: e.toString(),
+                                    kind: AdminToastKind.error,
+                                  );
+                                  if (ctx.mounted) {
+                                    setState(() => saving = false);
+                                  }
                                 }
-                              }
-                            },
-                    ),
-                  ],
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            14, 12, 14, 6),
-                        decoration:
-                            p.panel(color: p.surfaceAlt, radius: AdminRadii.md),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text('أيام التبريد بين الاقتراحات',
-                                      style: adminText(
-                                          size: 13,
-                                          weight: FontWeight.bold,
-                                          color: p.ink)),
-                                ),
-                                _Pill(
-                                  label: '$cooldownDays يوم',
-                                  bg: p.claySoft,
-                                  fg: p.onClaySoft,
-                                  icon: AdminIcons.time,
-                                ),
-                              ],
-                            ),
-                            Slider(
-                              value: cooldownDays.toDouble(),
-                              min: 3,
-                              max: 30,
-                              divisions: 27,
-                              label: '$cooldownDays يوم',
-                              activeColor: p.clay,
-                              onChanged: (v) =>
-                                  setState(() => cooldownDays = v.toInt()),
-                            ),
-                            Text(
-                              'المدة التي ينتظرها المستخدم قبل أن يستطيع اقتراح أكلة جديدة مرة أخرى',
-                              style: adminText(
-                                  size: 11.5, color: p.inkFaint, height: 1.6),
-                            ),
-                            const SizedBox(height: 6),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        initialValue: minAppVersion,
-                        style: adminText(color: p.ink),
-                        decoration: adminFieldDeco(
-                          p,
-                          label: 'الحد الأدنى لإصدار التطبيق',
-                          hint: 'مثال: 1.4.2',
-                          icon: AdminIcons.update,
-                        ),
-                        onChanged: (v) => minAppVersion = v,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        initialValue: announcement,
-                        maxLines: 3,
-                        style: adminText(color: p.ink),
-                        decoration: adminFieldDeco(
-                          p,
-                          label: 'إعلان عام للمستخدمين',
-                          hint: 'رسالة تظهر لجميع المستخدمين داخل التطبيق',
-                          icon: AdminIcons.campaign,
-                        ),
-                        onChanged: (v) => announcement = v,
+                              },
                       ),
                     ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                            14,
+                            12,
+                            14,
+                            6,
+                          ),
+                          decoration: p.panel(
+                            color: p.surfaceAlt,
+                            radius: AdminRadii.md,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'أيام التبريد بين الاقتراحات',
+                                      style: adminText(
+                                        size: 13,
+                                        weight: FontWeight.bold,
+                                        color: p.ink,
+                                      ),
+                                    ),
+                                  ),
+                                  _Pill(
+                                    label: '$cooldownDays يوم',
+                                    bg: p.claySoft,
+                                    fg: p.onClaySoft,
+                                    icon: AdminIcons.time,
+                                  ),
+                                ],
+                              ),
+                              Slider(
+                                value: cooldownDays.toDouble(),
+                                min: 3,
+                                max: 30,
+                                divisions: 27,
+                                label: '$cooldownDays يوم',
+                                activeColor: p.clay,
+                                onChanged: (v) =>
+                                    setState(() => cooldownDays = v.toInt()),
+                              ),
+                              Text(
+                                'المدة التي ينتظرها المستخدم قبل أن يستطيع اقتراح أكلة جديدة مرة أخرى',
+                                style: adminText(
+                                  size: 11.5,
+                                  color: p.inkFaint,
+                                  height: 1.6,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          initialValue: minAppVersion,
+                          style: adminText(color: p.ink),
+                          decoration: adminFieldDeco(
+                            p,
+                            label: 'الحد الأدنى لإصدار التطبيق',
+                            hint: 'مثال: 1.4.2',
+                            icon: AdminIcons.update,
+                          ),
+                          onChanged: (v) => minAppVersion = v,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          initialValue: announcement,
+                          maxLines: 3,
+                          style: adminText(color: p.ink),
+                          decoration: adminFieldDeco(
+                            p,
+                            label: 'إعلان عام للمستخدمين',
+                            hint: 'رسالة تظهر لجميع المستخدمين داخل التطبيق',
+                            icon: AdminIcons.campaign,
+                          ),
+                          onChanged: (v) => announcement = v,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        });
+                );
+              },
+            );
+          },
+        );
       },
     );
   }
@@ -1821,11 +1931,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   IconData _auditIconFor(String? action) => switch (action) {
-        'add' => AdminIcons.adminAdd,
-        'set_role' => AdminIcons.edit,
-        'remove' => AdminIcons.delete,
-        _ => AdminIcons.info,
-      };
+    'add' => AdminIcons.adminAdd,
+    'set_role' => AdminIcons.edit,
+    'remove' => AdminIcons.delete,
+    _ => AdminIcons.info,
+  };
 
   String _auditLine(Map<String, dynamic> entry) {
     final target = entry['target'] as String? ?? 'عنوان غير معروف';
@@ -1844,9 +1954,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     final when = at == null
         ? 'قبل لحظات'
         : '${at.day.toString().padLeft(2, '0')}/'
-            '${at.month.toString().padLeft(2, '0')} '
-            '${at.hour.toString().padLeft(2, '0')}:'
-            '${at.minute.toString().padLeft(2, '0')}';
+              '${at.month.toString().padLeft(2, '0')} '
+              '${at.hour.toString().padLeft(2, '0')}:'
+              '${at.minute.toString().padLeft(2, '0')}';
 
     return actor == null || actor.isEmpty
         ? '$body — $when'
@@ -1857,395 +1967,440 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     showAdminDialog(
       context: context,
       builder: (context) {
-        return Consumer(builder: (ctx, ref, child) {
-          final service = ref.read(adminSecurityServiceProvider);
+        return Consumer(
+          builder: (ctx, ref, child) {
+            final service = ref.read(adminSecurityServiceProvider);
 
-          return AdminDialogShell(
-            icon: AdminIcons.admins,
-            tone: AdminDialogTone.plum,
-            title: 'إدارة المشرفين',
-            subtitle: 'حدد صلاحيات من يمكنه الدخول إلى لوحة التحكم',
-            maxWidth: 540,
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: service.streamAdmins(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 44),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return AdminDialogBanner(
-                    tone: AdminDialogTone.danger,
-                    icon: AdminIcons.warning,
-                    message: 'تعذر تحميل قائمة المشرفين: ${snapshot.error}',
-                  );
-                }
+            return AdminDialogShell(
+              icon: AdminIcons.admins,
+              tone: AdminDialogTone.plum,
+              title: 'إدارة المشرفين',
+              subtitle: 'حدد صلاحيات من يمكنه الدخول إلى لوحة التحكم',
+              maxWidth: 540,
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: service.streamAdmins(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 44),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return AdminDialogBanner(
+                      tone: AdminDialogTone.danger,
+                      icon: AdminIcons.warning,
+                      message: 'تعذر تحميل قائمة المشرفين: ${snapshot.error}',
+                    );
+                  }
 
-                final admins = snapshot.data ?? [];
+                  final admins = snapshot.data ?? [];
 
-                Widget buildRow(Map<String, dynamic> admin) {
-                  final email = admin['email'] as String? ?? 'مجهول';
-                  final role = admin['role'] as String? ?? 'viewing_admin';
-                  final isMe = email.toLowerCase() ==
-                      currentUserEmail?.toLowerCase();
-                  // Legacy 'admin' roles are displayed as editing admins.
-                  final displayRole = role == 'admin' ? 'editing_admin' : role;
-                  final meta = adminRoleMeta(displayRole);
-                  // Whether this address ever actually logged in. A grant whose
-                  // owner never signed in is almost always a typo'd address: the
-                  // browser cannot ask Firebase if an account exists any more, so
-                  // this is the honest signal rather than a claimed verification.
-                  final everSignedIn = admin['lastSeenAt'] != null;
-                  final tone = adminToneColors(p, meta.tone);
+                  Widget buildRow(Map<String, dynamic> admin) {
+                    final email = admin['email'] as String? ?? 'مجهول';
+                    final role = admin['role'] as String? ?? 'viewing_admin';
+                    final isMe =
+                        email.toLowerCase() == currentUserEmail?.toLowerCase();
+                    // Legacy 'admin' roles are displayed as editing admins.
+                    final displayRole = role == 'admin'
+                        ? 'editing_admin'
+                        : role;
+                    final meta = adminRoleMeta(displayRole);
+                    // Whether this address ever actually logged in. A grant whose
+                    // owner never signed in is almost always a typo'd address: the
+                    // browser cannot ask Firebase if an account exists any more, so
+                    // this is the honest signal rather than a claimed verification.
+                    final everSignedIn = admin['lastSeenAt'] != null;
+                    final tone = adminToneColors(p, meta.tone);
 
-                  return Container(
-                    padding: const EdgeInsetsDirectional.fromSTEB(10, 9, 6, 9),
-                    decoration:
-                        p.panel(color: p.surfaceAlt, radius: AdminRadii.md),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: tone.soft,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            email.isEmpty
-                                ? '?'
-                                : email.substring(0, 1).toUpperCase(),
-                            style: adminText(
+                    return Container(
+                      padding: const EdgeInsetsDirectional.fromSTEB(
+                        10,
+                        9,
+                        6,
+                        9,
+                      ),
+                      decoration: p.panel(
+                        color: p.surfaceAlt,
+                        radius: AdminRadii.md,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: tone.soft,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              email.isEmpty
+                                  ? '?'
+                                  : email.substring(0, 1).toUpperCase(),
+                              style: adminText(
                                 size: 15,
                                 weight: FontWeight.w800,
-                                color: tone.ink),
+                                color: tone.ink,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                email,
-                                style: adminText(
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  email,
+                                  style: adminText(
                                     size: 13,
                                     weight: FontWeight.w700,
-                                    color: p.ink),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  AdminRoleBadge(role: displayRole),
-                                  if (!everSignedIn) ...[
-                                    const SizedBox(width: 6),
-                                    Text('لم يسجّل دخوله بعد',
-                                        style: adminText(
-                                            size: 11,
-                                            weight: FontWeight.w700,
-                                            color: p.inkFaint)),
-                                  ],
-                                  if (isMe) ...[
-                                    const SizedBox(width: 6),
-                                    Text('أنت',
-                                        style: adminText(
-                                            size: 11, color: p.inkFaint)),
-                                  ],
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          enabled: !isMe,
-                          tooltip: isMe
-                              ? 'لا يمكنك تغيير صلاحية حسابك'
-                              : 'تغيير الصلاحية',
-                          position: PopupMenuPosition.under,
-                          color: p.surface,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AdminRadii.md),
-                            side: BorderSide(color: p.border),
-                          ),
-                          icon: Icon(AdminIcons.expand,
-                              size: 18, color: isMe ? p.inkFaint : p.inkMuted),
-                          onSelected: (newRole) async {
-                            final progress = AdminToast.loading(
-                              message: 'جارٍ تحديث صلاحية $email',
-                            );
-                            try {
-                              await service.setAdminRole(email, newRole);
-                              progress.resolve(
-                                message: 'تم تحديث صلاحية $email',
-                                subtitle:
-                                    'الصلاحية الجديدة: ${adminRoleMeta(newRole).label}',
-                                kind: AdminToastKind.success,
-                              );
-                            } catch (e) {
-                              progress.resolve(
-                                message: 'تعذر تحديث الصلاحية',
-                                subtitle: e.toString(),
-                                kind: AdminToastKind.error,
-                              );
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            for (final option in const [
-                              'viewing_admin',
-                              'editing_admin',
-                              'super_admin',
-                            ])
-                              PopupMenuItem<String>(
-                                value: option,
-                                child: Row(
+                                    color: p.ink,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
                                   children: [
-                                    Icon(
-                                      adminRoleMeta(option).icon,
-                                      size: 16,
-                                      color: option == displayRole
-                                          ? p.clay
-                                          : p.inkMuted,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      adminRoleMeta(option).label,
-                                      style: adminText(
+                                    AdminRoleBadge(role: displayRole),
+                                    if (!everSignedIn) ...[
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'لم يسجّل دخوله بعد',
+                                        style: adminText(
+                                          size: 11,
+                                          weight: FontWeight.w700,
+                                          color: p.inkFaint,
+                                        ),
+                                      ),
+                                    ],
+                                    if (isMe) ...[
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'أنت',
+                                        style: adminText(
+                                          size: 11,
+                                          color: p.inkFaint,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            enabled: !isMe,
+                            tooltip: isMe
+                                ? 'لا يمكنك تغيير صلاحية حسابك'
+                                : 'تغيير الصلاحية',
+                            position: PopupMenuPosition.under,
+                            color: p.surface,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AdminRadii.md,
+                              ),
+                              side: BorderSide(color: p.border),
+                            ),
+                            icon: Icon(
+                              AdminIcons.expand,
+                              size: 18,
+                              color: isMe ? p.inkFaint : p.inkMuted,
+                            ),
+                            onSelected: (newRole) async {
+                              final progress = AdminToast.loading(
+                                message: 'جارٍ تحديث صلاحية $email',
+                              );
+                              try {
+                                await service.setAdminRole(email, newRole);
+                                progress.resolve(
+                                  message: 'تم تحديث صلاحية $email',
+                                  subtitle:
+                                      'الصلاحية الجديدة: ${adminRoleMeta(newRole).label}',
+                                  kind: AdminToastKind.success,
+                                );
+                              } catch (e) {
+                                progress.resolve(
+                                  message: 'تعذر تحديث الصلاحية',
+                                  subtitle: e.toString(),
+                                  kind: AdminToastKind.error,
+                                );
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              for (final option in const [
+                                'viewing_admin',
+                                'editing_admin',
+                                'super_admin',
+                              ])
+                                PopupMenuItem<String>(
+                                  value: option,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        adminRoleMeta(option).icon,
+                                        size: 16,
+                                        color: option == displayRole
+                                            ? p.clay
+                                            : p.inkMuted,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        adminRoleMeta(option).label,
+                                        style: adminText(
                                           size: 12.5,
                                           weight: option == displayRole
                                               ? FontWeight.w700
                                               : FontWeight.w500,
                                           color: option == displayRole
                                               ? p.clay
-                                              : p.ink),
-                                    ),
-                                    if (option == displayRole) ...[
-                                      const SizedBox(width: 12),
-                                      Icon(AdminIcons.success,
-                                          size: 15, color: p.clay),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                        if (!isMe)
-                          IconButton(
-                            tooltip: 'إزالة المشرف',
-                            visualDensity: VisualDensity.compact,
-                            icon: Icon(AdminIcons.adminRemove,
-                                size: 19, color: p.chiliSolid),
-                            onPressed: () async {
-                              final confirmed = await showAdminConfirmDialog(
-                                context: context,
-                                icon: AdminIcons.adminRemove,
-                                tone: AdminDialogTone.danger,
-                                title: 'إزالة مشرف',
-                                message: 'سيفقد هذا الحساب صلاحية الدخول إلى '
-                                    'لوحة التحكم فوراً.',
-                                note: AdminDialogNote(
-                                  tone: AdminDialogTone.danger,
-                                  icon: AdminIcons.email,
-                                  title: email,
-                                  subtitle: meta.label,
-                                ),
-                                confirmLabel: 'إزالة',
-                                confirmIcon: AdminIcons.adminRemove,
-                              );
-                              if (confirmed) {
-                                final progress = AdminToast.loading(
-                                  message: 'جارٍ إزالة $email',
-                                );
-                                try {
-                                  await service.removeAdmin(email);
-                                  progress.resolve(
-                                    message: 'تم إزالة المشرف $email',
-                                    subtitle:
-                                        'فقد صلاحية الدخول إلى لوحة التحكم فوراً',
-                                    kind: AdminToastKind.warning,
-                                  );
-                                } catch (e) {
-                                  progress.resolve(
-                                    message: 'تعذر إزالة المشرف',
-                                    subtitle: e.toString(),
-                                    kind: AdminToastKind.error,
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                      ],
-                    ),
-                  );
-                }
-
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    AdminDialogButtons.tonal(
-                      p,
-                      label: 'إضافة مشرف جديد',
-                      tone: AdminDialogTone.brand,
-                      icon: AdminIcons.adminAdd,
-                      onPressed: () async {
-                        String selectedRole = 'viewing_admin';
-                        final emailCtrl = TextEditingController();
-
-                        final addResult =
-                            await showAdminDialog<(String, String)>(
-                          context: context,
-                          builder: (ctx) {
-                            return StatefulBuilder(
-                              builder: (context, setState) {
-                                return AdminDialogShell(
-                                  icon: AdminIcons.adminAdd,
-                                  tone: AdminDialogTone.brand,
-                                  title: 'إضافة مشرف',
-                                  subtitle: 'سيتم منح هذا البريد صلاحية الوصول '
-                                      'إلى لوحة التحكم',
-                                  maxWidth: 430,
-                                  actions: [
-                                    AdminDialogButtons.ghost(
-                                      p,
-                                      label: 'إلغاء',
-                                      onPressed: () => Navigator.of(ctx).pop(),
-                                    ),
-                                    AdminDialogButtons.primary(
-                                      p,
-                                      label: 'إضافة',
-                                      tone: AdminDialogTone.brand,
-                                      // `verified` implied the address had been
-                                      // confirmed; nothing here confirms
-                                      // anything, so the button says what it does.
-                                      icon: AdminIcons.add,
-                                      onPressed:
-                                          AdminSecurityService.isUsableEmail(
-                                                  emailCtrl.text)
-                                              ? () => Navigator.of(ctx).pop((
-                                                    emailCtrl.text
-                                                        .trim()
-                                                        .toLowerCase(),
-                                                    selectedRole,
-                                                  ))
-                                              : null,
-                                    ),
-                                  ],
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      TextField(
-                                        controller: emailCtrl,
-                                        style: adminText(color: p.ink),
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        onChanged: (_) => setState(() {}),
-                                        decoration: adminFieldDeco(
-                                          p,
-                                          label: 'البريد الإلكتروني',
-                                          hint: 'name@example.com',
-                                          icon: AdminIcons.email,
+                                              : p.ink,
                                         ),
                                       ),
-                                      const SizedBox(height: 14),
-                                      DropdownButtonFormField<String>(
-                                        initialValue: selectedRole,
-                                        dropdownColor: p.surface,
-                                        borderRadius: BorderRadius.circular(
-                                            AdminRadii.md),
-                                        style: adminText(color: p.ink),
-                                        icon: Icon(AdminIcons.expand,
-                                            size: 18, color: p.inkFaint),
-                                        items: [
-                                          for (final option in const [
-                                            'viewing_admin',
-                                            'editing_admin',
-                                            'super_admin',
-                                          ])
-                                            DropdownMenuItem(
-                                              value: option,
-                                              child: Text(
-                                                '${adminRoleMeta(option).label}'
-                                                ' (${adminRoleMeta(option).short})',
-                                                style:
-                                                    adminText(color: p.ink),
-                                              ),
-                                            ),
-                                        ],
-                                        onChanged: (val) {
-                                          if (val != null) {
-                                            setState(
-                                                () => selectedRole = val);
-                                          }
-                                        },
-                                        decoration: adminFieldDeco(
-                                          p,
-                                          label: 'الصلاحية',
-                                          icon: AdminIcons.role,
+                                      if (option == displayRole) ...[
+                                        const SizedBox(width: 12),
+                                        Icon(
+                                          AdminIcons.success,
+                                          size: 15,
+                                          color: p.clay,
                                         ),
-                                      ),
-                                      const SizedBox(height: 14),
-                                      const AdminDialogPanel(
-                                        icon: AdminIcons.info,
-                                        text: 'يمكنك تغيير الصلاحية أو إزالة '
-                                            'المشرف في أي وقت من نفس الشاشة.',
-                                      ),
+                                      ],
                                     ],
                                   ),
+                                ),
+                            ],
+                          ),
+                          if (!isMe)
+                            IconButton(
+                              tooltip: 'إزالة المشرف',
+                              visualDensity: VisualDensity.compact,
+                              icon: Icon(
+                                AdminIcons.adminRemove,
+                                size: 19,
+                                color: p.chiliSolid,
+                              ),
+                              onPressed: () async {
+                                final confirmed = await showAdminConfirmDialog(
+                                  context: context,
+                                  icon: AdminIcons.adminRemove,
+                                  tone: AdminDialogTone.danger,
+                                  title: 'إزالة مشرف',
+                                  message:
+                                      'سيفقد هذا الحساب صلاحية الدخول إلى '
+                                      'لوحة التحكم فوراً.',
+                                  note: AdminDialogNote(
+                                    tone: AdminDialogTone.danger,
+                                    icon: AdminIcons.email,
+                                    title: email,
+                                    subtitle: meta.label,
+                                  ),
+                                  confirmLabel: 'إزالة',
+                                  confirmIcon: AdminIcons.adminRemove,
                                 );
+                                if (confirmed) {
+                                  final progress = AdminToast.loading(
+                                    message: 'جارٍ إزالة $email',
+                                  );
+                                  try {
+                                    await service.removeAdmin(email);
+                                    progress.resolve(
+                                      message: 'تم إزالة المشرف $email',
+                                      subtitle:
+                                          'فقد صلاحية الدخول إلى لوحة التحكم فوراً',
+                                      kind: AdminToastKind.warning,
+                                    );
+                                  } catch (e) {
+                                    progress.resolve(
+                                      message: 'تعذر إزالة المشرف',
+                                      subtitle: e.toString(),
+                                      kind: AdminToastKind.error,
+                                    );
+                                  }
+                                }
                               },
-                            );
-                          },
-                        );
-                        emailCtrl.dispose();
-                        if (addResult != null && addResult.$1.isNotEmpty) {
-                          final progress = AdminToast.loading(
-                            message: 'جارٍ إضافة ${addResult.$1} للمشرفين',
+                            ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AdminDialogButtons.tonal(
+                        p,
+                        label: 'إضافة مشرف جديد',
+                        tone: AdminDialogTone.brand,
+                        icon: AdminIcons.adminAdd,
+                        onPressed: () async {
+                          String selectedRole = 'viewing_admin';
+                          final emailCtrl = TextEditingController();
+
+                          final addResult = await showAdminDialog<(String, String)>(
+                            context: context,
+                            builder: (ctx) {
+                              return StatefulBuilder(
+                                builder: (context, setState) {
+                                  return AdminDialogShell(
+                                    icon: AdminIcons.adminAdd,
+                                    tone: AdminDialogTone.brand,
+                                    title: 'إضافة مشرف',
+                                    subtitle:
+                                        'سيتم منح هذا البريد صلاحية الوصول '
+                                        'إلى لوحة التحكم',
+                                    maxWidth: 430,
+                                    actions: [
+                                      AdminDialogButtons.ghost(
+                                        p,
+                                        label: 'إلغاء',
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(),
+                                      ),
+                                      AdminDialogButtons.primary(
+                                        p,
+                                        label: 'إضافة',
+                                        tone: AdminDialogTone.brand,
+                                        // `verified` implied the address had been
+                                        // confirmed; nothing here confirms
+                                        // anything, so the button says what it does.
+                                        icon: AdminIcons.add,
+                                        onPressed:
+                                            AdminSecurityService.isUsableEmail(
+                                              emailCtrl.text,
+                                            )
+                                            ? () => Navigator.of(ctx).pop((
+                                                emailCtrl.text
+                                                    .trim()
+                                                    .toLowerCase(),
+                                                selectedRole,
+                                              ))
+                                            : null,
+                                      ),
+                                    ],
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        TextField(
+                                          controller: emailCtrl,
+                                          style: adminText(color: p.ink),
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          onChanged: (_) => setState(() {}),
+                                          decoration: adminFieldDeco(
+                                            p,
+                                            label: 'البريد الإلكتروني',
+                                            hint: 'name@example.com',
+                                            icon: AdminIcons.email,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        DropdownButtonFormField<String>(
+                                          initialValue: selectedRole,
+                                          dropdownColor: p.surface,
+                                          borderRadius: BorderRadius.circular(
+                                            AdminRadii.md,
+                                          ),
+                                          style: adminText(color: p.ink),
+                                          icon: Icon(
+                                            AdminIcons.expand,
+                                            size: 18,
+                                            color: p.inkFaint,
+                                          ),
+                                          items: [
+                                            for (final option in const [
+                                              'viewing_admin',
+                                              'editing_admin',
+                                              'super_admin',
+                                            ])
+                                              DropdownMenuItem(
+                                                value: option,
+                                                child: Text(
+                                                  '${adminRoleMeta(option).label}'
+                                                  ' (${adminRoleMeta(option).short})',
+                                                  style: adminText(
+                                                    color: p.ink,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                          onChanged: (val) {
+                                            if (val != null) {
+                                              setState(
+                                                () => selectedRole = val,
+                                              );
+                                            }
+                                          },
+                                          decoration: adminFieldDeco(
+                                            p,
+                                            label: 'الصلاحية',
+                                            icon: AdminIcons.role,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        const AdminDialogPanel(
+                                          icon: AdminIcons.info,
+                                          text:
+                                              'يمكنك تغيير الصلاحية أو إزالة '
+                                              'المشرف في أي وقت من نفس الشاشة.',
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           );
-                          try {
-                            await service.seedAdmin(
-                                email: addResult.$1, role: addResult.$2);
-                            progress.resolve(
-                              message: 'تم منح الوصول لـ ${addResult.$1}',
-                              subtitle:
-                                  'الصلاحية: ${adminRoleMeta(addResult.$2).label}'
-                                  ' — العنوان بيتأكد أول ما يسجّل الدخول فعلًا',
-                              kind: AdminToastKind.success,
+                          emailCtrl.dispose();
+                          if (addResult != null && addResult.$1.isNotEmpty) {
+                            final progress = AdminToast.loading(
+                              message: 'جارٍ إضافة ${addResult.$1} للمشرفين',
                             );
-                          } catch (e) {
-                            progress.resolve(
-                              message: 'تعذر إضافة المشرف',
-                              subtitle: e.toString(),
-                              kind: AdminToastKind.error,
-                            );
+                            try {
+                              await service.seedAdmin(
+                                email: addResult.$1,
+                                role: addResult.$2,
+                              );
+                              progress.resolve(
+                                message: 'تم منح الوصول لـ ${addResult.$1}',
+                                subtitle:
+                                    'الصلاحية: ${adminRoleMeta(addResult.$2).label}'
+                                    ' — العنوان بيتأكد أول ما يسجّل الدخول فعلًا',
+                                kind: AdminToastKind.success,
+                              );
+                            } catch (e) {
+                              progress.resolve(
+                                message: 'تعذر إضافة المشرف',
+                                subtitle: e.toString(),
+                                kind: AdminToastKind.error,
+                              );
+                            }
                           }
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    if (admins.isEmpty)
-                      const AdminDialogPanel(
-                        icon: AdminIcons.admins,
-                        text: 'لا يوجد مشرفون بعد. أضف أول مشرف من الزر '
-                            'بالأعلى.',
-                      )
-                    else
-                      for (var i = 0; i < admins.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 8),
-                        buildRow(admins[i]),
-                      ],
-                    _adminAuditSection(service),
-                  ],
-                );
-              },
-            ),
-          );
-        });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      if (admins.isEmpty)
+                        const AdminDialogPanel(
+                          icon: AdminIcons.admins,
+                          text:
+                              'لا يوجد مشرفون بعد. أضف أول مشرف من الزر '
+                              'بالأعلى.',
+                        )
+                      else
+                        for (var i = 0; i < admins.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 8),
+                          buildRow(admins[i]),
+                        ],
+                      _adminAuditSection(service),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        );
       },
     );
   }
@@ -2344,28 +2499,24 @@ class _Sidebar extends StatelessWidget {
           child: SizedBox(
             width: 48,
             child: Center(
-              child: _slideButton(
-                Icons.keyboard_double_arrow_right_rounded,
-                'طي القائمة',
-              ),
+              child: _slideButton(AdminIcons.collapseRail, 'طي القائمة'),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          child: Text('القائمة',
-              style: _cairo(
-                  size: 11,
-                  weight: FontWeight.w700,
-                  color: p.inkFaint)),
-        ),
-        const SizedBox(height: 8),
+        _navGroupLabel(p, 'مساحة العمل'),
         _navItem(context, AdminIcons.dashboard, 'الرئيسية', 0),
-        _navItem(context, AdminIcons.suggestions, 'الاقتراحات', 1,
-            badge: pendingCount),
-        _navItem(context, AdminIcons.settings, 'الإعدادات', 2),
-        _navItem(context, Icons.notifications_active_outlined, 'الإشعارات', 3),
+        _navItem(
+          context,
+          AdminIcons.suggestions,
+          'الاقتراحات',
+          1,
+          badge: pendingCount,
+        ),
+        _navDivider(p),
+        _navGroupLabel(p, 'إدارة النظام'),
+        _navItem(context, AdminIcons.notifications, 'الإشعارات', 2),
+        _navItem(context, AdminIcons.settings, 'الإعدادات', 3),
         const Spacer(),
         Padding(
           padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
@@ -2402,19 +2553,21 @@ class _Sidebar extends StatelessWidget {
           child: SizedBox(
             width: 48,
             child: Center(
-              child: _slideButton(
-                Icons.keyboard_double_arrow_left_rounded,
-                'إظهار القائمة',
-              ),
+              child: _slideButton(AdminIcons.expandRail, 'إظهار القائمة'),
             ),
           ),
         ),
         const SizedBox(height: 14),
         _railItem(context, AdminIcons.dashboard, 'الرئيسية', 0),
-        _railItem(context, AdminIcons.suggestions, 'الاقتراحات', 1,
-            badge: pendingCount),
-        _railItem(context, AdminIcons.settings, 'الإعدادات', 2),
-        _railItem(context, Icons.notifications_active_outlined, 'الإشعارات', 3),
+        _railItem(
+          context,
+          AdminIcons.suggestions,
+          'الاقتراحات',
+          1,
+          badge: pendingCount,
+        ),
+        _railItem(context, AdminIcons.notifications, 'الإشعارات', 2),
+        _railItem(context, AdminIcons.settings, 'الإعدادات', 3),
         const Spacer(),
       ],
     );
@@ -2424,10 +2577,7 @@ class _Sidebar extends StatelessWidget {
     return SizedBox(
       width: 48,
       height: 48,
-      child: Image.asset(
-        'assets/icons/brand_icon.png',
-        fit: BoxFit.contain,
-      ),
+      child: Image.asset('assets/icons/brand_icon.png', fit: BoxFit.contain),
     );
   }
 
@@ -2436,6 +2586,28 @@ class _Sidebar extends StatelessWidget {
       icon: icon,
       tooltip: tooltip,
       onTap: onToggleCollapsed,
+    );
+  }
+
+  Widget _navGroupLabel(AdminPalette p, String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 9),
+      child: Text(
+        label,
+        style: adminText(
+          size: 11,
+          weight: FontWeight.w600,
+          color: p.inkFaint,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _navDivider(AdminPalette p) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Container(height: 1, color: p.border),
     );
   }
 
@@ -2452,51 +2624,82 @@ class _Sidebar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       child: Material(
         color: isSelected ? p.claySoft : Colors.transparent,
-        borderRadius: BorderRadius.circular(AdminRadii.md),
+        borderRadius: BorderRadius.circular(AdminRadii.sm),
         child: InkWell(
-          borderRadius: BorderRadius.circular(AdminRadii.md),
+          borderRadius: BorderRadius.circular(AdminRadii.sm),
+          hoverColor: p.surfaceAlt,
           onTap: () => onSelect(index),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            child: Row(
-              children: [
-                Icon(icon,
-                    size: 20,
-                    color: isSelected ? p.onClaySoft : p.inkMuted),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _cairo(
-                      size: 14,
-                      weight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected ? p.onClaySoft : p.inkMuted,
+          child: Stack(
+            children: [
+              if (isSelected)
+                PositionedDirectional(
+                  start: 0,
+                  top: 12,
+                  child: Container(
+                    width: 3,
+                    height: 21,
+                    decoration: BoxDecoration(
+                      color: p.clay,
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                 ),
-                if (badge > 0)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: p.chiliSolid,
-                      borderRadius: BorderRadius.circular(AdminRadii.pill),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 11,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: isSelected ? p.onClaySoft : p.inkMuted,
                     ),
-                    child: Text('$badge',
-                        style: _cairo(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: adminText(
+                          size: 13.5,
+                          weight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          color: isSelected ? p.onClaySoft : p.inkMuted,
+                        ),
+                      ),
+                    ),
+                    if (badge > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: p.honeySoft,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          '$badge',
+                          style: adminLatinText(
                             size: 11,
-                            weight: FontWeight.bold,
-                            color: Colors.white)),
-                  ),
-              ],
-            ),
+                            weight: FontWeight.w600,
+                            color: p.honeyInk,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
   Widget _railItem(
     BuildContext context,
     IconData icon,
@@ -2523,9 +2726,11 @@ class _Sidebar extends StatelessWidget {
                 alignment: Alignment.center,
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(icon,
-                      size: 20,
-                      color: isSelected ? p.onClaySoft : p.inkMuted),
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: isSelected ? p.onClaySoft : p.inkMuted,
+                  ),
                   if (badge > 0)
                     Positioned(
                       top: 7,
@@ -2533,17 +2738,22 @@ class _Sidebar extends StatelessWidget {
                       child: Container(
                         constraints: const BoxConstraints(minWidth: 18),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
-                          color: p.chiliSolid,
+                          color: p.honeySoft,
                           borderRadius: BorderRadius.circular(AdminRadii.pill),
                         ),
-                        child: Text('$badge',
-                            textAlign: TextAlign.center,
-                            style: _cairo(
-                                size: 10,
-                                weight: FontWeight.bold,
-                                color: Colors.white)),
+                        child: Text(
+                          '$badge',
+                          textAlign: TextAlign.center,
+                          style: adminLatinText(
+                            size: 10,
+                            weight: FontWeight.w600,
+                            color: p.honeyInk,
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -2637,32 +2847,38 @@ class _MobileNav extends StatelessWidget {
         NavigationDestination(
           icon: Icon(AdminIcons.dashboard, color: p.inkMuted),
           selectedIcon: Icon(AdminIcons.dashboard, color: p.onClaySoft),
-          label: 'الخزنة',
+          label: 'الرئيسية',
         ),
         NavigationDestination(
           icon: Badge(
             isLabelVisible: pendingCount > 0,
-            backgroundColor: p.chiliSolid,
-            label: Text('$pendingCount', style: _cairo(size: 10, color: Colors.white)),
+            backgroundColor: p.honeySolid,
+            label: Text(
+              '$pendingCount',
+              style: adminLatinText(size: 10, color: p.onSolid(p.honeySolid)),
+            ),
             child: Icon(AdminIcons.suggestions, color: p.inkMuted),
           ),
           selectedIcon: Badge(
             isLabelVisible: pendingCount > 0,
-            backgroundColor: p.chiliSolid,
-            label: Text('$pendingCount', style: _cairo(size: 10, color: Colors.white)),
+            backgroundColor: p.honeySolid,
+            label: Text(
+              '$pendingCount',
+              style: adminLatinText(size: 10, color: p.onSolid(p.honeySolid)),
+            ),
             child: Icon(AdminIcons.suggestions, color: p.onClaySoft),
           ),
-          label: 'المقترحات',
+          label: 'الاقتراحات',
+        ),
+        NavigationDestination(
+          icon: Icon(AdminIcons.notifications, color: p.inkMuted),
+          selectedIcon: Icon(AdminIcons.notifications, color: p.onClaySoft),
+          label: 'الإشعارات',
         ),
         NavigationDestination(
           icon: Icon(AdminIcons.settings, color: p.inkMuted),
           selectedIcon: Icon(AdminIcons.settings, color: p.onClaySoft),
           label: 'الإعدادات',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.notifications_active_outlined, color: p.inkMuted),
-          selectedIcon: Icon(Icons.notifications_active, color: p.onClaySoft),
-          label: 'الإشعارات',
         ),
       ],
     );
@@ -2689,12 +2905,11 @@ class _TopBar extends ConsumerWidget {
 
   Future<void> _toggleTheme(BuildContext context, WidgetRef ref) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final next =
-        isDark ? AppThemeModePreference.light : AppThemeModePreference.dark;
+    final next = isDark
+        ? AppThemeModePreference.light
+        : AppThemeModePreference.dark;
     try {
-      await ref
-          .read(settingsControllerProvider.notifier)
-          .updateThemeMode(next);
+      await ref.read(settingsControllerProvider.notifier).updateThemeMode(next);
       if (!context.mounted) return;
       showAdminToast(
         context,
@@ -2723,7 +2938,7 @@ class _TopBar extends ConsumerWidget {
       onPressed: () => _toggleTheme(context, ref),
       tooltip: isDark ? 'الوضع النهاري' : 'الوضع الداكن',
       icon: Icon(
-        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+        isDark ? AdminIcons.lightMode : AdminIcons.darkMode,
         color: p.inkMuted,
       ),
     );
@@ -2732,15 +2947,15 @@ class _TopBar extends ConsumerWidget {
       controller: searchController,
       onChanged: onSearchChanged,
       textDirection: TextDirection.rtl,
-      style: _cairo(size: 13, color: p.ink),
+      style: adminText(size: 13, color: p.ink),
       decoration: InputDecoration(
         hintText: 'ابحث عن أكلة في الخزنة...',
-        hintStyle: _cairo(size: 13, color: p.inkFaint),
-        prefixIcon: Icon(Icons.search_rounded, size: 20, color: p.inkFaint),
+        hintStyle: adminText(size: 13, color: p.inkFaint),
+        prefixIcon: Icon(AdminIcons.search, size: 20, color: p.inkFaint),
         suffixIcon: searchController.text.isEmpty
             ? null
             : IconButton(
-                icon: Icon(Icons.close_rounded, size: 18, color: p.inkFaint),
+                icon: Icon(AdminIcons.close, size: 18, color: p.inkFaint),
                 onPressed: () {
                   searchController.clear();
                   onSearchChanged('');
@@ -2767,43 +2982,57 @@ class _TopBar extends ConsumerWidget {
 
     final addButton = showAddButton
         ? (isMobile
-            ? IconButton(
-                onPressed: onAddMeal,
-                icon: const Icon(Icons.add_rounded),
-                color: p.onClay,
-                style: IconButton.styleFrom(
-                  backgroundColor: p.claySolid,
-                  padding: const EdgeInsets.all(12),
-                ),
-              )
-            : FilledButton.icon(
-                onPressed: onAddMeal,
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text('إضافة أكلة جديدة',
-                    style: _cairo(size: 13, weight: FontWeight.bold)),
-                style: FilledButton.styleFrom(
-                  backgroundColor: p.claySolid,
-                  foregroundColor: p.onClay,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AdminRadii.md),
+              ? IconButton(
+                  onPressed: onAddMeal,
+                  icon: const Icon(AdminIcons.add),
+                  color: p.onClay,
+                  style: IconButton.styleFrom(
+                    backgroundColor: p.claySolid,
+                    padding: const EdgeInsets.all(12),
                   ),
-                ),
-              ))
+                )
+              : FilledButton.icon(
+                  onPressed: onAddMeal,
+                  icon: const Icon(AdminIcons.add, size: 18),
+                  label: Text(
+                    'إضافة أكلة جديدة',
+                    style: adminText(size: 13, weight: FontWeight.bold),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: p.claySolid,
+                    foregroundColor: p.onClay,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AdminRadii.md),
+                    ),
+                  ),
+                ))
         : const SizedBox.shrink();
 
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(meta.title,
-            style: _cairo(size: 19, weight: FontWeight.bold, color: p.ink)),
+        Text(
+          meta.title,
+          style: adminText(
+            size: 24,
+            weight: FontWeight.w600,
+            color: p.ink,
+            height: 1.35,
+            letterSpacing: -0.6,
+          ),
+        ),
         const SizedBox(height: 3),
-        Text(meta.subtitle,
-            style: _cairo(size: 12, color: p.inkMuted),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
+        Text(
+          meta.subtitle,
+          style: adminText(size: 12.5, color: p.inkMuted, height: 1.6),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
 
@@ -2821,10 +3050,7 @@ class _TopBar extends ConsumerWidget {
               children: [
                 Expanded(child: titleBlock),
                 themeButton,
-                if (showAddButton) ...[
-                  const SizedBox(width: 6),
-                  addButton,
-                ],
+                if (showAddButton) ...[const SizedBox(width: 6), addButton],
               ],
             ),
             const SizedBox(height: 14),
@@ -2859,7 +3085,7 @@ class _TopBar extends ConsumerWidget {
           IconButton(
             onPressed: () => showAdminNotificationCenter(context),
             tooltip: 'مركز الإشعارات',
-            icon: Icon(Icons.notifications_none_rounded, color: p.inkMuted),
+            icon: Icon(AdminIcons.notificationQuiet, color: p.inkMuted),
           ),
           const SizedBox(width: 6),
           themeButton,
@@ -2877,8 +3103,11 @@ class _TopBar extends ConsumerWidget {
                 gradient: p.brandGradient,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.person_rounded,
-                  size: 18, color: Colors.white),
+              child: Icon(
+                AdminIcons.person,
+                size: 18,
+                color: p.onSolid(p.brandGradient.colors.first),
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -2888,13 +3117,20 @@ class _TopBar extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('المشرف',
-                    style: _cairo(
-                        size: 12, weight: FontWeight.bold, color: p.ink)),
-                Text(userEmail ?? 'Super Admin',
-                    style: _cairo(size: 10, color: p.inkMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  'المشرف',
+                  style: adminText(
+                    size: 12,
+                    weight: FontWeight.bold,
+                    color: p.ink,
+                  ),
+                ),
+                Text(
+                  userEmail ?? 'Super Admin',
+                  style: adminText(size: 10, color: p.inkMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -2952,31 +3188,44 @@ class _StatCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      style: _cairo(
-                          size: 13, weight: FontWeight.w600, color: p.inkMuted),
+                      style: adminText(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: p.inkMuted,
+                      ),
                     ),
                   ),
                   if (onTap != null)
-                    Icon(Icons.arrow_forward_ios_rounded, size: 13, color: accent),
+                    Icon(AdminIcons.forward, size: 13, color: accent),
                 ],
               ),
               const SizedBox(height: 18),
               Text(
                 value,
-                style: _cairo(size: 36, weight: FontWeight.bold, color: p.ink),
+                style: adminText(
+                  size: 36,
+                  weight: FontWeight.bold,
+                  color: p.ink,
+                ),
               ),
               if (trend != null) ...[
                 const SizedBox(height: 10),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: p.surface.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(AdminRadii.pill),
                   ),
                   child: Text(
                     trend!,
-                    style: _cairo(size: 11, weight: FontWeight.bold, color: accent),
+                    style: adminText(
+                      size: 11,
+                      weight: FontWeight.bold,
+                      color: accent,
+                    ),
                   ),
                 ),
               ],
@@ -3024,21 +3273,27 @@ class _CategoryStatsCard extends StatelessWidget {
                   color: p.surface,
                   borderRadius: BorderRadius.circular(AdminRadii.sm),
                 ),
-                child: Icon(Icons.pie_chart_rounded,
-                    color: p.onClaySoft, size: 19),
+                child: Icon(AdminIcons.chart, color: p.onClaySoft, size: 19),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('توزيع التصنيفات',
-                    style: _cairo(
-                        size: 13, weight: FontWeight.w600, color: p.onClaySoft)),
+                child: Text(
+                  'توزيع التصنيفات',
+                  style: adminText(
+                    size: 13,
+                    weight: FontWeight.w600,
+                    color: p.onClaySoft,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 18),
           if (total == 0)
-            Text('لا توجد بيانات',
-                style: _cairo(size: 14, color: p.onClaySoft))
+            Text(
+              'لا توجد بيانات',
+              style: adminText(size: 14, color: p.onClaySoft),
+            )
           else ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(AdminRadii.pill),
@@ -3046,15 +3301,15 @@ class _CategoryStatsCard extends StatelessWidget {
                 height: 10,
                 child: Row(
                   children: visible
-                      .map((e) => Expanded(
-                            flex: e.value,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 2),
-                              child: Container(
-                                color: _categoryColor(e.key, p),
-                              ),
-                            ),
-                          ))
+                      .map(
+                        (e) => Expanded(
+                          flex: e.value,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 2),
+                            child: Container(color: _categoryColor(e.key, p)),
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -3075,15 +3330,18 @@ class _CategoryStatsCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(_translateCategory(e.key),
-                          style: _cairo(
-                              size: 12,
-                              weight: FontWeight.bold,
-                              color: p.ink)),
+                      child: Text(
+                        _translateCategory(e.key),
+                        style: adminText(
+                          size: 12,
+                          weight: FontWeight.bold,
+                          color: p.ink,
+                        ),
+                      ),
                     ),
                     Text(
                       '${e.value} (${((e.value / total) * 100).toStringAsFixed(0)}%)',
-                      style: _cairo(size: 11, color: p.inkMuted),
+                      style: adminText(size: 11, color: p.inkMuted),
                     ),
                   ],
                 ),
@@ -3133,31 +3391,39 @@ class _LeaderboardCard extends StatelessWidget {
                   color: p.surface,
                   borderRadius: BorderRadius.circular(AdminRadii.sm),
                 ),
-                child: Icon(Icons.emoji_events_rounded,
-                    color: p.plumInk, size: 19),
+                child: Icon(AdminIcons.trophy, color: p.plumInk, size: 19),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('بطل المقترحات',
-                    style: _cairo(
-                        size: 13, weight: FontWeight.w600, color: p.plumInk)),
+                child: Text(
+                  'بطل المقترحات',
+                  style: adminText(
+                    size: 13,
+                    weight: FontWeight.w600,
+                    color: p.plumInk,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 18),
           if (top.isEmpty)
-            Text('لا توجد مقترحات معتمدة',
-                style: _cairo(size: 13, color: p.plumInk))
+            Text(
+              'لا توجد مقترحات معتمدة',
+              style: adminText(size: 13, color: p.plumInk),
+            )
           else ...[
             Text(
               top.first.key,
-              style: _cairo(size: 16, weight: FontWeight.bold, color: p.ink),
+              style: adminText(size: 16, weight: FontWeight.bold, color: p.ink),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
-            Text('${top.first.value} مقترحات معتمدة',
-                style: _cairo(size: 12, color: p.plumInk)),
+            Text(
+              '${top.first.value} مقترحات معتمدة',
+              style: adminText(size: 12, color: p.plumInk),
+            ),
             if (top.length > 1) ...[
               const SizedBox(height: 14),
               Divider(color: p.plumSolid.withValues(alpha: 0.25), height: 1),
@@ -3175,21 +3441,28 @@ class _LeaderboardCard extends StatelessWidget {
                           color: p.surface,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text('${i + 1}',
-                            style: _cairo(
-                                size: 10,
-                                weight: FontWeight.bold,
-                                color: p.plumInk)),
+                        child: Text(
+                          '${i + 1}',
+                          style: adminText(
+                            size: 10,
+                            weight: FontWeight.bold,
+                            color: p.plumInk,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(top[i].key,
-                            style: _cairo(size: 12, color: p.ink),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          top[i].key,
+                          style: adminText(size: 12, color: p.ink),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      Text('${top[i].value}',
-                          style: _cairo(size: 11, color: p.inkMuted)),
+                      Text(
+                        '${top[i].value}',
+                        style: adminText(size: 11, color: p.inkMuted),
+                      ),
                     ],
                   ),
                 ),
@@ -3282,8 +3555,8 @@ class _VaultMealCard extends StatelessWidget {
                         child: _Pill(
                           label: 'أساسية',
                           bg: p.honeySolid,
-                          fg: Colors.white,
-                          icon: Icons.star_rounded,
+                          fg: p.onSolid(p.honeySolid),
+                          icon: AdminIcons.starter,
                         ),
                       ),
                   ],
@@ -3297,16 +3570,20 @@ class _VaultMealCard extends StatelessWidget {
                     children: [
                       Text(
                         meal.name,
-                        style: _cairo(
-                            size: 15, weight: FontWeight.bold, color: p.ink),
+                        style: adminText(
+                          size: 15,
+                          weight: FontWeight.bold,
+                          color: p.ink,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (meal.shortName != null && meal.shortName!.isNotEmpty) ...[
+                      if (meal.shortName != null &&
+                          meal.shortName!.isNotEmpty) ...[
                         const SizedBox(height: 3),
                         Text(
                           'اختصار: ${meal.shortName}',
-                          style: _cairo(size: 11, color: p.inkFaint),
+                          style: adminText(size: 11, color: p.inkFaint),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -3325,21 +3602,21 @@ class _VaultMealCard extends StatelessWidget {
                             label: '${meal.prepTimeMinutes} د',
                             bg: p.honeySoft,
                             fg: p.honeyInk,
-                            icon: Icons.timer_outlined,
+                            icon: AdminIcons.time,
                           ),
                           if (meal.isFridaySpecial)
                             _Pill(
                               label: 'جمعة',
                               bg: p.nileSoft,
                               fg: p.nileInk,
-                              icon: Icons.celebration_rounded,
+                              icon: AdminIcons.friday,
                             ),
                           if (meal.isBudgetFriendly)
                             _Pill(
                               label: 'اقتصادية',
                               bg: p.oliveSoft,
                               fg: p.oliveInk,
-                              icon: Icons.savings_rounded,
+                              icon: AdminIcons.money,
                             ),
                           if (!meal.isFridaySpecial && !meal.isBudgetFriendly)
                             _Pill(
@@ -3353,7 +3630,7 @@ class _VaultMealCard extends StatelessWidget {
                       Row(
                         children: [
                           _RoundAction(
-                            icon: Icons.visibility_rounded,
+                            icon: AdminIcons.visibility,
                             fg: p.inkMuted,
                             bg: p.surfaceAlt,
                             tooltip: 'التفاصيل',
@@ -3361,7 +3638,7 @@ class _VaultMealCard extends StatelessWidget {
                           ),
                           const Spacer(),
                           _RoundAction(
-                            icon: Icons.edit_rounded,
+                            icon: AdminIcons.edit,
                             fg: p.clay,
                             bg: p.claySoft,
                             tooltip: 'تعديل',
@@ -3369,7 +3646,7 @@ class _VaultMealCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           _RoundAction(
-                            icon: Icons.delete_rounded,
+                            icon: AdminIcons.delete,
                             fg: p.chiliInk,
                             bg: p.chiliSoft,
                             tooltip: 'حذف',
@@ -3389,11 +3666,11 @@ class _VaultMealCard extends StatelessWidget {
   }
 
   Widget _fallback(AdminPalette p) => Container(
-        color: p.surfaceAlt,
-        child: Center(
-          child: Icon(Icons.restaurant_rounded, color: p.borderStrong, size: 42),
-        ),
-      );
+    color: p.surfaceAlt,
+    child: Center(
+      child: Icon(AdminIcons.meal, color: p.borderStrong, size: 42),
+    ),
+  );
 }
 
 /// =============================== Suggestion row ===============================
@@ -3436,26 +3713,32 @@ class _SuggestionRow extends StatelessWidget {
     final info = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(meal.name,
-            style: _cairo(size: 14, weight: FontWeight.bold, color: p.ink),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
+        Text(
+          meal.name,
+          style: adminText(size: 14, weight: FontWeight.bold, color: p.ink),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(Icons.person_outline_rounded, size: 13, color: p.inkFaint),
+            Icon(AdminIcons.person, size: 13, color: p.inkFaint),
             const SizedBox(width: 4),
             Expanded(
-              child: Text('بواسطة: ${meal.proposedBy ?? 'مجهول'}',
-                  style: _cairo(size: 11, color: p.inkMuted),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
+              child: Text(
+                'بواسطة: ${meal.proposedBy ?? 'مجهول'}',
+                style: adminText(size: 11, color: p.inkMuted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.schedule_rounded, size: 13, color: p.inkFaint),
+            Icon(AdminIcons.time, size: 13, color: p.inkFaint),
             const SizedBox(width: 4),
-            Text(_formatDate(meal.createdAt),
-                style: _cairo(size: 11, color: p.inkFaint)),
+            Text(
+              _formatDate(meal.createdAt),
+              style: adminText(size: 11, color: p.inkFaint),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -3472,7 +3755,7 @@ class _SuggestionRow extends StatelessWidget {
               label: '${meal.prepTimeMinutes} د',
               bg: p.honeySoft,
               fg: p.honeyInk,
-              icon: Icons.timer_outlined,
+              icon: AdminIcons.time,
             ),
             _Pill(
               label: _translateCategory(meal.category),
@@ -3488,16 +3771,18 @@ class _SuggestionRow extends StatelessWidget {
         ),
         if (meal.notes != null && meal.notes!.isNotEmpty) ...[
           const SizedBox(height: 10),
-          Text(meal.notes!,
-              style: _cairo(size: 11, color: p.inkFaint, height: 1.5),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
+          Text(
+            meal.notes!,
+            style: adminText(size: 11, color: p.inkFaint, height: 1.5),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
         const SizedBox(height: 12),
         Row(
           children: [
             _RoundAction(
-              icon: Icons.visibility_rounded,
+              icon: AdminIcons.visibility,
               fg: p.inkMuted,
               bg: p.surfaceAlt,
               tooltip: 'التفاصيل',
@@ -3505,7 +3790,7 @@ class _SuggestionRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             _RoundAction(
-              icon: Icons.edit_rounded,
+              icon: AdminIcons.edit,
               fg: p.clay,
               bg: p.claySoft,
               tooltip: 'تعديل قبل الاعتماد',
@@ -3514,13 +3799,21 @@ class _SuggestionRow extends StatelessWidget {
             const Spacer(),
             OutlinedButton.icon(
               onPressed: onReject,
-              icon: Icon(Icons.close_rounded, size: 16, color: p.chiliInk),
-              label: Text('رفض',
-                  style: _cairo(size: 12, weight: FontWeight.bold, color: p.chiliInk)),
+              icon: Icon(AdminIcons.close, size: 16, color: p.chiliInk),
+              label: Text(
+                'رفض',
+                style: adminText(
+                  size: 12,
+                  weight: FontWeight.bold,
+                  color: p.chiliInk,
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: p.chiliInk,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 side: BorderSide(color: p.chiliSolid.withValues(alpha: 0.5)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AdminRadii.md),
@@ -3530,14 +3823,18 @@ class _SuggestionRow extends StatelessWidget {
             const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: onApprove,
-              icon: const Icon(Icons.check_rounded, size: 16),
-              label: Text('اعتماد',
-                  style: _cairo(size: 12, weight: FontWeight.bold)),
+              icon: const Icon(AdminIcons.check, size: 16),
+              label: Text(
+                'اعتماد',
+                style: adminText(size: 12, weight: FontWeight.bold),
+              ),
               style: FilledButton.styleFrom(
                 backgroundColor: p.oliveSolid,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                foregroundColor: p.onSolid(p.oliveSolid),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AdminRadii.md),
                 ),
@@ -3593,23 +3890,26 @@ class _SuggestionRow extends StatelessWidget {
   }
 
   Widget _fallback(AdminPalette p) => Container(
-        color: p.surfaceAlt,
-        child: Center(
-          child: Icon(Icons.restaurant_rounded, color: p.borderStrong, size: 24),
-        ),
-      );
+    color: p.surfaceAlt,
+    child: Center(
+      child: Icon(AdminIcons.meal, color: p.borderStrong, size: 24),
+    ),
+  );
 
   String _formatDate(DateTime d) {
     final now = DateTime.now();
-    final isToday = d.year == now.year && d.month == now.month && d.day == now.day;
+    final isToday =
+        d.year == now.year && d.month == now.month && d.day == now.day;
     final yesterday = now.subtract(const Duration(days: 1));
-    final isYesterday = d.year == yesterday.year &&
+    final isYesterday =
+        d.year == yesterday.year &&
         d.month == yesterday.month &&
         d.day == yesterday.day;
 
     final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
     final period = d.hour >= 12 ? 'م' : 'ص';
-    final time = '${h.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')} $period';
+    final time =
+        '${h.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')} $period';
 
     if (isToday) return 'اليوم، $time';
     if (isYesterday) return 'أمس، $time';
@@ -3623,11 +3923,7 @@ class _IconTile extends StatelessWidget {
   final Color fg;
   final Color bg;
 
-  const _IconTile({
-    required this.icon,
-    required this.fg,
-    required this.bg,
-  });
+  const _IconTile({required this.icon, required this.fg, required this.bg});
 
   @override
   Widget build(BuildContext context) {
@@ -3671,8 +3967,10 @@ class _Pill extends StatelessWidget {
             Icon(icon, size: 12, color: fg),
             const SizedBox(width: 5),
           ],
-          Text(label,
-              style: _cairo(size: 11, weight: FontWeight.w700, color: fg)),
+          Text(
+            label,
+            style: adminText(size: 11, weight: FontWeight.w700, color: fg),
+          ),
         ],
       ),
     );
@@ -3715,13 +4013,15 @@ class _FilterChip extends StatelessWidget {
               Container(
                 width: 7,
                 height: 7,
-                decoration:
-                    BoxDecoration(color: dotColor, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
               ),
               const SizedBox(width: 7),
               Text(
                 label,
-                style: _cairo(
+                style: adminText(
                   size: 12,
                   weight: selected ? FontWeight.bold : FontWeight.w500,
                   color: selected ? p.onClaySoft : p.inkMuted,
@@ -3764,7 +4064,12 @@ class _NoticeBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: _cairo(size: 13, weight: FontWeight.w600, color: fg, height: 1.6),
+              style: adminText(
+                size: 13,
+                weight: FontWeight.w600,
+                color: fg,
+                height: 1.6,
+              ),
             ),
           ),
         ],
@@ -3804,16 +4109,20 @@ class _EmptyState extends StatelessWidget {
               child: Icon(icon, size: 36, color: fg),
             ),
             const SizedBox(height: 16),
-            Text(title,
-                textAlign: TextAlign.center,
-                style: _cairo(size: 15, weight: FontWeight.bold, color: p.ink)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: adminText(size: 15, weight: FontWeight.bold, color: p.ink),
+            ),
             if (message != null) ...[
               const SizedBox(height: 6),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 360),
-                child: Text(message!,
-                    textAlign: TextAlign.center,
-                    style: _cairo(size: 12, color: p.inkMuted, height: 1.6)),
+                child: Text(
+                  message!,
+                  textAlign: TextAlign.center,
+                  style: adminText(size: 12, color: p.inkMuted, height: 1.6),
+                ),
               ),
             ],
           ],
@@ -3822,7 +4131,6 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-
 
 class _RoundAction extends StatelessWidget {
   final IconData icon;
@@ -3879,10 +4187,11 @@ class _SettingsSectionLabel extends StatelessWidget {
       children: [
         Text(
           label,
-          style: _cairo(
-              size: 11,
-              weight: FontWeight.w700,
-              color: p.inkFaint),
+          style: adminText(
+            size: 11,
+            weight: FontWeight.w700,
+            color: p.inkFaint,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(child: Divider(height: 1, color: p.border)),
@@ -3897,12 +4206,7 @@ class _SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(
-      height: 1,
-      indent: 60,
-      endIndent: 0,
-      color: p.border,
-    );
+    return Divider(height: 1, indent: 60, endIndent: 0, color: p.border);
   }
 }
 
@@ -3936,15 +4240,18 @@ class _SettingsChevronButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: _cairo(
-                  size: 12,
-                  weight: FontWeight.bold,
-                  color: enabled ? color : color.withValues(alpha: 0.4)),
+              style: adminText(
+                size: 12,
+                weight: FontWeight.bold,
+                color: enabled ? color : color.withValues(alpha: 0.4),
+              ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_left_rounded,
-                size: 16,
-                color: enabled ? color : color.withValues(alpha: 0.4)),
+            Icon(
+              AdminIcons.chevronStart,
+              size: 16,
+              color: enabled ? color : color.withValues(alpha: 0.4),
+            ),
           ],
         ),
       ),

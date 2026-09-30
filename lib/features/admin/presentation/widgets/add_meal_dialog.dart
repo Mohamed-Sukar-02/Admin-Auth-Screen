@@ -589,8 +589,12 @@ class _ImagePreview extends StatelessWidget {
               child: Material(
                 color: p.claySolid.withValues(alpha: 0.86),
                 borderRadius: BorderRadius.circular(AdminRadii.sm),
-                child: const Center(
-                  child: Icon(AdminIcons.upload, size: 24, color: Colors.white),
+                child: Center(
+                  child: Icon(
+                    AdminIcons.upload,
+                    size: 24,
+                    color: p.onSolid(p.claySolid),
+                  ),
                 ),
               ),
             ),
@@ -610,10 +614,10 @@ class _ImagePreview extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: p.surface, width: 1.5),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       AdminIcons.close,
                       size: 12,
-                      color: Colors.white,
+                      color: p.onSolid(p.chiliSolid),
                     ),
                   ),
                 ),

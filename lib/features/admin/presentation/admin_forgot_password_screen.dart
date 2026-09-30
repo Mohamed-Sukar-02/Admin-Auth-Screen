@@ -2,15 +2,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../settings/providers/settings_providers.dart';
+import 'theme/admin_palette.dart';
+import 'widgets/admin_dialog.dart';
 import 'widgets/admin_toast.dart';
 
 class AdminForgotPasswordScreen extends ConsumerStatefulWidget {
   final String? initialEmail;
-  
+
   const AdminForgotPasswordScreen({super.key, this.initialEmail});
 
   @override
@@ -42,6 +43,23 @@ class _AdminForgotPasswordScreenState
     super.dispose();
   }
 
+  /// Arabic copy rides the Arabic face, English copy is set as a Latin run.
+  TextStyle _ui({
+    double size = 13.5,
+    FontWeight weight = FontWeight.w500,
+    Color? color,
+    double? height,
+  }) {
+    return _isEnglish
+        ? adminLatinText(
+            size: size,
+            weight: weight,
+            color: color,
+            height: height,
+          )
+        : adminText(size: size, weight: weight, color: color, height: height);
+  }
+
   /// Recovery results belong to the form, so they show in place (the banners
   /// above the field) instead of in the dashboard's toast stack.
   Future<void> _submit() async {
@@ -69,17 +87,19 @@ class _AdminForgotPasswordScreenState
 
       final isRateLimited = msg.contains('too-many-requests');
       final isOffline = msg.contains('network');
-      setState(() => _errorMessage = isRateLimited
-          ? (_isEnglish
-              ? 'Too many attempts. Try again later.'
-              : 'محاولات كثيرة جداً. حاول لاحقاً.')
-          : isOffline
-              ? (_isEnglish
+      setState(
+        () => _errorMessage = isRateLimited
+            ? (_isEnglish
+                  ? 'Too many attempts. Try again later.'
+                  : 'محاولات كثيرة جداً. حاول لاحقاً.')
+            : isOffline
+            ? (_isEnglish
                   ? 'Network error. Check your connection.'
                   : 'خطأ في الاتصال. تحقق من الإنترنت.')
-              : (_isEnglish
+            : (_isEnglish
                   ? 'An error occurred. Please try again.'
-                  : 'حدث خطأ. يرجى المحاولة مرة أخرى.'));
+                  : 'حدث خطأ. يرجى المحاولة مرة أخرى.'),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -92,16 +112,14 @@ class _AdminForgotPasswordScreenState
   Future<void> _setThemeMode(AppThemeModePreference mode) async {
     final light = mode == AppThemeModePreference.light;
     try {
-      await ref
-          .read(settingsControllerProvider.notifier)
-          .updateThemeMode(mode);
+      await ref.read(settingsControllerProvider.notifier).updateThemeMode(mode);
       if (!mounted) return;
       AdminToast.show(
         message: _isEnglish
             ? (light ? 'Light mode enabled' : 'Dark mode enabled')
             : (light
-                ? 'تم التبديل إلى الوضع النهاري'
-                : 'تم التبديل إلى الوضع الداكن'),
+                  ? 'تم التبديل إلى الوضع النهاري'
+                  : 'تم التبديل إلى الوضع الداكن'),
         kind: AdminToastKind.success,
       );
     } catch (_) {
@@ -115,25 +133,92 @@ class _AdminForgotPasswordScreenState
     }
   }
 
+  /// Language + theme menu. Behaviour is untouched; only the skin is the
+  /// shared one — filled `surfaceAlt` chip, `borderStrong` hairline,
+  /// full-strength glyph.
+  Widget _settingsMenu(AdminPalette p, bool isDark) {
+    final tLangMenu = _isEnglish ? 'العربية' : 'English';
+    final tThemeMenu = isDark
+        ? (_isEnglish ? 'Light mode' : 'الوضع الفاتح')
+        : (_isEnglish ? 'Dark mode' : 'الوضع الداكن');
+
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        if (value == 'lang') {
+          setState(() => _isEnglish = !_isEnglish);
+        } else if (value == 'theme') {
+          _setThemeMode(
+            isDark ? AppThemeModePreference.light : AppThemeModePreference.dark,
+          );
+        }
+      },
+      offset: const Offset(0, 48),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AdminRadii.md),
+      ),
+      color: p.surface,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: p.surfaceAlt,
+          borderRadius: BorderRadius.circular(AdminRadii.sm),
+          border: Border.all(color: p.borderStrong),
+        ),
+        child: Icon(AdminIcons.settings, size: 20, color: p.ink),
+      ),
+      itemBuilder: (menuContext) => [
+        PopupMenuItem(
+          value: 'lang',
+          child: Row(
+            children: [
+              Icon(
+                // No language glyph in AdminIcons yet.
+                AdminIcons.language,
+                size: 18,
+                color: p.inkMuted,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                tLangMenu,
+                style: _isEnglish
+                    ? adminText(size: 13, weight: FontWeight.w600, color: p.ink)
+                    : adminLatinText(
+                        size: 13,
+                        weight: FontWeight.w600,
+                        color: p.ink,
+                      ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'theme',
+          child: Row(
+            children: [
+              Icon(
+                // No sun/moon glyph in AdminIcons yet (same as the dashboard
+                // top bar).
+                isDark ? AdminIcons.lightMode : AdminIcons.darkMode,
+                size: 18,
+                color: p.inkMuted,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                tThemeMenu,
+                style: _ui(size: 13, weight: FontWeight.w600, color: p.ink),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF635BFF);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF0E1120) : const Color(0xFFF5F7FC);
-    final cardBg = isDark ? const Color(0xFF171B30) : Colors.white;
-    final textColor = isDark ? const Color(0xFFEEF0F8) : const Color(0xFF172033);
-    final mutedColor =
-        isDark ? const Color(0xFF98A0BA) : const Color(0xFF788199);
-    final lineColor =
-        isDark ? const Color(0xFF2B3050) : const Color(0xFFE2E6EF);
-    final inputBg = isDark ? const Color(0xFF171B30) : Colors.white;
-    final shadowColor = isDark
-        ? Colors.black.withValues(alpha: 0.45)
-        : const Color.fromRGBO(42, 48, 87, 0.13);
-    final errorBg = isDark ? const Color(0xFF4A1919) : Colors.red.shade50;
-    final errorText = isDark ? const Color(0xFFFF6B6B) : Colors.red.shade900;
-    final successBg = isDark ? const Color(0xFF14472F) : Colors.green.shade50;
-    final successText = isDark ? const Color(0xFF5DEB98) : Colors.green.shade900;
+    final p = AdminPalette.of(context);
+    final isDark = p.isDark;
 
     final tTitle = _isEnglish ? 'Reset Password' : 'استعادة كلمة المرور';
     final tSubtitle = _isEnglish
@@ -144,400 +229,240 @@ class _AdminForgotPasswordScreenState
     final tEmailEmpty = _isEnglish ? 'Please enter email' : 'يرجى إدخال البريد';
     final tSubmit = _isEnglish ? 'Send Reset Link' : 'إرسال رابط الاستعادة';
     final tBack = _isEnglish ? 'Back to Sign In' : 'العودة لتسجيل الدخول';
-    
-    final tLangMenu = _isEnglish ? 'العربية' : 'English';
-    final tThemeMenu = isDark
-        ? (_isEnglish ? 'Light mode' : 'الوضع الفاتح')
-        : (_isEnglish ? 'Dark mode' : 'الوضع الداكن');
 
     return Title(
       title: 'Password Recovery - أكلة النهاردة',
-      color: primaryColor,
+      color: p.claySolid,
       child: Scaffold(
-        backgroundColor: bgColor,
-      body: Directionality(
-        textDirection: _isEnglish ? TextDirection.ltr : TextDirection.rtl,
-        child: Stack(
-          children: [
-            // Background blobs
-            Positioned(
-              top: -100,
-              left: -100,
-              child: Container(
-                width: 350,
-                height: 350,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: primaryColor.withValues(alpha: 0.14),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              right: -100,
-              child: Container(
-                width: 450,
-                height: 450,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF21BEB5).withValues(alpha: 0.12),
-                ),
-              ),
-            ),
+        backgroundColor: p.canvas,
+        body: Directionality(
+          textDirection: _isEnglish ? TextDirection.ltr : TextDirection.rtl,
+          child: Stack(
+            children: [
+              // Settings Gear (Interactive)
+              Positioned(top: 18, right: 18, child: _settingsMenu(p, isDark)),
 
-            // Settings Gear (Interactive)
-            Positioned(
-              top: 18,
-              right: 18,
-              child: PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'lang') {
-                    setState(() => _isEnglish = !_isEnglish);
-                  } else if (value == 'theme') {
-                    _setThemeMode(
-                      isDark
-                          ? AppThemeModePreference.light
-                          : AppThemeModePreference.dark,
-                    );
-                  }
-                },
-                offset: const Offset(0, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                color: cardBg,
-                elevation: 8,
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: lineColor),
-                    boxShadow: [
-                      BoxShadow(
-                        color: shadowColor,
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Icon(Icons.settings_outlined,
-                      color: mutedColor, size: 20),
+              // Back Button (Top Left)
+              Positioned(
+                top: 18,
+                left: 18,
+                child: AdminIconChip(
+                  tooltip: _isEnglish
+                      ? 'Back to Sign In'
+                      : 'العودة لتسجيل الدخول',
+                  // No directional arrow glyph in AdminIcons.
+                  icon: _isEnglish ? AdminIcons.back : AdminIcons.forward,
+                  onTap: () => context.pop(),
                 ),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'lang',
-                    child: Row(
-                      children: [
-                        Icon(Icons.language_rounded,
-                            size: 18, color: textColor),
-                        const SizedBox(width: 10),
-                        Text(
-                          tLangMenu,
-                          style: GoogleFonts.cairo(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
-                      ],
+              ),
+
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 455),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 32,
                     ),
-                  ),
-                  PopupMenuItem(
-                    value: 'theme',
-                    child: Row(
+                    decoration: p.panel(radius: AdminRadii.lg, shadow: true),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Icon(
-                          isDark
-                              ? Icons.light_mode_outlined
-                              : Icons.dark_mode_outlined,
-                          size: 18,
-                          color: textColor,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          tThemeMenu,
-                          style: GoogleFonts.cairo(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Back Button (Top Left)
-            Positioned(
-              top: 18,
-              left: 18,
-              child: InkWell(
-                onTap: () => context.pop(),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: lineColor),
-                    boxShadow: [
-                      BoxShadow(
-                        color: shadowColor,
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _isEnglish
-                        ? Icons.arrow_back_ios_new_rounded
-                        : Icons.arrow_forward_ios_rounded,
-                    color: mutedColor,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 455),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 44),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: lineColor.withValues(alpha: 0.9)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: shadowColor,
-                        blurRadius: 70,
-                        offset: const Offset(0, 24),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Lock Icon
-                      Center(
-                        child: Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(15),
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF716AFF),
-                                Color(0xFF5149D9)
-                              ],
-                            ),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.lock_reset_rounded,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-
-                      // Title
-                      Text(
-                        tTitle,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.cairo(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        tSubtitle,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          color: mutedColor,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-
-                      if (_errorMessage != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: errorBg,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: GoogleFonts.cairo(
-                              fontSize: 13,
-                              color: errorText,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      if (_successMessage != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: successBg,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _successMessage!,
-                            style: GoogleFonts.cairo(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: successText,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Email Field
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              textAlign: TextAlign.left,
-                              textDirection: TextDirection.ltr,
-                              style: GoogleFonts.cairo(
-                                  fontSize: 14, color: textColor),
-                              decoration: InputDecoration(
-                                labelText: tEmailLabel,
-                                labelStyle: GoogleFonts.cairo(
-                                    fontSize: 14, color: mutedColor),
-                                floatingLabelStyle: GoogleFonts.cairo(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                ),
-                                prefixIcon: const Icon(Icons.email_outlined,
-                                    color: Color(0xFF9AA2B5), size: 20),
-                                contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 17, vertical: 18),
-                                filled: true,
-                                fillColor: inputBg,
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(13),
-                                  borderSide: BorderSide(color: lineColor),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(13),
-                                  borderSide: const BorderSide(
-                                      color: primaryColor, width: 1.5),
-                                ),
-                                errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(13),
-                                  borderSide:
-                                      const BorderSide(color: Colors.red),
-                                ),
-                                focusedErrorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(13),
-                                  borderSide: const BorderSide(
-                                      color: Colors.red, width: 1.5),
-                                ),
+                        // Lock Icon
+                        Center(
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                AdminRadii.xl,
                               ),
-                              validator: (v) {
-                                if (v == null || v.trim().isEmpty) {
-                                  return tEmailEmpty;
-                                }
-                                if (!v.contains('@')) return tEmailErr;
-                                return null;
-                              },
+                              gradient: p.brandGradient,
                             ),
-                            const SizedBox(height: 24),
+                            child: Center(
+                              child: Icon(
+                                AdminIcons.lock,
+                                color: p.onSolid(p.brandGradient.colors.first),
+                                size: 32,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
 
-                            // Submit Button
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryColor,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                        // Title
+                        Text(
+                          tTitle,
+                          textAlign: TextAlign.center,
+                          style: _ui(
+                            size: 20,
+                            weight: FontWeight.w600,
+                            color: p.ink,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          tSubtitle,
+                          textAlign: TextAlign.center,
+                          style: _ui(size: 13, color: p.inkMuted, height: 1.5),
+                        ),
+                        const SizedBox(height: 26),
+
+                        if (_errorMessage != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 13,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: p.chiliSoft,
+                              borderRadius: BorderRadius.circular(
+                                AdminRadii.md,
+                              ),
+                              border: Border.all(
+                                color: p.chiliSolid.withValues(alpha: 0.32),
+                              ),
+                            ),
+                            child: Text(
+                              _errorMessage!,
+                              style: _ui(
+                                size: 12.5,
+                                weight: FontWeight.w600,
+                                color: p.chiliInk,
+                                height: 1.6,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        if (_successMessage != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 13,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: p.oliveSoft,
+                              borderRadius: BorderRadius.circular(
+                                AdminRadii.md,
+                              ),
+                              border: Border.all(
+                                color: p.oliveSolid.withValues(alpha: 0.32),
+                              ),
+                            ),
+                            child: Text(
+                              _successMessage!,
+                              style: _ui(
+                                size: 12.5,
+                                weight: FontWeight.w600,
+                                color: p.oliveInk,
+                                height: 1.6,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Email Field
+                              TextFormField(
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                textAlign: TextAlign.left,
+                                textDirection: TextDirection.ltr,
+                                style: adminLatinText(size: 13.5, color: p.ink),
+                                decoration: adminFieldDeco(
+                                  p,
+                                  label: tEmailLabel,
+                                  icon: AdminIcons.email,
                                 ),
-                                shadowColor: primaryColor.withValues(alpha: 0.4),
-                              ).copyWith(
-                                elevation:
-                                    WidgetStateProperty.resolveWith((states) {
-                                  if (states.contains(WidgetState.hovered)) {
-                                    return 6;
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return tEmailEmpty;
                                   }
-                                  return 2;
-                                }),
+                                  if (!v.contains('@')) return tEmailErr;
+                                  return null;
+                                },
                               ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white),
-                                    )
-                                  : Text(
-                                      tSubmit,
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              const SizedBox(height: 18),
+
+                              // Submit Button
+                              FilledButton(
+                                onPressed: _isLoading ? null : _submit,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: p.claySolid,
+                                  foregroundColor: p.onClay,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 15,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      AdminRadii.sm,
                                     ),
-                            ),
-                            
-                            const SizedBox(height: 16),
-                            
-                            // Back to Login Button
-                            TextButton(
-                              onPressed: () => context.pop(),
-                              style: TextButton.styleFrom(
-                                foregroundColor: mutedColor,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                ),
+                                child: _isLoading
+                                    ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: p.onClay,
+                                        ),
+                                      )
+                                    : Text(
+                                        tSubmit,
+                                        style: _ui(
+                                          size: 13.5,
+                                          weight: FontWeight.w600,
+                                          color: p.onClay,
+                                        ),
+                                      ),
                               ),
-                              child: Text(
-                                tBack,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+
+                              const SizedBox(height: 10),
+
+                              // Back to Login Button
+                              TextButton(
+                                onPressed: () => context.pop(),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: p.inkMuted,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: Text(
+                                  tBack,
+                                  style: _ui(
+                                    size: 13,
+                                    weight: FontWeight.w600,
+                                    color: p.inkMuted,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 }
