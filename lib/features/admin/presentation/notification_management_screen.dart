@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/app_strings.dart';
 import '../data/models/ai_notification_result.dart';
 import '../data/models/cloud_meal.dart';
+import '../data/models/notification_segment.dart';
 import '../data/vault_admin_repository.dart';
 import 'theme/admin_palette.dart';
 import 'widgets/admin_dialog.dart';
@@ -26,10 +28,15 @@ typedef _DestinationPreset = ({
   IconData icon,
 });
 
+/// One entry of either audience half — language and lifecycle stage are picked
+/// from the same shape but stored differently: `audience` string vs `segment`
+/// map.
+typedef _AudienceOption = ({String key, String label, IconData icon});
+
 /// ===========================================================================
 /// Notification management
 ///
-/// Broadcasts a bilingual notification to every app user and keeps the history
+/// Broadcasts a bilingual notification to app users and keeps the history
 /// of what was sent. The write path lives in [VaultAdminRepository]; this
 /// screen only composes the payload and renders the stream.
 /// ===========================================================================
@@ -78,19 +85,51 @@ class _NotificationManagementScreenState
     (key: 'custom', label: 'رابط مخصص', route: '', icon: AdminIcons.link),
   ];
 
-  /// Who the broadcast is announced to. Language is the only segment the app
-  /// can actually resolve today: it has no device registry, so "active" and
-  /// "new" users would be a label on nothing. Delivery is also pull-based —
-  /// the app has no push channel — so this decides what is announced the next
-  /// time a user opens the app, not whether it reaches their phone.
-  static const List<({String key, String label, IconData icon})> _audiences = [
-    (key: 'all', label: 'كل المستخدمين', icon: AdminIcons.users),
-    (key: 'ar', label: 'العربية فقط', icon: AdminIcons.language),
-    (key: 'en', label: 'الإنجليزية فقط', icon: AdminIcons.language),
+  /// Who the broadcast is announced to, split into the two halves the app can
+  /// actually resolve: interface language, and how long the device has been
+  /// cooking. Delivery is also pull-based — the app has no push channel — so
+  /// this decides what is announced the next time a user opens the app, not
+  /// whether it reaches their phone.
+  static const List<_AudienceOption> _languages = [
+    (key: 'all', label: 'الكل', icon: AdminIcons.language),
+    (key: 'ar', label: 'العربية', icon: AdminIcons.language),
+    (key: 'en', label: 'الإنجليزية', icon: AdminIcons.language),
   ];
 
-  String get _audienceLabel =>
-      _audiences.firstWhere((a) => a.key == _selectedAudience).label;
+  /// The glyph per stage, keyed by the wire value. Labels and the list of kinds
+  /// both come from [NotificationSegment], so the panel can never offer a stage
+  /// the security rules would reject.
+  static const Map<String, IconData> _stageIcons = {
+    NotificationSegment.kindAll: AdminIcons.users,
+    NotificationSegment.kindNew: AdminIcons.stageNew,
+    NotificationSegment.kindReturning: AdminIcons.stageReturning,
+  };
+
+  List<_AudienceOption> get _stages => [
+    for (final kind in NotificationSegment.kinds)
+      (
+        key: kind,
+        label: NotificationSegment.stageLabel(kind),
+        icon: _stageIcons[kind]!,
+      ),
+  ];
+
+  String get _languageLabel =>
+      _languages.firstWhere((a) => a.key == _selectedLanguage).label;
+
+  /// The stage sentence shown in the review dialog: the name, plus the window
+  /// while the broadcast is narrowed to brand-new devices.
+  String get _segmentLabel =>
+      NotificationSegment.describe(_selectedStage, _segmentDays);
+
+  /// Read through the same clamp the wire uses, so a half-typed number can never
+  /// reach Firestore as something the rules would reject.
+  int get _segmentDays => NotificationSegment.clampDays(
+    int.tryParse(_segmentDaysController.text.trim()),
+  );
+
+  Map<String, dynamic> get _segment =>
+      NotificationSegment.encode(kind: _selectedStage, days: _segmentDays);
 
   final _formKey = GlobalKey<FormState>();
   final _titleArController = TextEditingController();
@@ -99,9 +138,16 @@ class _NotificationManagementScreenState
   final _messageEnController = TextEditingController();
   final _customRouteController = TextEditingController();
 
+  /// The day window, held as text because it is editable while the stage select
+  /// is not. Only read while `new` is picked — see [_segmentDays].
+  final _segmentDaysController = TextEditingController(
+    text: NotificationSegment.defaultDays.toString(),
+  );
+
   String _selectedType = 'meal';
   String _selectedDestination = 'home';
-  String _selectedAudience = 'all';
+  String _selectedLanguage = 'all';
+  String _selectedStage = NotificationSegment.kindAll;
   String? _selectedMealId;
   bool _isSending = false;
 
@@ -132,6 +178,7 @@ class _NotificationManagementScreenState
       controller.dispose();
     }
     _customRouteController.dispose();
+    _segmentDaysController.dispose();
     super.dispose();
   }
 
@@ -200,7 +247,8 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             sentBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: targetRoute,
-            audience: _selectedAudience,
+            audience: _selectedLanguage,
+            segment: _segment,
           );
 
       _titleArController.clear();
@@ -352,7 +400,8 @@ class _NotificationManagementScreenState
             messageEn: _messageEnController.text.trim(),
             savedBy: FirebaseAuth.instance.currentUser?.email ?? 'admin',
             route: _resolveRoute(const <CloudMeal>[]),
-            audience: _selectedAudience,
+            audience: _selectedLanguage,
+            segment: _segment,
           );
       if (!mounted) return;
       setState(() => _editingDraftId = id);
@@ -384,10 +433,17 @@ class _NotificationManagementScreenState
       _messageArController.text = draft['messageAr'] as String? ?? '';
       _messageEnController.text = draft['messageEn'] as String? ?? '';
       _selectedType = draft['type'] as String? ?? 'meal';
-      final audience = draft['audience'] as String? ?? 'all';
-      _selectedAudience = _audiences.any((a) => a.key == audience)
-          ? audience
+      final language = draft['audience'] as String? ?? 'all';
+      _selectedLanguage = _languages.any((a) => a.key == language)
+          ? language
           : 'all';
+      // A draft saved before lifecycle targeting existed carries no map at all,
+      // so both halves of the segment fall back inside `NotificationSegment`.
+      final segment = draft['segment'];
+      _selectedStage = NotificationSegment.kindFrom(segment);
+      _segmentDaysController.text = NotificationSegment.daysFrom(
+        segment,
+      ).toString();
     });
   }
 
@@ -611,86 +667,159 @@ class _NotificationManagementScreenState
     );
   }
 
-  /// The three choices that define a broadcast — what it is, where it lands,
-  /// who it is addressed to — grouped on one row the way the mockups group
+  /// The choices that define a broadcast — what it is, where it lands, and the
+  /// two halves of who it is addressed to — grouped the way the mockups group
   /// their selects.
   Widget _buildSelectRow(AdminPalette p) {
     final type = _types.firstWhere((t) => t.key == _selectedType);
     final destination = _destinations.firstWhere(
       (d) => d.key == _selectedDestination,
     );
-    final audience = _audiences.firstWhere((a) => a.key == _selectedAudience);
+    final language = _languages.firstWhere((a) => a.key == _selectedLanguage);
+    final stage = _stages.firstWhere((s) => s.key == _selectedStage);
+
+    final selects = [
+      _buildSelect(
+        label: 'نوع الإشعار',
+        icon: type.icon,
+        value: type.key,
+        options: [
+          for (final option in _types)
+            (value: option.key, label: option.label, icon: option.icon),
+        ],
+        onChanged: (key) => setState(() => _selectedType = key),
+      ),
+      _buildSelect(
+        label: 'وجهة التوجيه',
+        icon: destination.icon,
+        value: destination.key,
+        options: [
+          for (final option in _destinations)
+            (value: option.key, label: option.label, icon: option.icon),
+        ],
+        onChanged: (key) => setState(() {
+          _selectedDestination = key;
+          if (key != 'meal') _selectedMealId = null;
+        }),
+      ),
+      _buildSelect(
+        label: 'مرحلة المستخدمين',
+        icon: stage.icon,
+        value: stage.key,
+        options: [
+          for (final option in _stages)
+            (value: option.key, label: option.label, icon: option.icon),
+        ],
+        onChanged: (key) => setState(
+          () => _selectedStage = NotificationSegment.coerceKind(key),
+        ),
+      ),
+      _buildSelect(
+        label: 'لغة المستخدمين',
+        icon: language.icon,
+        value: language.key,
+        options: [
+          for (final option in _languages)
+            (value: option.key, label: option.label, icon: option.icon),
+        ],
+        onChanged: (key) => setState(() => _selectedLanguage = key),
+      ),
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final selects = [
-          _buildSelect(
-            label: 'نوع الإشعار',
-            icon: type.icon,
-            value: type.key,
-            options: [
-              for (final option in _types)
-                (value: option.key, label: option.label, icon: option.icon),
-            ],
-            onChanged: (key) => setState(() => _selectedType = key),
-          ),
-          _buildSelect(
-            label: 'وجهة التوجيه',
-            icon: destination.icon,
-            value: destination.key,
-            options: [
-              for (final option in _destinations)
-                (value: option.key, label: option.label, icon: option.icon),
-            ],
-            onChanged: (key) => setState(() {
-              _selectedDestination = key;
-              if (key != 'meal') _selectedMealId = null;
-            }),
-          ),
-          _buildSelect(
-            label: 'الجمهور المستهدف',
-            icon: audience.icon,
-            value: audience.key,
-            options: [
-              for (final option in _audiences)
-                (value: option.key, label: option.label, icon: option.icon),
-            ],
-            onChanged: (key) => setState(() => _selectedAudience = key),
-          ),
-        ];
-
-        // Three selects stay on one line only while each keeps a readable
-        // width; below that the audience drops under the type and destination.
-        if (constraints.maxWidth >= 520) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: selects[0]),
-              const SizedBox(width: 13),
-              Expanded(child: selects[1]),
-              const SizedBox(width: 13),
-              Expanded(child: selects[2]),
-            ],
-          );
-        }
+        // Four selects never keep a readable width on one line, so past the
+        // card's 520px threshold they go out as two pairs: the broadcast and its
+        // destination above, the two audience halves below. Under the same
+        // threshold every control takes a full line rather than ellipsizing its
+        // own options.
+        final twoUp = constraints.maxWidth >= 520;
+        final lines = twoUp
+            ? [
+                _pairSelects(selects[0], selects[1]),
+                _pairSelects(selects[2], selects[3]),
+              ]
+            : selects;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: selects[0]),
-                const SizedBox(width: 13),
-                Expanded(child: selects[1]),
-              ],
-            ),
-            const SizedBox(height: 12),
-            selects[2],
+            for (var i = 0; i < lines.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              lines[i],
+            ],
+            // Progressive disclosure: the window is a property of `new` alone,
+            // so it is not on screen while the stage ignores it.
+            if (_selectedStage == NotificationSegment.kindNew) ...[
+              const SizedBox(height: 12),
+              _buildSegmentDaysField(p, compact: twoUp),
+            ],
           ],
         );
       },
     );
+  }
+
+  Widget _pairSelects(Widget first, Widget second) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 13),
+        Expanded(child: second),
+      ],
+    );
+  }
+
+  /// The day window behind the `new` stage: how long after a device's first
+  /// open it still counts as brand new.
+  Widget _buildSegmentDaysField(AdminPalette p, {required bool compact}) {
+    final field = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _FieldLabelRow(label: 'أيام اعتبار المستخدم جديدًا'),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _segmentDaysController,
+          keyboardType: TextInputType.number,
+          maxLength: NotificationSegment.maxDays.toString().length,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          validator: _validateSegmentDays,
+          style: adminLatinText(size: 13, color: p.ink),
+          decoration: adminFieldDeco(
+            p,
+            label: 'أيام اعتبار المستخدم جديدًا',
+            icon: AdminIcons.time,
+            helper:
+                'من ${NotificationSegment.minDays} إلى '
+                '${NotificationSegment.maxDays} يومًا من أول فتح للتطبيق',
+            floatingLabel: false,
+            counter: false,
+            fill: p.surface,
+          ),
+        ),
+      ],
+    );
+
+    // Three digits do not need the row's full width; keeping the box narrow
+    // makes it read as the stage select's detail instead of a fifth select.
+    if (!compact) return field;
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: SizedBox(width: 300, child: field),
+    );
+  }
+
+  String? _validateSegmentDays(String? value) {
+    final days = int.tryParse((value ?? '').trim());
+    if (days == null ||
+        days < NotificationSegment.minDays ||
+        days > NotificationSegment.maxDays) {
+      return 'أدخل عدد الأيام بين ${NotificationSegment.minDays} و'
+          '${NotificationSegment.maxDays}';
+    }
+    return null;
   }
 
   Widget _buildSelect({
@@ -868,7 +997,9 @@ class _NotificationManagementScreenState
           titleEn: _titleEnController.text.trim(),
           messageEn: _messageEnController.text.trim(),
           typeLabel: _typeStyle(p, _selectedType).label,
-          audienceLabel: _audienceLabel,
+          audienceLabel: _languageLabel,
+          segmentLabel: _segmentLabel,
+          segmentRestricted: _selectedStage != NotificationSegment.kindAll,
           route: route,
           allowSend: allowSend,
           onDecision: (decision) => Navigator.of(dialogContext).pop(decision),
@@ -1218,7 +1349,14 @@ class _NotificationCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          _RoutePill(route: route),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _RoutePill(route: route),
+              _SegmentPill(segment: notification['segment']),
+            ],
+          ),
           const SizedBox(height: 12),
           Container(height: 1, color: p.border),
           const SizedBox(height: 10),
@@ -1304,6 +1442,47 @@ class _RoutePill extends StatelessWidget {
                 size: 11,
                 weight: FontWeight.w700,
                 color: p.nileInk,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Which stage of user this broadcast was narrowed to, read off the stored
+/// `segment` map. A document from before lifecycle targeting carries no map and
+/// reads as every stage, which is what it actually did.
+class _SegmentPill extends StatelessWidget {
+  final Object? segment;
+
+  const _SegmentPill({required this.segment});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = AdminPalette.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      constraints: const BoxConstraints(maxWidth: 420),
+      decoration: BoxDecoration(
+        color: p.plumSoft,
+        borderRadius: BorderRadius.circular(AdminRadii.pill),
+        border: Border.all(color: p.plumSolid.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AdminIcons.users, size: 13, color: p.plumInk),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              NotificationSegment.describeDocument(segment),
+              overflow: TextOverflow.ellipsis,
+              style: adminText(
+                size: 11,
+                weight: FontWeight.w700,
+                color: p.plumInk,
               ),
             ),
           ),
@@ -1750,6 +1929,8 @@ class _DraftCard extends StatelessWidget {
               style: adminText(size: 13.5, color: p.ink, height: 1.7),
             ),
           ],
+          const SizedBox(height: 12),
+          _SegmentPill(segment: draft['segment']),
           const SizedBox(height: 12),
           Row(
             children: [

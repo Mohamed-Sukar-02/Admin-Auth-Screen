@@ -22,6 +22,12 @@ class NotificationReview extends StatefulWidget {
   final String messageEn;
   final String typeLabel;
   final String audienceLabel;
+
+  /// The lifecycle half of the audience, spelled out with its day window.
+  final String segmentLabel;
+
+  /// True when the broadcast is narrowed to one stage rather than to everyone.
+  final bool segmentRestricted;
   final String route;
 
   /// False when the dialog is opened just to look, without the send offer.
@@ -37,6 +43,8 @@ class NotificationReview extends StatefulWidget {
     required this.messageEn,
     required this.typeLabel,
     required this.audienceLabel,
+    required this.segmentLabel,
+    this.segmentRestricted = false,
     required this.route,
     this.allowSend = true,
     this.sending = false,
@@ -78,6 +86,8 @@ class _NotificationReviewState extends State<NotificationReview> {
       message: _message,
       typeLabel: widget.typeLabel,
       audienceLabel: widget.audienceLabel,
+      segmentLabel: widget.segmentLabel,
+      segmentRestricted: widget.segmentRestricted,
       route: widget.route,
     );
 
@@ -172,6 +182,8 @@ class _Summary extends StatelessWidget {
   final String message;
   final String typeLabel;
   final String audienceLabel;
+  final String segmentLabel;
+  final bool segmentRestricted;
   final String route;
 
   const _Summary({
@@ -180,6 +192,8 @@ class _Summary extends StatelessWidget {
     required this.message,
     required this.typeLabel,
     required this.audienceLabel,
+    required this.segmentLabel,
+    required this.segmentRestricted,
     required this.route,
   });
 
@@ -192,9 +206,15 @@ class _Summary extends StatelessWidget {
         _FactRow(icon: AdminIcons.tags, label: 'نوع الإشعار', value: typeLabel),
         const SizedBox(height: 12),
         _FactRow(
-          icon: AdminIcons.users,
-          label: 'الجمهور',
+          icon: AdminIcons.language,
+          label: 'لغة المستخدمين',
           value: audienceLabel,
+        ),
+        const SizedBox(height: 12),
+        _FactRow(
+          icon: AdminIcons.users,
+          label: 'مرحلة المستخدمين',
+          value: segmentLabel,
         ),
         const SizedBox(height: 12),
         _FactRow(
@@ -246,6 +266,17 @@ class _Summary extends StatelessWidget {
           'الإشعار يوصل أول ما المستخدم يفتح التطبيق — مفيش دفع فوري.',
           style: adminText(size: 11, color: p.inkFaint, height: 1.7),
         ),
+        // Stage filtering is newer than the builds already installed. An old
+        // build cannot resolve the segment, so it shows the broadcast to
+        // everyone — the admin has to hear that before committing, not after.
+        if (segmentRestricted) ...[
+          const SizedBox(height: 4),
+          Text(
+            'نسخ التطبيق الأقدم من هذه الميزة ما بتعرفش تفرز بالمرحلة، '
+            'فبتعرض الإشعار لكل المستخدمين مهما كانت مرحلتهم.',
+            style: adminText(size: 11, color: p.inkFaint, height: 1.7),
+          ),
+        ],
       ],
     );
   }

@@ -155,6 +155,11 @@ abstract final class AdminIcons {
   static const IconData autoMode = LucideIcons.sunMoon;
   static const IconData route = LucideIcons.route;
 
+  // Lifecycle targeting: the two ends of the stage selector. The whole audience
+  // is already `users`.
+  static const IconData stageNew = LucideIcons.userRoundPlus;
+  static const IconData stageReturning = LucideIcons.history;
+
   // AI assistant
   static const IconData aiMagic = LucideIcons.wandSparkles;
   static const IconData aiSparkle = LucideIcons.sparkles;
