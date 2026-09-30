@@ -392,12 +392,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     label: 'المناسبة',
                     value: 'أكلة جمعة / عزومات',
                   ),
-                if (meal.isBudgetFriendly)
-                  const AdminSpecTile(
-                    icon: AdminIcons.money,
-                    label: 'التكلفة',
-                    value: 'اقتصادية / توفير',
-                  ),
                 if (meal.isStarterMeal)
                   const AdminSpecTile(
                     icon: AdminIcons.starter,
@@ -3611,14 +3605,7 @@ class _VaultMealCard extends StatelessWidget {
                               fg: p.nileInk,
                               icon: AdminIcons.friday,
                             ),
-                          if (meal.isBudgetFriendly)
-                            _Pill(
-                              label: 'اقتصادية',
-                              bg: p.oliveSoft,
-                              fg: p.oliveInk,
-                              icon: AdminIcons.money,
-                            ),
-                          if (!meal.isFridaySpecial && !meal.isBudgetFriendly)
+                          if (!meal.isFridaySpecial)
                             _Pill(
                               label: _translateCarbs(meal.carbsType),
                               bg: catColor.withValues(alpha: 0.14),

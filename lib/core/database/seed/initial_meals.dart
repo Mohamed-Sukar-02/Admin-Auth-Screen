@@ -11,7 +11,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.egyptianTraditional),
     prepTime: Value(50),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(true),
   ),
   // 2
@@ -23,7 +22,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.egyptianTraditional),
     prepTime: Value(45),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(true),
   ),
   // 3
@@ -35,7 +33,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.ovenBaked),
     prepTime: Value(60),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(true),
   ),
   // 4
@@ -47,7 +44,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.seafood),
     prepTime: Value(40),
     isFridaySpecial: Value(true),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(true),
   ),
   // 5
@@ -59,7 +55,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.fastFood),
     prepTime: Value(30),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(true),
   ),
   // 6
@@ -71,7 +66,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.ovenBaked),
     prepTime: Value(65),
     isFridaySpecial: Value(true),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(true),
   ),
   // 7
@@ -83,7 +77,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.ovenBaked),
     prepTime: Value(60),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(false),
   ),
   // 8
@@ -95,7 +88,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.fastFood),
     prepTime: Value(20),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(true),
   ),
   // 9
@@ -107,7 +99,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.ovenBaked),
     prepTime: Value(50),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(false),
   ),
   // 10
@@ -119,7 +110,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.egyptianTraditional),
     prepTime: Value(45),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(false),
   ),
   // 11
@@ -131,7 +121,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.ovenBaked),
     prepTime: Value(40),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(false),
   ),
   // 12
@@ -143,7 +132,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.egyptianTraditional),
     prepTime: Value(35),
     isFridaySpecial: Value(true),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(true),
   ),
   // 13
@@ -155,7 +143,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.seafood),
     prepTime: Value(30),
     isFridaySpecial: Value(true),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(false),
   ),
   // 14
@@ -167,7 +154,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.soupStew),
     prepTime: Value(25),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(false),
   ),
   // 15
@@ -179,7 +165,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.fastFood),
     prepTime: Value(30),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(true),
   ),
   // 16
@@ -191,7 +176,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.fastFood),
     prepTime: Value(30),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(false),
   ),
   // 17
@@ -203,7 +187,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.egyptianTraditional),
     prepTime: Value(75),
     isFridaySpecial: Value(true),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(true),
   ),
   // 18
@@ -215,7 +198,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.egyptianTraditional),
     prepTime: Value(15),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(false),
   ),
   // 19
@@ -227,7 +209,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.egyptianTraditional),
     prepTime: Value(15),
     isFridaySpecial: Value(false),
-    isBudgetFriendly: Value(true),
     isFavorite: Value(false),
   ),
   // 20
@@ -239,7 +220,6 @@ final initialEgyptianMealsSeed = <MealsCompanion>[
     category: Value(MealCategory.seafood),
     prepTime: Value(40),
     isFridaySpecial: Value(true),
-    isBudgetFriendly: Value(false),
     isFavorite: Value(true),
   ),
 ];

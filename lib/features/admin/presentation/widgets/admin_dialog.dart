@@ -108,7 +108,6 @@ abstract final class AdminIcons {
   static const IconData carbs = LucideIcons.wheat;
   static const IconData time = LucideIcons.clock;
   static const IconData friday = LucideIcons.partyPopper;
-  static const IconData money = LucideIcons.coins;
   static const IconData starter = LucideIcons.star;
   static const IconData notes = LucideIcons.stickyNote;
   static const IconData source = LucideIcons.user;

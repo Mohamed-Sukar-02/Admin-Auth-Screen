@@ -31,7 +31,6 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
   late String _proteinType;
   late String _carbsType;
   late bool _isFridaySpecial;
-  late bool _isBudgetFriendly;
   late bool _isStarterMeal;
 
   Uint8List? _pickedImageBytes;
@@ -83,7 +82,6 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
     _proteinType = meal?.proteinType ?? 'chicken';
     _carbsType = meal?.carbsType ?? 'rice';
     _isFridaySpecial = meal?.isFridaySpecial ?? false;
-    _isBudgetFriendly = meal?.isBudgetFriendly ?? false;
     _isStarterMeal = meal?.isStarterMeal ?? false;
 
     _detachImageDrop = watchImageDrop(
@@ -172,7 +170,6 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
       carbsType: _carbsType,
       prepTimeMinutes: int.tryParse(_prepTimeController.text.trim()) ?? 30,
       isFridaySpecial: _isFridaySpecial,
-      isBudgetFriendly: _isBudgetFriendly,
       isStarterMeal: _isStarterMeal,
       notes: _notesController.text.trim().isEmpty
           ? null
@@ -358,32 +355,14 @@ class _AddMealDialogState extends ConsumerState<AddMealDialog> {
             const SizedBox(height: 22),
             const AdminSectionLabel(icon: AdminIcons.tags, text: 'الوسوم'),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _FlagCheck(
-                    p: p,
-                    value: _isFridaySpecial,
-                    label: 'أكلة جمعة / عزومات',
-                    icon: AdminIcons.friday,
-                    accent: p.nileInk,
-                    accentBg: p.nileSoft,
-                    onChanged: (v) => setState(() => _isFridaySpecial = v),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _FlagCheck(
-                    p: p,
-                    value: _isBudgetFriendly,
-                    label: 'أكلة اقتصادية / توفير',
-                    icon: AdminIcons.money,
-                    accent: p.oliveInk,
-                    accentBg: p.oliveSoft,
-                    onChanged: (v) => setState(() => _isBudgetFriendly = v),
-                  ),
-                ),
-              ],
+            _FlagCheck(
+              p: p,
+              value: _isFridaySpecial,
+              label: 'أكلة جمعة / عزومات',
+              icon: AdminIcons.friday,
+              accent: p.nileInk,
+              accentBg: p.nileSoft,
+              onChanged: (v) => setState(() => _isFridaySpecial = v),
             ),
             const SizedBox(height: 14),
             Container(
@@ -648,7 +627,7 @@ class _ImagePreview extends StatelessWidget {
       Center(child: Icon(AdminIcons.image, size: 26, color: p.inkFaint));
 }
 
-/// Checkbox card used for the "Friday" and "budget" tags.
+/// Checkbox card used for the "Friday" tag.
 class _FlagCheck extends StatelessWidget {
   final AdminPalette p;
   final bool value;

@@ -52,7 +52,6 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
     CarbsType? carbsType,
     MealCategory? category,
     bool? isFridaySpecial,
-    bool? isBudgetFriendly,
     bool? isFavorite,
     int? maxPrepTimeMinutes,
   }) {
@@ -61,7 +60,6 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
       carbsType: carbsType,
       category: category,
       isFridaySpecial: isFridaySpecial,
-      isBudgetFriendly: isBudgetFriendly,
       isFavorite: isFavorite,
       maxPrepTimeMinutes: maxPrepTimeMinutes,
     ).watch();
@@ -101,7 +99,6 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
     CarbsType? carbsType,
     MealCategory? category,
     bool? isFridaySpecial,
-    bool? isBudgetFriendly,
     bool? isFavorite,
     int? maxPrepTimeMinutes,
   }) {
@@ -110,7 +107,6 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
       carbsType: carbsType,
       category: category,
       isFridaySpecial: isFridaySpecial,
-      isBudgetFriendly: isBudgetFriendly,
       isFavorite: isFavorite,
       maxPrepTimeMinutes: maxPrepTimeMinutes,
     ).get();
@@ -185,7 +181,6 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
     CarbsType? carbsType,
     MealCategory? category,
     bool? isFridaySpecial,
-    bool? isBudgetFriendly,
     bool? isFavorite,
     int? maxPrepTimeMinutes,
   }) {
@@ -206,9 +201,6 @@ class MealsDao extends DatabaseAccessor<AppDatabase> with _$MealsDaoMixin {
       }
       if (isFridaySpecial != null) {
         predicates.add(t.isFridaySpecial.equals(isFridaySpecial));
-      }
-      if (isBudgetFriendly != null) {
-        predicates.add(t.isBudgetFriendly.equals(isBudgetFriendly));
       }
       if (isFavorite != null) {
         predicates.add(t.isFavorite.equals(isFavorite));

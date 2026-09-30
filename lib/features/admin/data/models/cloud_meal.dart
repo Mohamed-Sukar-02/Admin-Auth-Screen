@@ -9,7 +9,6 @@ class CloudMeal {
   category; // tabeekh, casserole, dry_sandwich, popular, seafood, soup_stew, vegetarian
   final int prepTimeMinutes;
   final bool isFridaySpecial;
-  final bool isBudgetFriendly;
   final bool
   isStarterMeal; // True if this meal is automatically downloaded for fresh installs
   final String? notes;
@@ -29,7 +28,6 @@ class CloudMeal {
     required this.category,
     required this.prepTimeMinutes,
     this.isFridaySpecial = false,
-    this.isBudgetFriendly = false,
     this.isStarterMeal = false,
     this.notes,
     required this.createdAt,
@@ -48,7 +46,6 @@ class CloudMeal {
       'category': category,
       'prepTimeMinutes': prepTimeMinutes,
       'isFridaySpecial': isFridaySpecial,
-      'isBudgetFriendly': isBudgetFriendly,
       'isStarterMeal': isStarterMeal,
       'notes': notes,
       'createdAt': createdAt.toIso8601String(),
@@ -69,7 +66,6 @@ class CloudMeal {
       category: map['category'] as String? ?? 'popular',
       prepTimeMinutes: (map['prepTimeMinutes'] as num?)?.toInt() ?? 30,
       isFridaySpecial: map['isFridaySpecial'] as bool? ?? false,
-      isBudgetFriendly: map['isBudgetFriendly'] as bool? ?? false,
       isStarterMeal: map['isStarterMeal'] as bool? ?? false,
       notes: map['notes'] as String?,
       createdAt: map['createdAt'] != null
@@ -93,7 +89,6 @@ class CloudMeal {
     String? category,
     int? prepTimeMinutes,
     bool? isFridaySpecial,
-    bool? isBudgetFriendly,
     bool? isStarterMeal,
     String? notes,
     DateTime? createdAt,
@@ -111,7 +106,6 @@ class CloudMeal {
       category: category ?? this.category,
       prepTimeMinutes: prepTimeMinutes ?? this.prepTimeMinutes,
       isFridaySpecial: isFridaySpecial ?? this.isFridaySpecial,
-      isBudgetFriendly: isBudgetFriendly ?? this.isBudgetFriendly,
       isStarterMeal: isStarterMeal ?? this.isStarterMeal,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
