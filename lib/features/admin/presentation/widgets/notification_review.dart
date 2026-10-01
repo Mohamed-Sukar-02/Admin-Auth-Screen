@@ -64,18 +64,13 @@ class _NotificationReviewState extends State<NotificationReview> {
     final p = AdminPalette.of(context);
     final wide = MediaQuery.sizeOf(context).width >= 760;
 
-    // The phone is a fixed object sized by the preview widget itself, so it
-    // claims an exact width instead of fighting the summary for the row.
-    final phone = SizedBox(
-      width: NotificationPreview.width,
-      child: NotificationPreview(
-        titleAr: widget.titleAr,
-        messageAr: widget.messageAr,
-        titleEn: widget.titleEn,
-        messageEn: widget.messageEn,
-        arabic: _arabic,
-        onPickArabic: (arabic) => setState(() => _arabic = arabic),
-      ),
+    final phone = NotificationPreview(
+      titleAr: widget.titleAr,
+      messageAr: widget.messageAr,
+      titleEn: widget.titleEn,
+      messageEn: widget.messageEn,
+      arabic: _arabic,
+      onPickArabic: (arabic) => setState(() => _arabic = arabic),
     );
 
     final summary = _Summary(
@@ -88,25 +83,44 @@ class _NotificationReviewState extends State<NotificationReview> {
       route: widget.route,
     );
 
+    // The review is read in one look: what the push says and what it lands on
+    // are decisions taken together, so the shell hands this body an exact
+    // height and both halves shrink to it instead of scrolling.
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (wide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: summary),
-              const SizedBox(width: 26),
-              phone,
-            ],
-          )
-        else ...[
-          Center(child: phone),
-          const SizedBox(height: 22),
-          summary,
-        ],
-        const SizedBox(height: 24),
+        Expanded(
+          child: wide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _ShrinkToFit(child: summary)),
+                    const SizedBox(width: 26),
+                    SizedBox(
+                      width: NotificationPreview.width,
+                      child: _ShrinkToFit(
+                        alignment: AlignmentDirectional.topCenter,
+                        child: phone,
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _ShrinkToFit(
+                        alignment: AlignmentDirectional.topCenter,
+                        child: phone,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Expanded(child: _ShrinkToFit(child: summary)),
+                  ],
+                ),
+        ),
+        const SizedBox(height: 20),
         _actions(p),
       ],
     );
@@ -267,6 +281,30 @@ class _Summary extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Shrinks its child down — never up — so the review fits the height the shell
+/// gave it instead of scrolling. The child is laid out at its natural width and
+/// measured, then scaled to whatever box is left.
+class _ShrinkToFit extends StatelessWidget {
+  final AlignmentDirectional alignment;
+  final Widget child;
+
+  const _ShrinkToFit({
+    this.alignment = AlignmentDirectional.topStart,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: alignment,
+        child: SizedBox(width: box.maxWidth, child: child),
+      ),
     );
   }
 }

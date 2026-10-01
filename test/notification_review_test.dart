@@ -15,18 +15,23 @@ void main() {
     required bool segmentRestricted,
     required double screen,
     required double body,
+    required double height,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
           builder: (context) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(size: Size(screen, 1000)),
+            data: MediaQuery.of(context).copyWith(size: Size(screen, height)),
             child: Directionality(
               textDirection: TextDirection.rtl,
               child: Scaffold(
-                body: SizedBox(
-                  width: body,
-                  child: SingleChildScrollView(
+                // The shell hands the review a bounded box and expects it to
+                // fit, which is the whole point of the widget.
+                body: Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: body,
+                    height: height - 130,
                     child: NotificationReview(
                       titleAr: 'جاهزة للطبخ',
                       messageAr: 'اختارنا لك أكلة اليوم',
@@ -57,6 +62,7 @@ void main() {
       segmentRestricted: true,
       screen: 900,
       body: 680,
+      height: 900,
     );
 
     // The language selector is gone: only the stage fact remains.
@@ -75,6 +81,7 @@ void main() {
       segmentRestricted: false,
       screen: 900,
       body: 680,
+      height: 900,
     );
     expect(find.textContaining('تفرز بالمرحلة'), findsNothing);
     // The pull-based note is not conditional, so every review carries it.
@@ -86,6 +93,7 @@ void main() {
       segmentRestricted: true,
       screen: 900,
       body: 680,
+      height: 900,
     );
     expect(find.textContaining('تفرز بالمرحلة'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -100,10 +108,29 @@ void main() {
       segmentRestricted: true,
       screen: 420,
       body: 420,
+      height: 900,
     );
 
     expect(tester.takeException(), isNull);
     expect(find.text('الجمهور المستهدف:'), findsOneWidget);
     expect(find.text('مستخدمون جدد — أول 365 أيام'), findsOneWidget);
+  });
+
+  testWidgets('a short viewport still shows the whole review', (tester) async {
+    await pumpReview(
+      tester,
+      segmentLabel: 'مستخدمون جدد — أول 7 أيام',
+      segmentRestricted: true,
+      screen: 900,
+      body: 740,
+      height: 520,
+    );
+
+    expect(tester.takeException(), isNull);
+    // Nothing is pushed out of the box: the last note and both buttons are on
+    // screen without a scrollbar.
+    expect(find.textContaining('مفيش دفع فوري'), findsOneWidget);
+    expect(find.text('تأكيد الإرسال'), findsOneWidget);
+    expect(find.text('لسه هعدّل حاجة'), findsOneWidget);
   });
 }

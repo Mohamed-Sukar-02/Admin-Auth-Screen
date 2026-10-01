@@ -281,8 +281,14 @@ class AdminDialogShell extends StatelessWidget {
   /// Optional full-bleed media band rendered above the header.
   final Widget? hero;
 
-  /// Dialog body. Scrolls when it outgrows the viewport.
+  /// Dialog body. Scrolls when it outgrows the viewport, unless [scrollBody]
+  /// is false — then it is handed the exact remaining height and is expected to
+  /// fit it.
   final Widget? child;
+
+  /// False pins the body to the space left by the header and footer, so a
+  /// preview that must be read whole (the notification review) never scrolls.
+  final bool scrollBody;
 
   /// Footer buttons. Empty list ⇒ no footer.
   final List<Widget> actions;
@@ -300,6 +306,7 @@ class AdminDialogShell extends StatelessWidget {
     this.hero,
     this.child,
     this.actions = const <Widget>[],
+    this.scrollBody = true,
     this.maxWidth = 440,
     this.bodyPadding = const EdgeInsetsDirectional.fromSTEB(22, 18, 22, 22),
     this.showClose = true,
@@ -408,12 +415,17 @@ class AdminDialogShell extends StatelessWidget {
                 ),
               ),
               if (child != null)
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: bodyPadding,
-                    child: child,
+                if (scrollBody)
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: bodyPadding,
+                      child: child,
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: Padding(padding: bodyPadding, child: child),
                   ),
-                ),
               if (actions.isNotEmpty) _footer(p, actions),
             ],
           ),

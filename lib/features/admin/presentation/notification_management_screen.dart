@@ -57,12 +57,7 @@ class _NotificationManagementScreenState
 
   static const List<_DestinationPreset> _destinations = [
     (key: 'home', label: 'الصفحة الرئيسية', route: '/', icon: AdminIcons.home),
-    (
-      key: 'meal',
-      label: 'وجبة محددة',
-      route: '',
-      icon: AdminIcons.meal,
-    ),
+    (key: 'meal', label: 'وجبة محددة', route: '', icon: AdminIcons.meal),
     (
       key: 'vault',
       label: 'خزانة الأكلات',
@@ -981,7 +976,10 @@ class _NotificationManagementScreenState
         tone: AdminDialogTone.brand,
         title: 'معاينة الإشعار',
         subtitle: 'كده هتظهر رسالتك على موبايل المستخدم.',
-        maxWidth: 760,
+        maxWidth: 820,
+        // Read in one look: the review scales its two halves to the space left
+        // rather than handing it to a scrollbar.
+        scrollBody: false,
         child: NotificationReview(
           titleAr: _titleArController.text.trim(),
           messageAr: _messageArController.text.trim(),
@@ -2037,4 +2035,3 @@ class _FieldLabelRow extends StatelessWidget {
     );
   }
 }
-
