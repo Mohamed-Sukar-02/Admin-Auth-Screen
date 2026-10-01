@@ -43,7 +43,7 @@ class AiProvider {
 /// supplies the credentials at request time.
 class AiSelectedTarget {
   final String provider; // 'gemini', 'groq', 'openrouter'
-  final String model; // e.g. 'qwen/qwen3-32b', 'gemini-2.5-flash'
+  final String model; // e.g. 'qwen/qwen3.8-27b', 'gemini-3.8-flash'
   final String displayName;
 
   const AiSelectedTarget({

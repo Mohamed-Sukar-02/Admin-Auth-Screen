@@ -1,3 +1,4 @@
+import '../../data/ai_provider_repository.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/localization/app_strings.dart';
@@ -19,6 +20,7 @@ class AiPromptBar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final List<AiProvider> providers;
+  final Map<String, List<String>> customModels;
   final AiSelectedTarget? selectedTarget;
   final ValueChanged<AiSelectedTarget?> onTargetChanged;
   final VoidCallback onSubmit;
@@ -29,6 +31,7 @@ class AiPromptBar extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.providers,
+    required this.customModels,
     required this.selectedTarget,
     required this.onTargetChanged,
     required this.onSubmit,
@@ -77,6 +80,7 @@ class AiPromptBar extends StatelessWidget {
               Expanded(
                 child: _ModelDropdownPill(
                   providers: providers,
+                  customModels: customModels,
                   selected: selectedTarget,
                   onChanged: onTargetChanged,
                 ),
@@ -132,11 +136,13 @@ abstract final class AiCapsule {
 /// the API keys, so an empty collection just disables the picker.
 class _ModelDropdownPill extends StatefulWidget {
   final List<AiProvider> providers;
+  final Map<String, List<String>> customModels;
   final AiSelectedTarget? selected;
   final ValueChanged<AiSelectedTarget?> onChanged;
 
   const _ModelDropdownPill({
     required this.providers,
+    required this.customModels,
     required this.selected,
     required this.onChanged,
   });
@@ -204,7 +210,7 @@ class _ModelDropdownPillState extends State<_ModelDropdownPill> {
           ),
         ),
         const Divider(height: 10, thickness: 1, color: AiCapsule.hairline),
-        for (final group in _AiModelCatalog.groups)
+        for (final group in _AiModelCatalog.getGroups(widget.customModels).where((g) => g.options.isNotEmpty))
           SubmenuButton(
             style: const ButtonStyle(
               foregroundColor: WidgetStatePropertyAll<Color>(AiCapsule.muted),
@@ -324,101 +330,37 @@ class _AiModelGroup {
 }
 
 abstract final class _AiModelCatalog {
-  static const List<_AiModelGroup> groups = [
-    _AiModelGroup(
-      provider: 'gemini',
-      icon: Icons.bubble_chart_rounded,
-      options: [
-        _AiModelOption(
-          model: 'gemini-2.5-flash',
-          label: 'Gemini 2.5 Flash',
-          pillLabel: 'Gemini: 2.5 Flash',
-        ),
-        _AiModelOption(
-          model: 'gemini-2.0-flash',
-          label: 'Gemini 2.0 Flash',
-          pillLabel: 'Gemini: 2.0 Flash',
-        ),
-        _AiModelOption(
-          model: 'gemini-2.5-pro',
-          label: 'Gemini 2.5 Pro',
-          pillLabel: 'Gemini: 2.5 Pro',
-        ),
-        _AiModelOption(
-          model: 'gemini-2.5-flash',
-          label: 'Gemini 2.5 Flash',
-          pillLabel: 'Gemini: 2.5 Flash',
-        ),
-      ],
-    ),
-    _AiModelGroup(
-      provider: 'groq',
-      icon: Icons.speed_rounded,
-      options: [
-        _AiModelOption(
-          model: 'llama-3.3-70b-versatile',
-          label: 'Llama 3.3 70B',
-          pillLabel: 'Groq: Llama 3.3 70B',
-        ),
-        _AiModelOption(
-          model: 'openai/gpt-oss-120b',
-          label: 'GPT-OSS 120B',
-          pillLabel: 'Groq: GPT-OSS 120B',
-        ),
-        _AiModelOption(
-          model: 'deepseek-r1-distill-llama-70b',
-          label: 'DeepSeek R1 Distill 70B',
-          pillLabel: 'Groq: DeepSeek R1 70B',
-        ),
-        _AiModelOption(
-          model: 'qwen/qwen3-32b',
-          label: 'Qwen 3 32B',
-          pillLabel: 'Groq: Qwen 3 32B',
-        ),
-        _AiModelOption(
-          model: 'allam-2-7b',
-          label: 'Allam 2 7B (علام)',
-          pillLabel: 'Groq: Allam 2 7B (علام)',
-        ),
-        _AiModelOption(
-          model: 'llama-3.1-8b-instant',
-          label: 'Llama 3.1 8B Instant',
-          pillLabel: 'Groq: Llama 3.1 8B',
-        ),
-      ],
-    ),
-    _AiModelGroup(
-      provider: 'openrouter',
-      icon: Icons.alt_route_rounded,
-      options: [
-        _AiModelOption(
-          model: 'openrouter/free',
-          label: 'Auto Free Router',
-          pillLabel: 'OpenRouter: Auto Free',
-        ),
-        _AiModelOption(
-          model: 'meta-llama/llama-3.3-70b-instruct:free',
-          label: 'Llama 3.3 70B (Free)',
-          pillLabel: 'OpenRouter: Llama 3.3 (Free)',
-        ),
-        _AiModelOption(
-          model: 'deepseek/deepseek-r1:free',
-          label: 'DeepSeek R1 (Free)',
-          pillLabel: 'OpenRouter: DeepSeek R1 (Free)',
-        ),
-        _AiModelOption(
-          model: 'deepseek/deepseek-chat:free',
-          label: 'DeepSeek Chat (Free)',
-          pillLabel: 'OpenRouter: DeepSeek Chat (Free)',
-        ),
-        _AiModelOption(
-          model: 'qwen/qwen3-coder-30b-a3b-instruct:free',
-          label: 'Qwen 3 Coder 30B (Free)',
-          pillLabel: 'OpenRouter: Qwen 3 Coder (Free)',
-        ),
-      ],
-    ),
-  ];
+  static List<_AiModelGroup> getGroups(Map<String, List<String>> customModels) {
+    List<String> modelsFor(String provider) {
+      final list = customModels[provider];
+      if (list != null && list.isNotEmpty) return list;
+      return defaultAiModels[provider] ?? const [];
+    }
+
+    return [
+      _AiModelGroup(
+        provider: 'gemini',
+        icon: Icons.bubble_chart_rounded,
+        options: modelsFor('gemini').map((m) => _AiModelOption(
+          model: m, label: m, pillLabel: 'Gemini: ' + m
+        )).toList(),
+      ),
+      _AiModelGroup(
+        provider: 'groq',
+        icon: Icons.speed_rounded,
+        options: modelsFor('groq').map((m) => _AiModelOption(
+          model: m, label: m, pillLabel: 'Groq: ' + m
+        )).toList(),
+      ),
+      _AiModelGroup(
+        provider: 'openrouter',
+        icon: Icons.alt_route_rounded,
+        options: modelsFor('openrouter').map((m) => _AiModelOption(
+          model: m, label: m, pillLabel: 'OpenRouter: ' + m
+        )).toList(),
+      ),
+    ];
+  }
 
   static String labelFor(AppStrings strings, String provider) {
     return switch (provider) {

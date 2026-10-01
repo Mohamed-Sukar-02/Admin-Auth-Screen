@@ -29,6 +29,8 @@ String _themeModeLabel(AppThemeModePreference mode) => switch (mode) {
 
 Color _categoryColor(String category, AdminPalette p) {
   switch (category) {
+    case 'starter':
+      return p.oliveSolid;
     case 'tabeekh':
       return p.claySolid;
     case 'casserole':
@@ -142,6 +144,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   final _categories = const [
     {'key': 'all', 'label': 'الكل'},
+    {'key': 'starter', 'label': 'أساسية'},
     {'key': 'tabeekh', 'label': 'طبيخ'},
     {'key': 'casserole', 'label': 'صواني'},
     {'key': 'dry_sandwich', 'label': 'نواشف'},

@@ -231,6 +231,11 @@ service cloud.firestore {
       allow read, write: if isSuperAdmin();
     }
 
+    // AI Models list: any authenticated admin may read and update the model identifiers.
+    match /admin_config/ai_models {
+      allow read, write: if isAdmin();
+    }
+
     // Anything else in this collection stays admin-visible only.
     match /admin_config/{doc} {
       allow read: if isAdmin() && doc != 'security';

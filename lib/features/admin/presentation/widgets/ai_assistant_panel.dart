@@ -12,6 +12,7 @@ import '../../data/models/ai_provider.dart';
 import '../theme/admin_palette.dart';
 import 'admin_dialog.dart';
 import 'admin_toast.dart';
+import 'ai_models_settings_dialog.dart';
 import 'ai_prompt_bar.dart';
 
 /// ===========================================================================
@@ -189,6 +190,9 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     final providers =
         ref.watch(activeAiProvidersStreamProvider).valueOrNull ??
         const <AiProvider>[];
+    final customModels =
+        ref.watch(customAiModelsStreamProvider).valueOrNull ??
+        const <String, List<String>>{};
     final draft = _currentResult;
     final error = _errorMessage;
 
@@ -240,6 +244,7 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
                         controller: _promptController,
                         focusNode: _focus,
                         providers: providers,
+                        customModels: customModels,
                         selectedTarget: _selectedTarget,
                         onTargetChanged: (target) =>
                             setState(() => _selectedTarget = target),
@@ -282,8 +287,23 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
             _isGenerating ? strings.aiStatusBusy : strings.aiStatusReady,
             style: adminText(size: 10.5, color: p.inkMuted),
           ),
+          const SizedBox(width: 12),
+          IconButton(
+            onPressed: () => _openModelSettings(context),
+            icon: Icon(AdminIcons.settings, size: 16, color: p.inkMuted),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'إعدادات الموديلات',
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _openModelSettings(BuildContext context) async {
+    await showAdminDialog(
+      context: context,
+      builder: (context) => const AiModelsSettingsDialog(),
     );
   }
 

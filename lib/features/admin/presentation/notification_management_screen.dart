@@ -59,7 +59,7 @@ class _NotificationManagementScreenState
     (key: 'home', label: 'الصفحة الرئيسية', route: '/', icon: AdminIcons.home),
     (
       key: 'meal',
-      label: 'وجبة محددة من الخزنة',
+      label: 'وجبة محددة',
       route: '',
       icon: AdminIcons.meal,
     ),
@@ -71,7 +71,7 @@ class _NotificationManagementScreenState
     ),
     (
       key: 'explore',
-      label: 'استكشاف الأكلات السحابية',
+      label: 'تبويب الاستكشاف',
       route: '/vault?tab=explore',
       icon: AdminIcons.explore,
     ),
@@ -739,7 +739,7 @@ class _NotificationManagementScreenState
   /// open it still counts as brand new.
   Widget _buildSegmentDaysField(AdminPalette p, {required bool compact}) {
     final field = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _FieldLabelRow(label: 'أيام اعتبار المستخدم جديدًا'),
         const SizedBox(height: 6),
@@ -795,7 +795,7 @@ class _NotificationManagementScreenState
   }) {
     final p = AdminPalette.of(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _FieldLabelRow(label: label),
         const SizedBox(height: 6),
@@ -866,34 +866,61 @@ class _NotificationManagementScreenState
             ? _selectedMealId
             : null;
 
-        return DropdownButtonFormField<String>(
+        final deco = adminFieldDeco(
+          p,
+          label: 'اختر الأكلة من الخزنة',
+          icon: AdminIcons.meal,
+          helper: 'تُفتح صفحة الأكلة المختارة عند الضغط على الإشعار',
+        );
+
+        return FormField<String>(
           initialValue: selected,
-          isExpanded: true,
-          dropdownColor: p.surface,
-          borderRadius: BorderRadius.circular(AdminRadii.md),
-          icon: Icon(AdminIcons.expand, color: p.inkMuted),
-          style: adminText(color: p.ink),
-          decoration: adminFieldDeco(
-            p,
-            label: 'اختر الأكلة من الخزنة',
-            icon: AdminIcons.meal,
-            helper: 'تُفتح صفحة الأكلة المختارة عند الضغط على الإشعار',
-          ),
-          items: [
-            for (final meal in meals)
-              DropdownMenuItem<String>(
-                value: meal.id,
-                child: Text(
-                  meal.name.isEmpty ? meal.id : meal.name,
-                  overflow: TextOverflow.ellipsis,
-                  style: adminText(size: 14, color: p.ink),
-                ),
-              ),
-          ],
-          onChanged: (value) => setState(() => _selectedMealId = value),
           validator: (value) => (value == null || value.isEmpty)
               ? 'اختر الأكلة التي سيفتحها الإشعار'
               : null,
+          builder: (state) {
+            return DropdownMenu<String>(
+              initialSelection: state.value,
+              expandedInsets: EdgeInsets.zero,
+              enableFilter: true,
+              requestFocusOnTap: true,
+              menuHeight: 340,
+              textStyle: adminText(color: p.ink),
+              label: deco.labelText != null ? Text(deco.labelText!) : null,
+              hintText: deco.hintText,
+              helperText: deco.helperText,
+              errorText: state.errorText,
+              leadingIcon: deco.prefixIcon,
+              inputDecorationTheme: InputDecorationTheme(
+                filled: deco.filled,
+                fillColor: deco.fillColor,
+                contentPadding: deco.contentPadding,
+                border: deco.border,
+                enabledBorder: deco.enabledBorder,
+                focusedBorder: deco.focusedBorder,
+                errorBorder: deco.errorBorder,
+                focusedErrorBorder: deco.focusedErrorBorder,
+                labelStyle: deco.labelStyle,
+                floatingLabelStyle: deco.floatingLabelStyle,
+                hintStyle: deco.hintStyle,
+                helperStyle: deco.helperStyle,
+                errorStyle: deco.errorStyle,
+              ),
+              onSelected: (value) {
+                if (value != null) {
+                  setState(() => _selectedMealId = value);
+                  state.didChange(value);
+                }
+              },
+              dropdownMenuEntries: [
+                for (final meal in meals)
+                  DropdownMenuEntry<String>(
+                    value: meal.id,
+                    label: meal.name.isEmpty ? meal.id : meal.name,
+                  ),
+              ],
+            );
+          },
         );
       },
     );
@@ -1006,7 +1033,7 @@ class _NotificationManagementScreenState
   }) {
     final p = AdminPalette.of(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _FieldLabelRow(
           label: label,
@@ -1962,28 +1989,34 @@ class _FieldLabelRow extends StatelessWidget {
 
     Widget row(String? count) => Row(
       children: [
-        Flexible(
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            style: adminText(
-              size: 12.5,
-              weight: FontWeight.w500,
-              color: p.inkMuted,
-              height: 1.4,
-            ),
+        Expanded(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: adminText(
+                    size: 12.5,
+                    weight: FontWeight.w500,
+                    color: p.inkMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '*',
+                style: adminLatinText(
+                  size: 13,
+                  weight: FontWeight.w600,
+                  color: p.honeyInk,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 4),
-        Text(
-          '*',
-          style: adminLatinText(
-            size: 13,
-            weight: FontWeight.w600,
-            color: p.honeyInk,
-          ),
-        ),
-        const Spacer(),
         if (count != null)
           Text(
             count,
@@ -2004,3 +2037,4 @@ class _FieldLabelRow extends StatelessWidget {
     );
   }
 }
+

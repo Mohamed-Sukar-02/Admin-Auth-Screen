@@ -277,4 +277,22 @@ class AppStrings {
   String get aiKeepCurrent =>
       isEn ? 'Keep current content' : 'خلي المحتوى الحالي';
   String get aiUseSuggestion => isEn ? 'Use suggestion' : 'استخدم الاقتراح';
+
+  // AI assistant -> Models settings modal
+  String get aiModelsSettingsTitle =>
+      isEn ? 'AI Models Configuration' : 'إعدادات أسماء الموديلات';
+  String get aiModelsSettingsSubtitle => isEn
+      ? 'Manage model identifiers per provider'
+      : 'إدارة وتخصيص أسماء الموديلات المتاحة لكل مزود';
+  String get aiModelsSettingsAddHint =>
+      isEn ? 'e.g. qwen/qwen3.8-27b:free' : 'مثال: qwen/qwen3.8-27b:free';
+  String get aiModelsSettingsAddBtn => isEn ? 'Add' : 'إضافة';
+  String get aiModelsSettingsEmpty => isEn
+      ? 'No models configured for this provider. Add one above.'
+      : 'لا توجد موديلات لهذا المزود. أضف موديل من الحقل بالأعلى.';
+  String get aiModelsSettingsDeleteTooltip => isEn ? 'Delete' : 'حذف';
+  String get aiModelsSettingsClose => isEn ? 'Close' : 'إغلاق';
+  String get aiModelsSettingsModelExists => isEn
+      ? 'This model is already in the list'
+      : 'هذا الموديل مضاف بالفعل في القائمة';
 }

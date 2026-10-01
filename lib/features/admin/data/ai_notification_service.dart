@@ -52,7 +52,7 @@ class AiNotificationService {
       key.isEmpty ||
       key.length < 20 ||
       key.trim() != key ||
-      key.contains(RegExp(r'[\s"\'`,;]'));
+      key.contains(RegExp(r'''[\s"'`,;]'''));
 
   static const int _maxOutputTokens = 1536;
   static const double _temperature = 0.85;
