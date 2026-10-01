@@ -20,3 +20,6 @@ Thumbs.db
 
 # Firebase CLI debug log
 firebase-debug.log
+
+# Seeding scripts — may reference local secrets (keys read from env vars at runtime)
+bin/seed_keys.dart
