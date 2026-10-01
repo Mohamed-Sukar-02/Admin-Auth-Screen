@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'models/ai_provider.dart';
 import 'models/ai_notification_result.dart';
+import 'app_features_repository.dart';
 
 class AiServiceException implements Exception {
   final String message;
@@ -209,6 +210,7 @@ class AiNotificationService {
     required String userPrompt,
     AiNotificationResult? previousDraft,
     int variant = 0,
+    List<AppFeature> contextFeatures = const [],
   }) async {
     final List<AiProvider> providersToTry;
 
@@ -232,7 +234,7 @@ class AiNotificationService {
     }
 
     final allowEmoji = requestsEmoji(userPrompt);
-    final systemPrompt = _buildSystemPrompt(userPrompt);
+    final systemPrompt = _buildSystemPrompt(userPrompt, contextFeatures);
     final userPayload = _buildUserPayload(userPrompt, previousDraft);
 
     final errorLogs = <String>[];
@@ -694,19 +696,31 @@ Return ONLY a valid JSON object containing a "notifications" array. Example:
     return cleaned;
   }
 
-  String _buildSystemPrompt(String userPrompt) {
+  String _buildSystemPrompt(
+    String userPrompt,
+    List<AppFeature> contextFeatures,
+  ) {
     final emojiRule = requestsEmoji(userPrompt)
         ? 'The administrator explicitly asked for emoji, so a tasteful, '
               'limited amount is allowed in titles and messages.'
         : 'STRICTLY NO EMOJI, pictographs, emoticons, kaomoji or decorative '
               'Unicode symbols in any field. Not one.';
 
+    // Retrieved feature docs (RAG) are injected verbatim so the model can only
+    // talk about features the admin actually released.
+    final featuresSection = contextFeatures.isEmpty
+        ? ''
+        : '\nDYNAMIC APP FEATURES:\n'
+              'RECENT APP FEATURES CONTEXT:\n'
+              '${contextFeatures.map((f) => '- ${f.title}: ${f.description}').join('\n')}\n\n'
+              'If the administrator asks about a "new feature", "update", or a specific capability, you MUST base your notification ONLY on the provided DYNAMIC APP FEATURES listed above. Do not invent features.';
+
     return '''
 You write bilingual push notifications for the Egyptian food inspiration app «أكلة النهاردة» (Aklet El Naharda).
 Return ONLY the requested JSON object: type, titleAr, messageAr, titleEn, messageEn.
 
 APP PROFILE CONTEXT:
-${AppProfile.appProfileInfo}
+${AppProfile.appProfileInfo}$featuresSection
 
 CRITICAL TONE & STYLE:
 1. Authentic, warm, joyful, playful Egyptian colloquial Arabic (عامية مصرية شعبية راقية ومبهجة تفتح النفس).
