@@ -793,9 +793,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               final query = _searchQuery.trim().toLowerCase();
               final filtered = meals.where((m) {
                 final matchesSearch = m.name.toLowerCase().contains(query);
-                final matchesCat =
-                    _selectedCategory == 'all' ||
-                    m.category == _selectedCategory;
+                final matchesCat = _selectedCategory == 'all' ||
+                    (_selectedCategory == 'starter'
+                        ? m.isStarterMeal
+                        : m.category == _selectedCategory);
                 return matchesSearch && matchesCat;
               }).toList();
 
