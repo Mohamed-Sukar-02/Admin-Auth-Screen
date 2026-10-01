@@ -331,10 +331,6 @@ class AiNotificationService {
       '?key=${Uri.encodeQueryComponent(provider.apiKey)}',
     );
     final headers = <String, String>{'Content-Type': 'application/json'};
-    // Google's newer free-tier keys authenticate by header, not by query key.
-    if (provider.apiKey.startsWith('AQ.')) {
-      headers['Authorization'] = 'Bearer ${provider.apiKey}';
-    }
     final response = await http.post(
       uri,
       headers: headers,
@@ -463,6 +459,11 @@ class AiNotificationService {
     if (response.statusCode == 429) {
       throw const AiServiceException(
         'تم تجاوز حد الاستخدام المجاني. جرب موديل تاني أو استنى شوية.',
+      );
+    }
+    if (response.statusCode == 503) {
+      throw const AiServiceException(
+        'مزود الذكاء الاصطناعي يواجه ضغطاً عالياً حالياً (503). يرجى المحاولة لاحقاً أو اختيار موديل آخر.',
       );
     }
     if (response.statusCode != 200) {

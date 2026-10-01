@@ -17,3 +17,6 @@ build/
 Thumbs.db
 # Firebase CLI local state (deploy cache, hosting channels)
 .firebase/
+
+# Firebase CLI debug log
+firebase-debug.log
