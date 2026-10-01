@@ -256,6 +256,14 @@ service cloud.firestore {
       allow delete: if isEditingAdmin();
     }
 
+    // App Features: knowledge base for RAG-powered notification generation.
+    // Admins read features to inject context into the AI prompt; only super
+    // admins (or console) may create/edit the feature catalogue.
+    match /app_features/{featureId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
     // AI Providers: admins can read, editing/super admins can write.
     match /ai_providers/{docId} {
       allow read: if isAdmin();

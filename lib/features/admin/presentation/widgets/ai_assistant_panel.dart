@@ -126,7 +126,10 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     });
 
     try {
-      final features = await ref.read(activeAppFeaturesProvider.future).catchError((_) => <AppFeature>[]);
+      final features = await ref.read(activeAppFeaturesProvider.future).catchError((e) {
+        debugPrint('[RAG] ⚠ Failed to fetch app features: $e');
+        return <AppFeature>[];
+      });
       
       final result = await ref
           .read(aiNotificationServiceProvider)

@@ -710,10 +710,9 @@ Return ONLY a valid JSON object containing a "notifications" array. Example:
     // talk about features the admin actually released.
     final featuresSection = contextFeatures.isEmpty
         ? ''
-        : '\nDYNAMIC APP FEATURES:\n'
-              'RECENT APP FEATURES CONTEXT:\n'
+        : '\nDYNAMIC APP FEATURES (retrieved from the knowledge base):\n'
               '${contextFeatures.map((f) => '- ${f.title}: ${f.description}').join('\n')}\n\n'
-              'If the administrator asks about a "new feature", "update", or a specific capability, you MUST base your notification ONLY on the provided DYNAMIC APP FEATURES listed above. Do not invent features.';
+              'If the administrator asks about a "new feature", "update", or a specific capability, you MUST base your notification ONLY on the DYNAMIC APP FEATURES listed above. Do not invent features.';
 
     return '''
 You write bilingual push notifications for the Egyptian food inspiration app «أكلة النهاردة» (Aklet El Naharda).
