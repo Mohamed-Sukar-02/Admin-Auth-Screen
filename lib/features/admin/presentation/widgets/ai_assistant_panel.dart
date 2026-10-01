@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/localization/app_strings.dart';
 import '../../data/ai_notification_service.dart';
 import '../../data/ai_provider_repository.dart';
+import '../../data/app_features_repository.dart';
 import '../../data/models/ai_notification_result.dart';
 import '../../data/models/ai_provider.dart';
 import '../theme/admin_palette.dart';
@@ -125,6 +126,8 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     });
 
     try {
+      final features = await ref.read(activeAppFeaturesProvider.future).catchError((_) => <AppFeature>[]);
+      
       final result = await ref
           .read(aiNotificationServiceProvider)
           .generateNotification(
@@ -135,6 +138,7 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
             // تانية" wants a clean take on the same idea, so it starts empty.
             previousDraft: again ? null : _currentResult,
             variant: variation,
+            contextFeatures: features,
           );
       if (!mounted || operation != _operation) return;
       setState(() {
