@@ -229,11 +229,8 @@ class _NotificationManagementScreenState
             segment: _segment,
           );
 
-      _titleArController.clear();
-      _titleEnController.clear();
-      _messageArController.clear();
-      _messageEnController.clear();
-      _customRouteController.clear();
+      // The copy stays on screen after a send: clearing it would hand the admin
+      // back an empty form whose fields validate red. See [_clearForm].
       // A draft that just went out is no longer a draft.
       final sentDraftId = _editingDraftId;
       if (sentDraftId != null) {
@@ -271,6 +268,23 @@ class _NotificationManagementScreenState
       subtitle: error.toString(),
       kind: AdminToastKind.error,
     );
+  }
+
+  /// Back to an untouched form: the copy, the destination and stage picks, the
+  /// draft link, and any validation error a failed send left painted red.
+  void _clearForm() {
+    for (final controller in _copyControllers) {
+      controller.clear();
+    }
+    _customRouteController.clear();
+    setState(() {
+      _selectedDestination = 'home';
+      _selectedStage = NotificationSegment.kindAll;
+      _selectedMealId = null;
+      _editingDraftId = null;
+      _draftFromAssistant = false;
+      _formKey.currentState?.reset();
+    });
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> notification) async {
@@ -532,10 +546,22 @@ class _NotificationManagementScreenState
               icon: AdminIcons.edit,
               title: 'إنشاء إشعار جديد',
               subtitle: 'اكتب رسالتك، أو سيب الصياغة للمساعد',
-              trailing: _FormStatusBadge(
-                controllers: _copyControllers,
-                fromAssistant: _draftFromAssistant,
-                saved: _editingDraftId != null,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _FormStatusBadge(
+                    controllers: _copyControllers,
+                    fromAssistant: _draftFromAssistant,
+                    saved: _editingDraftId != null,
+                  ),
+                  const SizedBox(width: 8),
+                  AdminIconChip(
+                    icon: AdminIcons.delete,
+                    tooltip: 'تفريغ النموذج',
+                    onTap: _clearForm,
+                    glyphSize: 16,
+                  ),
+                ],
               ),
             ),
             Padding(

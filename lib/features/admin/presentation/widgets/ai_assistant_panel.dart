@@ -55,6 +55,34 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   /// to the next hand-written draft instead of replaying the same one.
   int _variant = 0;
 
+  List<({String label, String prompt, IconData icon})>? _dynamicIdeas;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDynamicIdeas();
+  }
+
+  Future<void> _loadDynamicIdeas() async {
+    // Wait until the first frame is rendered to get the providers
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final providers = ref.read(activeAiProvidersStreamProvider).valueOrNull ?? const [];
+      if (providers.isEmpty) return;
+      
+      final results = await ref.read(aiNotificationServiceProvider).generateDynamicSuggestions(providers);
+      if (results.isNotEmpty && mounted) {
+        setState(() {
+          _dynamicIdeas = results.map((e) => (
+            label: e['label'] ?? '',
+            prompt: e['prompt'] ?? '',
+            icon: AdminIcons.explore,
+          )).toList();
+        });
+      }
+    });
+  }
+
+
   /// Cancel token. [AiNotificationService] has no way to abort the in-flight
   /// HTTP call, so stopping is done by invalidating the result: anything that
   /// comes back for a stale operation is dropped on the floor.
@@ -345,7 +373,7 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   }
 
   Widget _buildWelcome(AdminPalette p, AppStrings strings) {
-    final ideas = [
+    final ideas = _dynamicIdeas ?? [
       (
         label: strings.aiChipKoshari,
         prompt: strings.aiChipKoshariPrompt,

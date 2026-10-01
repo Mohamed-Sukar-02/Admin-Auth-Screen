@@ -1,3 +1,4 @@
+import '../../../../core/constants/app_profile.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -88,7 +89,7 @@ class AiNotificationService {
   static final RegExp _repeatedSpace = RegExp(' {2,}');
 
   static final RegExp _discount = RegExp(
-    r'([0-9٠-٩]{1,2})\s*[%٪]',
+    r'([0-9٠-٩]{1,3})\s*[%٪]',
     unicode: true,
   );
 
@@ -265,6 +266,120 @@ class AiNotificationService {
     throw AiServiceException('فشلت جميع المحاولات:\n${errorLogs.join('\n')}');
   }
 
+
+  Future<List<Map<String, String>>> generateDynamicSuggestions(List<AiProvider> allProviders) async {
+    if (allProviders.isEmpty) return [];
+    
+    // Pick a lightweight model if possible, or just the first active one
+    AiProvider? selectedProvider;
+    for (final p in allProviders) {
+      if (p.model.toLowerCase().contains('flash') || p.model.toLowerCase().contains('8b')) {
+        selectedProvider = p;
+        break;
+      }
+    }
+    selectedProvider ??= allProviders.first;
+
+    final systemPrompt = '''
+You are the creative assistant for "أكلة النهاردة" (Aklet El Naharda) app.
+APP PROFILE:
+${AppProfile.appProfileInfo}
+
+Generate exactly 3 creative, short, unique ideas for push notifications that the admin can send to users.
+Each idea must have a "label" (max 3 words, Arabic) and a "prompt" (detailed instruction for the AI, Arabic).
+Return ONLY a valid JSON object containing a "notifications" array. Example:
+{
+  "notifications": [
+    {"label": "اقتراح كشري", "prompt": "إشعار بيقترح على المستخدمين يجربوا وصفة الكشري للغدا النهاردة"},
+    {"label": "تذكير رمضان", "prompt": "فكرهم بلمة العيلة على الفطار في رمضان"}
+  ]
+}
+''';
+
+    try {
+      final responseBody = await _makeRequest(
+        selectedProvider,
+        systemPrompt,
+        "{}",
+        responseSchema: _suggestionsResponseSchema,
+      );
+      
+      String text = '';
+      final kind = selectedProvider.provider.toLowerCase();
+      if (kind == 'gemini') {
+        final data = jsonDecode(responseBody);
+        try {
+          text = _readGeminiText(data);
+        } catch (_) {
+          final candidates = data is Map ? data['candidates'] as List? : null;
+          if (candidates != null && candidates.isNotEmpty) {
+            final content = candidates[0]['content'];
+            final parts = content is Map ? content['parts'] as List? : null;
+            if (parts != null && parts.isNotEmpty) {
+              text = parts[0]['text']?.toString() ?? '';
+            }
+          }
+        }
+      } else if (kind == 'groq' || kind == 'openrouter') {
+        final data = jsonDecode(responseBody);
+        final choices = data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final first = choices.first;
+          if (first is Map && first['message'] is Map) {
+            text = first['message']['content']?.toString() ?? '';
+          }
+        }
+      }
+      
+      return parseDynamicSuggestions(text);
+    } catch (e) {
+      return []; // Silently fall back to cached/default if it fails
+    }
+  }
+
+  /// Parses suggestions from either a root List or a root Map containing
+  /// keys like 'notifications', 'suggestions', 'ideas', or any List value.
+  static List<Map<String, String>> parseDynamicSuggestions(String text) {
+    try {
+      final cleaned =
+          text.replaceAll('```json', '').replaceAll('```', '').trim();
+      if (cleaned.isEmpty) return [];
+
+      final dynamic decoded = jsonDecode(cleaned);
+
+      final List<dynamic> jsonList;
+      if (decoded is List) {
+        jsonList = decoded;
+      } else if (decoded is Map) {
+        final dynamic raw = decoded['notifications'] ??
+            decoded['suggestions'] ??
+            decoded['ideas'] ??
+            decoded.values.firstWhere(
+              (v) => v is List,
+              orElse: () => null,
+            );
+        jsonList = raw is List ? raw : const [];
+      } else {
+        jsonList = const [];
+      }
+
+      return jsonList
+          .whereType<Map>()
+          .map((e) => {
+                'label': e['label']?.toString().trim() ?? '',
+                'prompt': e['prompt']?.toString().trim() ?? '',
+              })
+          .where((e) => e['label']!.isNotEmpty || e['prompt']!.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Backward-compatible alias for [parseDynamicSuggestions].
+  static List<Map<String, String>> parseSuggestions(String text) =>
+      parseDynamicSuggestions(text);
+
   /// Name the failure log shows. The Firestore `name` field is free text, so a
   /// bare "Gemini 1" never told the admin which model id actually went out on
   /// the wire — and an unknown model id is one of the real reasons a request
@@ -303,14 +418,59 @@ class AiNotificationService {
     });
   }
 
+  static const Map<String, dynamic> _notificationResponseSchema = {
+    'type': 'OBJECT',
+    'properties': {
+      'type': {
+        'type': 'STRING',
+        'enum': ['meal', 'reminder', 'update'],
+      },
+      'titleAr': {'type': 'STRING'},
+      'messageAr': {'type': 'STRING'},
+      'titleEn': {'type': 'STRING'},
+      'messageEn': {'type': 'STRING'},
+    },
+    'required': [
+      'type',
+      'titleAr',
+      'messageAr',
+      'titleEn',
+      'messageEn',
+    ],
+  };
+
+  static const Map<String, dynamic> _suggestionsResponseSchema = {
+    'type': 'OBJECT',
+    'properties': {
+      'notifications': {
+        'type': 'ARRAY',
+        'items': {
+          'type': 'OBJECT',
+          'properties': {
+            'label': {'type': 'STRING'},
+            'prompt': {'type': 'STRING'},
+          },
+          'required': ['label', 'prompt'],
+        },
+      },
+    },
+    'required': ['notifications'],
+  };
+
   Future<String> _makeRequest(
     AiProvider provider,
     String systemPrompt,
-    String userPayload,
-  ) async {
+    String userPayload, {
+    Map<String, dynamic>? responseSchema,
+  }) async {
     switch (provider.provider.toLowerCase()) {
       case 'gemini':
-        return _buildGeminiRequest(provider, systemPrompt, userPayload);
+        return _buildGeminiRequest(
+          provider,
+          systemPrompt,
+          userPayload,
+          responseSchema: responseSchema,
+        );
       case 'groq':
       case 'openrouter':
         return _buildGroqRequest(provider, systemPrompt, userPayload);
@@ -322,8 +482,9 @@ class AiNotificationService {
   Future<String> _buildGeminiRequest(
     AiProvider provider,
     String systemPrompt,
-    String userPayload,
-  ) async {
+    String userPayload, {
+    Map<String, dynamic>? responseSchema,
+  }) async {
     // The model id goes through Uri.encodeComponent: a stray space or a colon
     // glued to the name used to break the URL and get blamed on the key.
     final uri = Uri.parse(
@@ -354,26 +515,7 @@ class AiNotificationService {
           'temperature': _temperature,
           'maxOutputTokens': _maxOutputTokens,
           'responseMimeType': 'application/json',
-          'responseSchema': {
-            'type': 'OBJECT',
-            'properties': {
-              'type': {
-                'type': 'STRING',
-                'enum': ['meal', 'reminder', 'update'],
-              },
-              'titleAr': {'type': 'STRING'},
-              'messageAr': {'type': 'STRING'},
-              'titleEn': {'type': 'STRING'},
-              'messageEn': {'type': 'STRING'},
-            },
-            'required': [
-              'type',
-              'titleAr',
-              'messageAr',
-              'titleEn',
-              'messageEn',
-            ],
-          },
+          'responseSchema': responseSchema ?? _notificationResponseSchema,
           // Reasoning tokens are pure latency here, and their parts come back
           // flagged as thoughts on flash models.
           'thinkingConfig': {'thinkingBudget': 0},
@@ -562,6 +704,9 @@ class AiNotificationService {
     return '''
 You write bilingual push notifications for the Egyptian food inspiration app «أكلة النهاردة» (Aklet El Naharda).
 Return ONLY the requested JSON object: type, titleAr, messageAr, titleEn, messageEn.
+
+APP PROFILE CONTEXT:
+${AppProfile.appProfileInfo}
 
 CRITICAL TONE & STYLE:
 1. Authentic, warm, joyful, playful Egyptian colloquial Arabic (عامية مصرية شعبية راقية ومبهجة تفتح النفس).
