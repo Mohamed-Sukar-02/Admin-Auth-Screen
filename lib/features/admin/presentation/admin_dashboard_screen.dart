@@ -17,6 +17,10 @@ import 'theme/admin_palette.dart';
 import 'widgets/add_meal_dialog.dart';
 import 'widgets/admin_dialog.dart';
 import 'widgets/admin_toast.dart';
+import 'widgets/deduplication_dialog.dart';
+import '../../../core/localization/app_strings.dart';
+import '../domain/similarity_engine.dart';
+
 
 /// -------------------------------------------------------------------------
 /// Helpers
@@ -134,7 +138,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'all';
   bool _isProcessingBackup = false;
-  bool _isDeduplicating = false;
+
 
   late double _sidebarWidth;
   late bool _sidebarCollapsed;
@@ -420,58 +424,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Future<void> _handleDeduplication(AdminPalette p) async {
-    final confirmed = await showAdminConfirmDialog(
+  Future<void> _handleDeduplication([AdminPalette? p]) async {
+    await showAdminDialog(
       context: context,
-      icon: AdminIcons.cleanup,
-      tone: AdminDialogTone.warn,
-      title: 'تنظيف الخزنة من التكرار',
-      message:
-          'سيتم فحص جميع الأكلات وحذف أي نسخ مكررة فوراً مع الإبقاء على نسخة أصلية واحدة فقط لكل أكلة. هل تريد البدء الآن؟',
-      note: AdminDialogNote(
-        tone: AdminDialogTone.warn,
-        icon: AdminIcons.warning,
-        badge: 'لا يمكن التراجع',
-        title: 'عملية حذف جماعية',
-      ),
-      confirmLabel: 'بدء التنظيف',
-      confirmIcon: AdminIcons.cleanup,
+      barrierDismissible: true,
+      builder: (ctx) => const DeduplicationDialog(),
     );
-
-    if (!confirmed) return;
-
-    setState(() => _isDeduplicating = true);
-    try {
-      final removed = await ref
-          .read(vaultAdminRepositoryProvider)
-          .deduplicateVaultMeals();
-      if (mounted) {
-        showAdminToast(
-          context,
-          message: removed > 0
-              ? 'تم تنظيف الخزنة بنجاح'
-              : 'الخزنة نظيفة بالفعل',
-          subtitle: removed > 0
-              ? 'حُذفت $removed أكلة مكررة، الخزنة الآن فريدة تماماً'
-              : 'لا توجد أكلات مكررة في الخزنة',
-          kind: removed > 0 ? AdminToastKind.success : AdminToastKind.info,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showAdminToast(
-          context,
-          message: 'خطأ أثناء تنظيف الخزنة',
-          subtitle: e.toString(),
-          kind: AdminToastKind.error,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isDeduplicating = false);
-      }
-    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -593,13 +553,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   ) {
     final vaultList = vaultMealsAsync.value ?? [];
     final isMobile = MediaQuery.sizeOf(context).width < 900;
+    final strings = AppStrings.of(context);
 
     final hasDuplicates = () {
       final names = <String>{};
       for (final m in vaultList) {
-        final n = m.name.trim().toLowerCase();
-        if (names.contains(n)) return true;
-        names.add(n);
+        final n = SimilarityEngine.normalizeArabic(m.name);
+        if (n.isNotEmpty && !names.add(n)) return true;
       }
       return false;
     }();
@@ -688,21 +648,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             subtitle: 'إدارة الأكلات المعتمدة في الخزنة العامة',
             trailing: hasDuplicates
                 ? FilledButton.icon(
-                    onPressed: _isDeduplicating
-                        ? null
-                        : () => _handleDeduplication(p),
-                    icon: _isDeduplicating
-                        ? SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: p.onSolid(p.honeySolid),
-                            ),
-                          )
-                        : const Icon(AdminIcons.aiMagic, size: 16),
+                    onPressed: () => _handleDeduplication(p),
+                    icon: const Icon(AdminIcons.cleanup, size: 16),
                     label: Text(
-                      _isDeduplicating ? 'جاري التنظيف...' : 'حذف التكرار',
+                      strings.vaultDeduplicationOverviewButton,
                       style: adminText(size: 13, weight: FontWeight.bold),
                     ),
                     style: FilledButton.styleFrom(
@@ -723,12 +672,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             const SizedBox(height: 14),
             _NoticeBanner(
               icon: AdminIcons.warning,
-              message:
-                  'تم اكتشاف أكلات مكررة في الخزنة! اضغط على زر "حذف التكرار" لحذف جميع النسخ المكررة والإبقاء على نسخة أصلية واحدة فقط بضغطة زر واحدة.',
+              message: strings.vaultDeduplicationBannerWarning,
               bg: p.honeySoft,
               fg: p.honeyInk,
             ),
           ],
+
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(16),
@@ -1000,7 +949,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   // صفحة الإعدادات
   // ---------------------------------------------------------------------
   Widget _buildSettingsPage(dynamic user, AdminPalette p, bool isSuperAdmin) {
+    final strings = AppStrings.of(context);
     return SingleChildScrollView(
+
       padding: const EdgeInsets.fromLTRB(26, 20, 26, 40),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640),
@@ -1183,7 +1134,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             const SizedBox(height: 28),
 
             // ── Vault operations section ───────────────────────────────────
-            _SettingsSectionLabel(label: 'عمليات الخزنة', palette: p),
+            _SettingsSectionLabel(
+              label: strings.vaultOperationsSection,
+              palette: p,
+            ),
             const SizedBox(height: 10),
             Container(
               decoration: p.panel(),
@@ -1195,27 +1149,19 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     icon: AdminIcons.cleanup,
                     iconColor: p.honeyInk,
                     iconBg: p.honeySoft,
-                    title: 'تنظيف الخزنة من التكرار',
-                    subtitle: 'حذف النسخ المكررة والإبقاء على نسخة واحدة',
+                    title: strings.vaultDeduplicationSettingsTileTitle,
+                    subtitle: strings.vaultDeduplicationSettingsTileSubtitle,
                     locked: !isSuperAdmin,
-                    trailing: _isDeduplicating
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: p.honeySolid,
-                            ),
-                          )
-                        : _SettingsChevronButton(
-                            label: 'تنظيف',
-                            color: p.honeyInk,
-                            bg: p.honeySoft,
-                            enabled: isSuperAdmin && !_isDeduplicating,
-                            onTap: () => _handleDeduplication(p),
-                          ),
+                    trailing: _SettingsChevronButton(
+                      label: strings.vaultDeduplicationCleanButton,
+                      color: p.honeyInk,
+                      bg: p.honeySoft,
+                      enabled: isSuperAdmin,
+                      onTap: () => _handleDeduplication(p),
+                    ),
                   ),
                   _SettingsDivider(p: p),
+
                   // Backup & Restore combined tile
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),

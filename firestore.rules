@@ -182,6 +182,13 @@ service cloud.firestore {
       allow delete: if isEditingAdmin();
     }
 
+    // Ignored Duplicates: admin read to skip false-positive candidate pairs, editing admin write.
+    // Pair keys are deterministic: "${min(idA, idB)}_${max(idA, idB)}"
+    match /ignored_duplicates/{pairKey} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isEditingAdmin();
+    }
+
     // Staging Meals: admin-only read/update/delete, authenticated + validated create
     match /staging_meals/{mealId} {
       allow read: if isAdmin();

@@ -311,4 +311,174 @@ class AppStrings {
   String get aiModelsSettingsModelExists => isEn
       ? 'This model is already in the list'
       : 'هذا الموديل مضاف بالفعل في القائمة';
+
+  // ── Vault Deduplication & Similarity Management ───────────────────────────
+
+  // Dashboard buttons, banner & settings tile
+  String get vaultDeduplicationOverviewButton =>
+      isEn ? 'Review Duplicates' : 'مراجعة التكرار';
+  String get vaultDeduplicationOverviewButtonScanning =>
+      isEn ? 'Scanning…' : 'جارٍ الفحص…';
+  String get vaultDeduplicationBannerWarning => isEn
+      ? 'Similar meals detected in the vault! Click "Review Duplicates" to manage them.'
+      : 'تم اكتشاف أكلات متشابهة في الخزنة! اضغط على "مراجعة التكرار" لفحصها وإدارتها.';
+  String get vaultDeduplicationSettingsTileTitle =>
+      isEn ? 'Clean Vault Duplicates' : 'تنظيف الخزنة من التكرار';
+  String get vaultDeduplicationSettingsTileSubtitle => isEn
+      ? 'Manage duplicate or similar meals with review'
+      : 'إدارة وحذف النسخ المكررة أو المتشابهة مع إمكانية المراجعة';
+  String get vaultDeduplicationCleanButton => isEn ? 'Clean' : 'تنظيف';
+  String get vaultOperationsSection =>
+      isEn ? 'Vault Operations' : 'عمليات الخزنة';
+
+  // Modal header & subtitle
+  String get vaultDeduplicationTitle =>
+      isEn ? 'Vault Deduplication' : 'تنظيف الخزنة من التكرار';
+  String get vaultDeduplicationSubtitle => isEn
+      ? 'Review similar meals, remove duplicates, or ignore distinct dishes'
+      : 'مراجعة الأكلات المتشابهة وحذف النسخ المكررة أو استبعاد الوجبات المختلفة';
+
+  // Scanning & loading state
+  String get vaultDeduplicationScanning => isEn
+      ? 'Scanning vault meals and comparing names…'
+      : 'جارٍ فحص الخزنة ومطابقة أسماء الأكلات…';
+  String get vaultDeduplicationScanningSubtitle => isEn
+      ? 'Calculating name similarity and filtering ignored pairs'
+      : 'حساب نسبة التطابق واستبعاد الأزواج المحفوظة في قائمة التجاهل';
+
+  // Summary banner & counts
+  String vaultDeduplicationPairsFound(int count) {
+    if (isEn) {
+      return '$count potential duplicate ${count == 1 ? "pair" : "pairs"} found';
+    }
+    if (count == 0) return 'لم يتم العثور على أزواج متشابهة';
+    if (count == 1) return 'تم اكتشاف زوج متشابه واحد';
+    if (count == 2) return 'تم اكتشاف زوجين متشابهين';
+    if (count <= 10) return 'تم اكتشاف $count أزواج متشابهة';
+    return 'تم اكتشاف $count زوجاً متشابهاً';
+  }
+
+  String get vaultDeduplicationPairsFoundDesc => isEn
+      ? 'Review each pair below. You can delete the duplicate or ignore the pair permanently.'
+      : 'راجع كل زوج بالأسفل. يمكنك حذف النسخة المكررة أو تجاهل الزوج نهائياً.';
+
+  // Meal comparison cards & badges
+  String get vaultDeduplicationOriginalBadge =>
+      isEn ? 'Original (Keep)' : 'الأصلية (ستبقى)';
+  String get vaultDeduplicationDuplicateBadge =>
+      isEn ? 'Duplicate (Delete)' : 'المكررة (للحذف)';
+  String get vaultDeduplicationStarterMeal =>
+      isEn ? 'Starter Meal' : 'أكلة أساسية';
+  String vaultDeduplicationMealId(String id) =>
+      isEn ? 'ID: $id' : 'المعرّف: $id';
+  String get vaultDeduplicationCopyIdTooltip =>
+      isEn ? 'Copy ID' : 'نسخ المعرّف';
+  String get vaultDeduplicationIdCopied =>
+      isEn ? 'Meal ID copied to clipboard' : 'تم نسخ معرّف الأكلة إلى الحافظة';
+  String get vaultDeduplicationCopiedIdToast => vaultDeduplicationIdCopied;
+  String vaultDeduplicationAddedDate(String date) =>
+      isEn ? 'Added: $date' : 'أضيفت: $date';
+  String vaultDeduplicationSimilarity(int percent) =>
+      isEn ? '$percent% Match' : 'تطابق $percent%';
+  String get vaultDeduplicationExactMatch =>
+      isEn ? 'Exact match' : 'تطابق تام';
+  String get vaultDeduplicationSimilarName =>
+      isEn ? 'Similar name' : 'تشابه في الاسم';
+
+  // Card action buttons & in-flight states
+  String get vaultDeduplicationDeleteAction =>
+      isEn ? 'Delete Duplicate' : 'حذف المكررة';
+  String get vaultDeduplicationIgnoreAction =>
+      isEn ? 'Ignore' : 'تجاهل';
+  String get vaultDeduplicationDeleting =>
+      isEn ? 'Deleting…' : 'جارٍ الحذف…';
+  String get vaultDeduplicationIgnoring =>
+      isEn ? 'Ignoring…' : 'جارٍ التجاهل…';
+  String get vaultDeduplicationDeleteTooltip => isEn
+      ? 'Delete this duplicate meal while keeping the original'
+      : 'حذف هذه النسخة المكررة مع الإبقاء على الأكلة الأصلية';
+  String get vaultDeduplicationIgnoreTooltip => isEn
+      ? 'Mark these meals as intentionally distinct (adds to ignored list)'
+      : 'اعتبارهما أكلتين مختلفتين ولن يظهرا معاً كمقترح تكرار مستقبلاً';
+
+  // Modal footer & global actions
+  String get vaultDeduplicationClose =>
+      isEn ? 'Close' : 'إغلاق';
+  String get vaultDeduplicationCleanAll =>
+      isEn ? 'Clean All Remaining' : 'تنظيف كل المتبقي';
+  String vaultDeduplicationCleanAllWithCount(int count) => isEn
+      ? 'Clean All Remaining ($count)'
+      : 'تنظيف كل المتبقي ($count)';
+  String get vaultDeduplicationCleaningAll =>
+      isEn ? 'Cleaning remaining duplicates…' : 'جارٍ تنظيف جميع النسخ المتبقية…';
+
+  // Confirmation dialogs
+  String get vaultDeduplicationConfirmSingleDeleteTitle =>
+      isEn ? 'Delete duplicate meal?' : 'حذف الوجبة المكررة؟';
+  String vaultDeduplicationConfirmSingleDeleteMessage(String name) => isEn
+      ? 'Are you sure you want to delete "$name"? The original meal will be kept. This cannot be undone.'
+      : 'هل أنت متأكد من حذف "$name"؟ سيتم الإبقاء على الوجبة الأصلية. لا يمكن التراجع عن هذا الإجراء.';
+  String get vaultDeduplicationConfirmCleanAllTitle =>
+      isEn ? 'Clean all remaining duplicates?' : 'تنظيف جميع الأكلات المكررة المتبقية؟';
+  String vaultDeduplicationConfirmCleanAllMessage(int count) {
+    if (isEn) {
+      return 'This will delete $count duplicate ${count == 1 ? "meal" : "meals"} and keep their original counterparts. Ignored pairs are not affected. This action cannot be undone.';
+    }
+    if (count == 1) {
+      return 'سيتم حذف وجبة مكررة واحدة مع الإبقاء على نظيرتها الأصلية. لن تتأثر الأزواج المتجاهلة. لا يمكن التراجع عن هذه العملية.';
+    }
+    if (count == 2) {
+      return 'سيتم حذف وجبتين مكررتين مع الإبقاء على نظيرتيهما الأصليتين. لن تتأثر الأزواج المتجاهلة. لا يمكن التراجع عن هذه العملية.';
+    }
+    if (count <= 10) {
+      return 'سيتم حذف $count وجبات مكررة مع الإبقاء على نظائرها الأصلية. لن تتأثر الأزواج المتجاهلة. لا يمكن التراجع عن هذه العملية.';
+    }
+    return 'سيتم حذف $count وجبة مكررة مع الإبقاء على نظائرها الأصلية. لن تتأثر الأزواج المتجاهلة. لا يمكن التراجع عن هذه العملية.';
+  }
+  String get vaultDeduplicationConfirmCleanAllConfirm =>
+      isEn ? 'Clean All Now' : 'بدء التنظيف الآن';
+  String get vaultDeduplicationConfirmCleanAllCancel =>
+      isEn ? 'Cancel' : 'إلغاء';
+  String get vaultDeduplicationConfirmCleanAllNoteBadge =>
+      isEn ? 'Permanent' : 'لا يمكن التراجع';
+  String get vaultDeduplicationConfirmCleanAllNoteTitle =>
+      isEn ? 'Bulk Deletion' : 'عملية حذف جماعية';
+
+  // Empty & error states
+  String get vaultDeduplicationEmptyTitle =>
+      isEn ? 'Vault is completely clean!' : 'الخزنة نظيفة تماماً!';
+  String get vaultDeduplicationEmptySubtitle => isEn
+      ? 'No duplicate or similar meals found in the vault.'
+      : 'لا توجد أي أكلات مكررة أو متشابهة في الخزنة حالياً.';
+  String get vaultDeduplicationErrorTitle =>
+      isEn ? 'Error scanning duplicates' : 'حدث خطأ أثناء فحص التكرار';
+  String get vaultDeduplicationRetry =>
+      isEn ? 'Try Again' : 'إعادة المحاولة';
+
+  // Feedback toasts & snackbars
+  String vaultDeduplicationDeletedSuccess(String name) => isEn
+      ? 'Deleted duplicate "$name"'
+      : 'تم حذف النسخة المكررة "$name" بنجاح';
+  String vaultDeduplicationIgnoredSuccess(String nameA, String nameB) => isEn
+      ? 'Pair "$nameA" & "$nameB" marked as ignored'
+      : 'تمت إضافة الزوج "$nameA" و "$nameB" إلى قائمة التجاهل';
+  String vaultDeduplicationAllCleanedSuccess(int count) {
+    if (isEn) {
+      return 'Successfully deleted $count duplicate ${count == 1 ? "meal" : "meals"}';
+    }
+    if (count == 1) return 'تم بنجاح حذف وجبة مكررة واحدة';
+    if (count == 2) return 'تم بنجاح حذف وجبتين مكررتين';
+    if (count <= 10) return 'تم بنجاح تنظيف وحذف $count وجبات مكررة';
+    return 'تم بنجاح تنظيف وحذف $count وجبة مكررة';
+  }
+  String get vaultDeduplicationCleanAlreadyClean =>
+      isEn ? 'The vault is already clean' : 'الخزنة نظيفة بالفعل';
+  String vaultDeduplicationErrorToast(String error) => isEn
+      ? 'Failed to process duplicate: $error'
+      : 'فشلت معالجة التكرار: $error';
+  String vaultDeduplicationErrorCleanAllToast(String error) => isEn
+      ? 'Failed to clean duplicates: $error'
+      : 'فشل تنظيف الأكلات المكررة: $error';
 }
+
+

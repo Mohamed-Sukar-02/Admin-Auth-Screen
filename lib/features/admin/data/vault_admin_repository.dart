@@ -3,10 +3,19 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../domain/duplicate_candidate.dart';
+import '../domain/similarity_engine.dart';
 import 'models/cloud_meal.dart';
+import 'models/ignored_duplicate.dart';
 
 final vaultAdminRepositoryProvider = Provider<VaultAdminRepository>((ref) {
   return VaultAdminRepository(firestore: FirebaseFirestore.instance);
+});
+
+final ignoredPairKeysStreamProvider =
+    StreamProvider.autoDispose<Set<String>>((ref) {
+  final repo = ref.watch(vaultAdminRepositoryProvider);
+  return repo.streamIgnoredPairKeys();
 });
 
 final vaultMealsStreamProvider = StreamProvider.autoDispose<List<CloudMeal>>((
@@ -49,6 +58,9 @@ class VaultAdminRepository {
 
   CollectionReference<Map<String, dynamic>> get _backupRef =>
       _firestore.collection('backup_meals');
+
+  CollectionReference<Map<String, dynamic>> get _ignoredDuplicatesRef =>
+      _firestore.collection('ignored_duplicates');
 
   /// A backup is one meta document naming fixed-size snapshot chunks. Every
   /// request then touches a single document, which is what the role-based
@@ -342,6 +354,135 @@ class VaultAdminRepository {
 
     await _deleteInChunks(_vaultRef, docIdsToDelete);
     return docIdsToDelete.length;
+  }
+
+  /// Canonical meal comparator delegating to [DuplicatePairCandidate.compareCanonicalMeals].
+  static int compareCanonicalMeals(CloudMeal a, CloudMeal b) =>
+      DuplicatePairCandidate.compareCanonicalMeals(a, b);
+
+  /// Calculates number of batch commits required for [totalIds] given [batchSize].
+  static int calculateBatchCount(int totalIds, {int batchSize = _writesPerCommit}) =>
+      totalIds == 0 ? 0 : (totalIds + batchSize - 1) ~/ batchSize;
+
+  /// Pure candidate detection pipeline without Firestore network dependencies.
+  static List<DuplicatePairCandidate> detectCandidatesPure({
+    required List<CloudMeal> meals,
+    required Set<String> ignoredKeys,
+    double threshold = 0.70,
+  }) {
+    final List<DuplicatePairCandidate> candidates = [];
+    final n = meals.length;
+    for (var i = 0; i < n; i++) {
+      for (var j = i + 1; j < n; j++) {
+        final a = meals[i];
+        final b = meals[j];
+
+        final pairKey = IgnoredDuplicate.generatePairKey(a.id, b.id);
+        if (ignoredKeys.contains(pairKey)) {
+          continue; // Pair acknowledged as distinct by admin
+        }
+
+        final sim = SimilarityEngine.compositeSimilarity(a.name, b.name);
+        if (sim >= threshold) {
+          candidates.add(DuplicatePairCandidate.resolve(
+            mealA: a,
+            mealB: b,
+            similarity: sim,
+          ));
+        }
+      }
+    }
+
+    // Sort descending: highest similarity candidates first
+    candidates.sort((a, b) => b.similarity.compareTo(a.similarity));
+    return candidates;
+  }
+
+  /// One-shot fetch of all ignored duplicate pair keys from Firestore.
+  /// Returns a `Set<String>` of document IDs for O(1) in-memory lookups.
+  Future<Set<String>> getIgnoredPairKeys() async {
+    final snapshot = await _ignoredDuplicatesRef.get();
+    return snapshot.docs.map((doc) => doc.id).toSet();
+  }
+
+  /// Reactive real-time stream of all ignored duplicate pair keys.
+  Stream<Set<String>> streamIgnoredPairKeys() {
+    return _ignoredDuplicatesRef.snapshots().map(
+      (snapshot) => snapshot.docs.map((doc) => doc.id).toSet(),
+    );
+  }
+
+  /// Persistently marks a candidate pair as ignored in Firestore.
+  /// Document ID is the deterministic symmetric pairKey `${min(idA, idB)}_${max(idA, idB)}`.
+  Future<void> ignoreDuplicatePair({
+    required CloudMeal mealA,
+    required CloudMeal mealB,
+    required double similarity,
+    String? adminId,
+  }) async {
+    final pairKey = IgnoredDuplicate.generatePairKey(mealA.id, mealB.id);
+    final isFirstSmaller = mealA.id.compareTo(mealB.id) <= 0;
+    final m1 = isFirstSmaller ? mealA : mealB;
+    final m2 = isFirstSmaller ? mealB : mealA;
+
+    await _ignoredDuplicatesRef.doc(pairKey).set({
+      'pairKey': pairKey,
+      'mealId1': m1.id,
+      'mealId2': m2.id,
+      'meal1Name': m1.name,
+      'meal2Name': m2.name,
+      'similarity': similarity,
+      'ignoredAt': FieldValue.serverTimestamp(),
+      if (adminId != null && adminId.trim().isNotEmpty)
+        'ignoredBy': adminId.trim(),
+    });
+  }
+
+  /// Unignores a pair by removing its document from `ignored_duplicates`.
+  Future<void> unignoreDuplicatePair(String pairKey) async {
+    await _ignoredDuplicatesRef.doc(pairKey).delete();
+  }
+
+  /// Scans vault meals for similarity >= [threshold] and returns candidate pairs.
+  ///
+  /// Ignored pairs are filtered out in O(1) time using [preloadedIgnoredKeys]
+  /// or by fetching keys once from Firestore via [getIgnoredPairKeys].
+  ///
+  /// Returned candidates are resolved into canonical form (original vs duplicate)
+  /// and sorted in descending order of similarity score.
+  Future<List<DuplicatePairCandidate>> detectDuplicateCandidates({
+    List<CloudMeal>? preloadedMeals,
+    Set<String>? preloadedIgnoredKeys,
+    double threshold = 0.70,
+  }) async {
+    List<CloudMeal> meals;
+    if (preloadedMeals != null) {
+      meals = preloadedMeals;
+    } else {
+      final snapshot = await _vaultRef.get();
+      meals = snapshot.docs
+          .map((doc) => CloudMeal.fromMap(doc.data(), doc.id))
+          .toList();
+    }
+
+    final ignoredKeys = preloadedIgnoredKeys ?? await getIgnoredPairKeys();
+    return detectCandidatesPure(
+      meals: meals,
+      ignoredKeys: ignoredKeys,
+      threshold: threshold,
+    );
+  }
+
+  /// Batch deletes a list of duplicate meals from the vault.
+  /// De-duplicates input IDs and executes chunked commits of 8 writes per batch
+  /// using the existing [_deleteInChunks] engine.
+  ///
+  /// Returns the number of unique documents deleted.
+  Future<int> deleteDuplicateMealsBatch(List<String> duplicateIds) async {
+    if (duplicateIds.isEmpty) return 0;
+    final uniqueIds = duplicateIds.toSet().toList();
+    await _deleteInChunks(_vaultRef, uniqueIds);
+    return uniqueIds.length;
   }
 
   CollectionReference<Map<String, dynamic>> get _notificationsRef =>
