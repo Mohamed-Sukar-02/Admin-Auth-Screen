@@ -551,17 +551,10 @@ class _AdminAuthScreenState extends ConsumerState<AdminAuthScreen> {
                                     ),
                                   ),
                                 ),
-                                icon: Image.network(
-                                  'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                                icon: Image.asset(
+                                  'assets/icons/google_g.png',
                                   width: 19,
                                   height: 19,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Icon(
-                                        // No Google glyph in AdminIcons.
-                                        Icons.g_mobiledata_rounded,
-                                        size: 21,
-                                        color: p.ink,
-                                      ),
                                 ),
                                 label: Text(
                                   tGoogle,
