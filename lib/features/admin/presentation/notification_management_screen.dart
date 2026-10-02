@@ -344,12 +344,40 @@ class _NotificationManagementScreenState
       if (!replaced || !mounted) return false;
     }
 
+    final meals = ref.read(vaultMealsStreamProvider).valueOrNull ?? const <CloudMeal>[];
+    String? matchedMealId;
+    if (result.destination == 'meal' && result.mealName.trim().isNotEmpty) {
+      final query = result.mealName.trim().toLowerCase();
+      for (final meal in meals) {
+        if (meal.name.trim().toLowerCase() == query) {
+          matchedMealId = meal.id;
+          break;
+        }
+      }
+      if (matchedMealId == null) {
+        for (final meal in meals) {
+          final mName = meal.name.trim().toLowerCase();
+          if (mName.contains(query) || query.contains(mName)) {
+            matchedMealId = meal.id;
+            break;
+          }
+        }
+      }
+    }
+
     setState(() {
       _titleArController.text = result.titleAr;
       _titleEnController.text = result.titleEn;
       _messageArController.text = result.messageAr;
       _messageEnController.text = result.messageEn;
       _selectedType = result.type;
+      _selectedDestination = result.destination;
+      _selectedStage = NotificationSegment.coerceKind(result.targetAudience);
+      if (result.destination == 'meal') {
+        _selectedMealId = matchedMealId;
+      } else {
+        _selectedMealId = null;
+      }
       _draftFromAssistant = true;
     });
     showAdminToast(
@@ -821,6 +849,7 @@ class _NotificationManagementScreenState
         _FieldLabelRow(label: label),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
+          key: ValueKey('select_${label}_$value'),
           initialValue: value,
           isExpanded: true,
           dropdownColor: p.surface,
@@ -895,12 +924,14 @@ class _NotificationManagementScreenState
         );
 
         return FormField<String>(
+          key: ValueKey('meal_target_field_$_selectedMealId'),
           initialValue: selected,
           validator: (value) => (value == null || value.isEmpty)
               ? 'اختر الأكلة التي سيفتحها الإشعار'
               : null,
           builder: (state) {
             return DropdownMenu<String>(
+              key: ValueKey('meal_dropdown_menu_$_selectedMealId'),
               initialSelection: state.value,
               expandedInsets: EdgeInsets.zero,
               enableFilter: true,

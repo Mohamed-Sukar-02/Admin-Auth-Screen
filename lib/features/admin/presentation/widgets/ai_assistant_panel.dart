@@ -10,6 +10,8 @@ import '../../data/ai_provider_repository.dart';
 import '../../data/app_features_repository.dart';
 import '../../data/models/ai_notification_result.dart';
 import '../../data/models/ai_provider.dart';
+import '../../data/models/cloud_meal.dart';
+import '../../data/vault_admin_repository.dart';
 import '../theme/admin_palette.dart';
 import 'admin_dialog.dart';
 import 'admin_toast.dart';
@@ -45,6 +47,7 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
   final _focus = FocusNode();
 
   AiSelectedTarget? _selectedTarget;
+  CloudMeal? _mentionedMeal;
   AiNotificationResult? _currentResult;
   String _lastPrompt = '';
   bool _isGenerating = false;
@@ -131,6 +134,22 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
         return <AppFeature>[];
       });
       
+      final meals = ref.read(vaultMealsStreamProvider).valueOrNull ?? const <CloudMeal>[];
+      final availableMealNames = meals
+          .map((m) => m.name.trim())
+          .where((name) => name.isNotEmpty)
+          .toList();
+
+      CloudMeal? targetMeal = _mentionedMeal;
+      if (targetMeal == null) {
+        for (final m in meals) {
+          if (m.name.isNotEmpty && idea.contains('@${m.name}')) {
+            targetMeal = m;
+            break;
+          }
+        }
+      }
+
       final result = await ref
           .read(aiNotificationServiceProvider)
           .generateNotification(
@@ -142,6 +161,8 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
             previousDraft: again ? null : _currentResult,
             variant: variation,
             contextFeatures: features,
+            availableMealNames: availableMealNames,
+            targetMeal: targetMeal,
           );
       if (!mounted || operation != _operation) return;
       setState(() {
@@ -285,6 +306,11 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
                             setState(() => _selectedTarget = target),
                         onSubmit: () => _handleGenerate(),
                         isGenerating: _isGenerating,
+                        meals: ref.watch(vaultMealsStreamProvider).valueOrNull ??
+                            const <CloudMeal>[],
+                        mentionedMeal: _mentionedMeal,
+                        onMentionMealChanged: (meal) =>
+                            setState(() => _mentionedMeal = meal),
                       ),
                       const SizedBox(height: 11),
                       _buildGuidelines(p, strings),
@@ -473,10 +499,77 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
           draft.messageEn,
           ltr: true,
         ),
-        const SizedBox(height: 12),
-        Text(
-          '${strings.aiSuggestedType}: ${_localizedType(draft.type, strings)}',
-          style: adminText(size: 11, color: p.inkMuted),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: p.surfaceAlt,
+            borderRadius: BorderRadius.circular(AdminRadii.md),
+            border: Border.all(color: p.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(AdminIcons.aiSparkle, size: 13, color: p.claySolid),
+                  const SizedBox(width: 6),
+                  Text(
+                    strings.aiSuggestedSettingsTitle,
+                    style: adminText(
+                      size: 11,
+                      weight: FontWeight.w600,
+                      color: p.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _buildMetaBadge(
+                    p: p,
+                    label: strings.aiSuggestedType,
+                    value: _localizedType(draft.type, strings),
+                    icon: switch (draft.type) {
+                      'reminder' => AdminIcons.reminder,
+                      'update' => AdminIcons.update,
+                      _ => AdminIcons.meal,
+                    },
+                  ),
+                  _buildMetaBadge(
+                    p: p,
+                    label: strings.aiSuggestedDestination,
+                    value: _localizedDestination(
+                      draft.destination,
+                      strings,
+                      draft.mealName,
+                    ),
+                    icon: switch (draft.destination) {
+                      'home' => AdminIcons.home,
+                      'vault' => AdminIcons.vault,
+                      'explore' => AdminIcons.explore,
+                      'settings' => AdminIcons.settings,
+                      'custom' => AdminIcons.link,
+                      _ => AdminIcons.meal,
+                    },
+                  ),
+                  _buildMetaBadge(
+                    p: p,
+                    label: strings.aiSuggestedAudience,
+                    value: _localizedAudience(draft.targetAudience, strings),
+                    icon: switch (draft.targetAudience) {
+                      'new' => AdminIcons.stageNew,
+                      'returning' => AdminIcons.stageReturning,
+                      _ => AdminIcons.users,
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Row(
@@ -636,6 +729,64 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
       'update' => strings.aiTypeUpdate,
       _ => strings.aiTypeMeal,
     };
+  }
+
+  String _localizedDestination(
+    String dest,
+    AppStrings strings,
+    String mealName,
+  ) {
+    final base = switch (dest) {
+      'home' => strings.aiDestHome,
+      'vault' => strings.aiDestVault,
+      'explore' => strings.aiDestExplore,
+      'settings' => strings.aiDestSettings,
+      'custom' => strings.aiDestCustom,
+      _ => strings.aiDestMeal,
+    };
+    if (dest == 'meal' && mealName.trim().isNotEmpty) {
+      return '$base (${mealName.trim()})';
+    }
+    return base;
+  }
+
+  String _localizedAudience(String audience, AppStrings strings) {
+    return switch (audience) {
+      'new' => strings.aiAudienceNew,
+      'returning' => strings.aiAudienceReturning,
+      _ => strings.aiAudienceAll,
+    };
+  }
+
+  Widget _buildMetaBadge({
+    required AdminPalette p,
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(AdminRadii.sm),
+        border: Border.all(color: p.borderStrong),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: p.claySolid),
+          const SizedBox(width: 5),
+          Text(
+            '$label: ',
+            style: adminText(size: 10.5, color: p.inkMuted),
+          ),
+          Text(
+            value,
+            style: adminText(size: 11, weight: FontWeight.w600, color: p.ink),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,3 +1,4 @@
+import '../../data/models/cloud_meal.dart';
 import '../../data/ai_provider_repository.dart';
 import 'package:flutter/material.dart';
 
@@ -7,16 +8,13 @@ import '../theme/admin_palette.dart';
 import 'admin_dialog.dart';
 
 /// ===========================================================================
-/// AI prompt capsule
+/// AI prompt capsule with @ Meal Mention Autocomplete
 ///
 /// The compose-side input of the assistant: a multi-line idea field with the
-/// model picker and the send button on the row underneath, all wrapped in one
-/// dark-olive capsule.
-///
-/// The controller and the focus node belong to the parent panel — the welcome
-/// chips write straight into this field — so this widget never disposes them.
+/// model picker, send button, and interactive @ mention autocomplete for
+/// vault meals.
 /// ===========================================================================
-class AiPromptBar extends StatelessWidget {
+class AiPromptBar extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final List<AiProvider> providers;
@@ -25,6 +23,9 @@ class AiPromptBar extends StatelessWidget {
   final ValueChanged<AiSelectedTarget?> onTargetChanged;
   final VoidCallback onSubmit;
   final bool isGenerating;
+  final List<CloudMeal> meals;
+  final CloudMeal? mentionedMeal;
+  final ValueChanged<CloudMeal?>? onMentionMealChanged;
 
   const AiPromptBar({
     super.key,
@@ -36,11 +37,135 @@ class AiPromptBar extends StatelessWidget {
     required this.onTargetChanged,
     required this.onSubmit,
     required this.isGenerating,
+    this.meals = const [],
+    this.mentionedMeal,
+    this.onMentionMealChanged,
   });
+
+  @override
+  State<AiPromptBar> createState() => _AiPromptBarState();
+}
+
+class _AiPromptBarState extends State<AiPromptBar> {
+  String? _mentionQuery;
+  int? _mentionStartIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant AiPromptBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onTextChanged);
+      widget.controller.addListener(_onTextChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    final text = widget.controller.text;
+
+    // Clear active mention if its tag was deleted from the text
+    if (widget.mentionedMeal != null &&
+        !text.contains('@${widget.mentionedMeal!.name}')) {
+      widget.onMentionMealChanged?.call(null);
+    }
+
+    final selection = widget.controller.selection;
+    if (!selection.isValid || selection.baseOffset < 0) {
+      if (_mentionQuery != null) setState(() => _mentionQuery = null);
+      return;
+    }
+
+    final cursor = selection.baseOffset;
+    if (cursor > text.length) {
+      if (_mentionQuery != null) setState(() => _mentionQuery = null);
+      return;
+    }
+
+    final textBeforeCursor = text.substring(0, cursor);
+    final lastAt = textBeforeCursor.lastIndexOf('@');
+    if (lastAt == -1) {
+      if (_mentionQuery != null) setState(() => _mentionQuery = null);
+      return;
+    }
+
+    // Must be preceded by start of text or whitespace/punctuation
+    if (lastAt > 0) {
+      final prevChar = textBeforeCursor[lastAt - 1];
+      if (!RegExp(r'[\s\n(،,]').hasMatch(prevChar)) {
+        if (_mentionQuery != null) setState(() => _mentionQuery = null);
+        return;
+      }
+    }
+
+    final textAfterAt = textBeforeCursor.substring(lastAt + 1);
+    if (textAfterAt.contains('\n') || textAfterAt.length > 35) {
+      if (_mentionQuery != null) setState(() => _mentionQuery = null);
+      return;
+    }
+
+    final query = textAfterAt.trim();
+    if (_mentionQuery != query || _mentionStartIndex != lastAt) {
+      setState(() {
+        _mentionQuery = query;
+        _mentionStartIndex = lastAt;
+      });
+    }
+  }
+
+  void _applyMention(CloudMeal meal) {
+    final text = widget.controller.text;
+    final cursor = widget.controller.selection.baseOffset;
+    final start = _mentionStartIndex ?? 0;
+
+    final before = text.substring(0, start);
+    final after = (cursor >= start && cursor <= text.length)
+        ? text.substring(cursor)
+        : '';
+
+    final mentionTag = '@${meal.name} ';
+    final newText = '$before$mentionTag$after';
+
+    widget.controller.text = newText;
+    final newCursor = before.length + mentionTag.length;
+    widget.controller.selection = TextSelection.collapsed(offset: newCursor);
+
+    widget.onMentionMealChanged?.call(meal);
+
+    setState(() {
+      _mentionQuery = null;
+      _mentionStartIndex = null;
+    });
+
+    widget.focusNode.requestFocus();
+  }
+
+  List<CloudMeal> _getMatchingMeals() {
+    if (widget.meals.isEmpty) return const [];
+    final q = _mentionQuery?.toLowerCase() ?? '';
+    if (q.isEmpty) {
+      return widget.meals.take(8).toList();
+    }
+    return widget.meals
+        .where((m) => m.name.toLowerCase().contains(q))
+        .take(8)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+    final matchingMeals = _getMatchingMeals();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
@@ -50,11 +175,149 @@ class AiPromptBar extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // @ Mention Autocomplete Dropdown Panel
+          if (_mentionQuery != null && widget.meals.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              constraints: const BoxConstraints(maxHeight: 210),
+              decoration: BoxDecoration(
+                color: AiCapsule.surface,
+                borderRadius: BorderRadius.circular(AdminRadii.md),
+                border: Border.all(color: AiCapsule.hairline),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black38,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          AdminIcons.meal,
+                          size: 14,
+                          color: AiCapsule.accent,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'أكلات الخزنة المتاحة (@)',
+                            style: adminText(
+                              size: 11,
+                              weight: FontWeight.w600,
+                              color: AiCapsule.onInk,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => setState(() => _mentionQuery = null),
+                          child: const Icon(
+                            AdminIcons.close,
+                            size: 14,
+                            color: AiCapsule.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AiCapsule.hairline,
+                  ),
+                  if (matchingMeals.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        'لا توجد أكلة تطابق «$_mentionQuery»',
+                        style: adminText(size: 11.5, color: AiCapsule.muted),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        itemCount: matchingMeals.length,
+                        separatorBuilder: (context, _) => const Divider(
+                          height: 1,
+                          color: AiCapsule.hairline,
+                        ),
+                        itemBuilder: (context, index) {
+                          final meal = matchingMeals[index];
+                          return InkWell(
+                            onTap: () => _applyMention(meal),
+                            hoverColor: Colors.white.withValues(alpha: 0.06),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 7,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    AdminIcons.meal,
+                                    size: 15,
+                                    color: AiCapsule.accent,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      meal.name,
+                                      style: adminText(
+                                        size: 12.5,
+                                        weight: FontWeight.w600,
+                                        color: AiCapsule.onInk,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (meal.category.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AiCapsule.ink,
+                                        borderRadius: BorderRadius.circular(
+                                          AdminRadii.sm,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        meal.category,
+                                        style: adminText(
+                                          size: 10,
+                                          color: AiCapsule.muted,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
           TextField(
-            controller: controller,
-            focusNode: focusNode,
-            enabled: !isGenerating,
+            controller: widget.controller,
+            focusNode: widget.focusNode,
+            enabled: !widget.isGenerating,
             maxLines: 3,
             maxLength: 600,
             textDirection: TextDirection.rtl,
@@ -74,22 +337,69 @@ class AiPromptBar extends StatelessWidget {
               ),
             ),
           ),
+          // Active Mention Tag Badge
+          if (widget.mentionedMeal != null) ...[
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AiCapsule.surface,
+                    borderRadius: BorderRadius.circular(AdminRadii.sm),
+                    border: Border.all(
+                      color: AiCapsule.accent.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        AdminIcons.meal,
+                        size: 13,
+                        color: AiCapsule.accent,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'وجبة مرتبطة (RAG): ${widget.mentionedMeal!.name}',
+                        style: adminText(
+                          size: 11,
+                          weight: FontWeight.w600,
+                          color: AiCapsule.onInk,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      InkWell(
+                        onTap: () => widget.onMentionMealChanged?.call(null),
+                        child: const Icon(
+                          AdminIcons.close,
+                          size: 12,
+                          color: AiCapsule.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 4),
           Row(
             children: [
               Expanded(
                 child: _ModelDropdownPill(
-                  providers: providers,
-                  customModels: customModels,
-                  selected: selectedTarget,
-                  onChanged: onTargetChanged,
+                  providers: widget.providers,
+                  customModels: widget.customModels,
+                  selected: widget.selectedTarget,
+                  onChanged: widget.onTargetChanged,
                 ),
               ),
               const SizedBox(width: 12),
               _SendButton(
                 tooltip: strings.aiSendTooltip,
-                onPressed: isGenerating ? null : onSubmit,
-                isLoading: isGenerating,
+                onPressed: widget.isGenerating ? null : widget.onSubmit,
+                isLoading: widget.isGenerating,
               ),
             ],
           ),
@@ -342,21 +652,21 @@ abstract final class _AiModelCatalog {
         provider: 'gemini',
         icon: Icons.bubble_chart_rounded,
         options: modelsFor('gemini').map((m) => _AiModelOption(
-          model: m, label: m, pillLabel: 'Gemini: ' + m
+          model: m, label: m, pillLabel: 'Gemini: $m',
         )).toList(),
       ),
       _AiModelGroup(
         provider: 'groq',
         icon: Icons.speed_rounded,
         options: modelsFor('groq').map((m) => _AiModelOption(
-          model: m, label: m, pillLabel: 'Groq: ' + m
+          model: m, label: m, pillLabel: 'Groq: $m',
         )).toList(),
       ),
       _AiModelGroup(
         provider: 'openrouter',
         icon: Icons.alt_route_rounded,
         options: modelsFor('openrouter').map((m) => _AiModelOption(
-          model: m, label: m, pillLabel: 'OpenRouter: ' + m
+          model: m, label: m, pillLabel: 'OpenRouter: $m',
         )).toList(),
       ),
     ];

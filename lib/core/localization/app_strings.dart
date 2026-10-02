@@ -266,14 +266,30 @@ class AppStrings {
   String get aiTypeReminder => isEn ? 'Reminder' : 'تذكير';
   String get aiTypeUpdate => isEn ? 'Update' : 'تحديث';
 
+  // Suggested destination & audience
+  String get aiSuggestedDestination =>
+      isEn ? 'Destination' : 'وجهة التوجيه';
+  String get aiSuggestedAudience =>
+      isEn ? 'Target audience' : 'الجمهور المستهدف';
+  String get aiSuggestedSettingsTitle => isEn
+      ? 'Suggested settings (applied to form):'
+      : 'اقتراحات الإعدادات (تُطبَّق على النموذج):';
+  String get aiDestHome => isEn ? 'Home screen' : 'الصفحة الرئيسية';
+  String get aiDestMeal => isEn ? 'Specific meal' : 'وجبة محددة';
+  String get aiDestVault => isEn ? 'Meals vault' : 'خزانة الأكلات';
+  String get aiDestExplore => isEn ? 'Explore tab' : 'تبويب الاستكشاف';
+  String get aiDestSettings => isEn ? 'Settings' : 'إعدادات التطبيق';
+  String get aiDestCustom => isEn ? 'Custom link' : 'رابط مخصص';
+  String get aiAudienceAll => isEn ? 'All users' : 'الجميع';
+  String get aiAudienceNew => isEn ? 'New users' : 'المستخدمون الجدد';
+  String get aiAudienceReturning => isEn ? 'Returning users' : 'المستخدمون العائدون';
+
   // AI assistant -> compose form: replacing an idea the admin already typed
   String get aiReplaceConfirmTitle =>
       isEn ? 'Use the new wording?' : 'نستخدم الصياغة الجديدة؟';
   String get aiReplaceConfirmBody => isEn
-      ? 'Only the bilingual texts and type will be replaced. The notification '
-            'target remains unchanged, and nothing is sent automatically.'
-      : 'سيتم استبدال النصوص باللغتين والنوع فقط. وجهة الإشعار لن تتغير، '
-            'ولن يتم إرساله تلقائياً.';
+      ? 'The texts, type, destination, and target audience will be filled with the suggestions. You can still modify any field before sending.'
+      : 'سيتم ملء النصوص والنوع ووجهة التوجيه والجمهور المستهدف باقتراحات المساعد. وستتمكن من تعديل أي عنصر قبل الإرسال.';
   String get aiKeepCurrent =>
       isEn ? 'Keep current content' : 'خلي المحتوى الحالي';
   String get aiUseSuggestion => isEn ? 'Use suggestion' : 'استخدم الاقتراح';

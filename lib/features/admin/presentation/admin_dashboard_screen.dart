@@ -792,7 +792,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             data: (meals) {
               final query = _searchQuery.trim().toLowerCase();
               final filtered = meals.where((m) {
-                final matchesSearch = m.name.toLowerCase().contains(query);
+                final q = query;
+                final matchesSearch = q.isEmpty ||
+                    m.name.toLowerCase().contains(q) ||
+                    _translateCategory(m.category).contains(q) ||
+                    _translateProtein(m.proteinType).contains(q) ||
+                    _translateCarbs(m.carbsType).contains(q) ||
+                    (m.isStarterMeal && 'الأساسية اساسي اساسية اساسيه الأساسيه starter'.contains(q)) ||
+                    (m.isFridaySpecial && 'عزومات جمعة عزومة الجمعة friday'.contains(q));
                 final matchesCat = _selectedCategory == 'all' ||
                     (_selectedCategory == 'starter'
                         ? m.isStarterMeal
