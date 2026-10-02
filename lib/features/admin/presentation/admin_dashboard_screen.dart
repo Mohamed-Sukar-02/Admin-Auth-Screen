@@ -675,6 +675,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 );
               }
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (final c in cards) ...[c, const SizedBox(height: 14)],
                 ],
