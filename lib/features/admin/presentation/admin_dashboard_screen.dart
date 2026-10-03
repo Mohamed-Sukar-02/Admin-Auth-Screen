@@ -139,6 +139,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'all';
   bool _isProcessingBackup = false;
+  int _settingsTab = 0;
 
 
   late double _sidebarWidth;
@@ -952,9 +953,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   // ---------------------------------------------------------------------
   // صفحة الإعدادات
   //
-  // One continuous bento: cards of unequal width paired in rows, each opening
-  // with a tinted heading band and closing with the action band, the same card
-  // anatomy the notifications screen uses. Nothing is hidden behind a tab.
+  // نفس تركيبة صفحة الإشعارات: شريط تبويبات فوق خط فاصل، وكروت تفتح بشريط
+  // عنوان وتُشرف بشريط إجراءات ملون، وكارتان جنب بعض على الشاشة العريضة.
   // ---------------------------------------------------------------------
   Widget _buildSettingsPage(dynamic user, AdminPalette p, bool isSuperAdmin) {
     final strings = AppStrings.of(context);
@@ -965,41 +965,40 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _settingsRow(
-              first: _accountCard(p, user, isSuperAdmin),
-              second: _appearanceCard(p),
-              firstFlex: 7,
-              secondFlex: 5,
+            AdminPageTabs(
+              selected: _settingsTab,
+              onSelect: (index) => setState(() => _settingsTab = index),
+              tabs: [
+                (icon: AdminIcons.person, label: 'الحساب والمظهر', count: null),
+                (
+                  icon: AdminIcons.settings,
+                  label: 'التحكم بالنظام',
+                  count: null,
+                ),
+                (
+                  icon: AdminIcons.vault,
+                  label: strings.vaultOperationsSection,
+                  count: null,
+                ),
+              ],
             ),
-            const SizedBox(height: 22),
-            _settingsRow(
-              first: _systemConfigCard(p, isSuperAdmin),
-              second: _adminsCard(p, user, isSuperAdmin),
-              firstFlex: 5,
-              secondFlex: 7,
-            ),
-            const SizedBox(height: 22),
-            _settingsRow(
-              first: _cleanupCard(p, strings, isSuperAdmin),
-              second: _backupCard(p, isSuperAdmin),
-              firstFlex: 5,
-              secondFlex: 7,
-            ),
+            const SizedBox(height: 24),
+            switch (_settingsTab) {
+              0 => _buildAccountTab(p, user, isSuperAdmin),
+              1 => _buildSystemControlTab(p, user, isSuperAdmin),
+              _ => _buildVaultOperationsTab(p, strings, isSuperAdmin),
+            },
           ],
         ),
       ),
     );
   }
 
-  /// A bento row: the two cards split a wide viewport at unequal spans, and
-  /// take the full width one under the other once the page gets narrow.
-  Widget _settingsRow({
-    required Widget first,
-    required Widget second,
-    required int firstFlex,
-    required int secondFlex,
-  }) {
-    if (MediaQuery.sizeOf(context).width < 1150) {
+  /// The split the notifications compose tab uses: two cards share the width
+  /// past 1150px, and stack — first over second — below it.
+  Widget _settingsTabCards(Widget first, Widget second) {
+    final isWide = MediaQuery.sizeOf(context).width >= 1150;
+    if (!isWide) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [first, const SizedBox(height: 22), second],
@@ -1008,22 +1007,20 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: firstFlex, child: first),
+        Expanded(child: first),
         const SizedBox(width: 22),
-        Expanded(flex: secondFlex, child: second),
+        Expanded(child: second),
       ],
     );
   }
 
-  /// The card anatomy: heading band, padded body, optional tinted action band.
-  /// The clip is what lets the band sit flush against the panel radius.
+  /// The shared card recipe: heading band, padded body, optional tinted action
+  /// band. The clip is what lets the band sit flush against the panel radius.
   Widget _settingsCard({
     required AdminPalette p,
     required IconData icon,
     required String title,
     required String subtitle,
-    required Color iconBg,
-    required Color iconFg,
     Widget? headingTrailing,
     required List<Widget> body,
     List<Widget>? actions,
@@ -1038,8 +1035,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             icon: icon,
             title: title,
             subtitle: subtitle,
-            iconBg: iconBg,
-            iconFg: iconFg,
             trailing: headingTrailing,
           ),
           Padding(
@@ -1055,8 +1050,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  /// What a card reaches into, as the quiet icon rows the notifications card
-  /// reserves for its meta line.
+  /// What a card actually reaches into, printed as the quiet icon rows the
+  /// notifications card reserves for its meta line.
   Widget _capabilityList(
     AdminPalette p,
     List<({IconData icon, String text})> items,
@@ -1179,15 +1174,17 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  /// ------------------------------------------------------ account card ------
-  Widget _accountCard(AdminPalette p, dynamic user, bool isSuperAdmin) {
-    return _settingsCard(
+  /// -------------------------------------------------------- tab: account ----
+  Widget _buildAccountTab(
+    AdminPalette p,
+    dynamic user,
+    bool isSuperAdmin,
+  ) {
+    final account = _settingsCard(
       p: p,
       icon: AdminIcons.person,
       title: 'حساب المشرف',
-      subtitle: 'الجلسة الحالية وصلاحياتها على اللوحة',
-      iconBg: p.claySoft,
-      iconFg: p.onClaySoft,
+      subtitle: user?.email ?? 'المشرف',
       headingTrailing: AdminStatusChip(
         label: isSuperAdmin ? 'Super Admin' : 'Admin',
         bg: isSuperAdmin ? p.claySoft : p.surfaceAlt,
@@ -1196,62 +1193,22 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         icon: isSuperAdmin ? AdminIcons.verified : AdminIcons.person,
       ),
       body: [
-        Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: p.surfaceSunken,
-                borderRadius: BorderRadius.circular(AdminRadii.md),
-              ),
-              child: Icon(AdminIcons.person, size: 21, color: p.inkMuted),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user?.email ?? 'المشرف',
-                    style: adminText(
-                      size: 14,
-                      weight: FontWeight.bold,
-                      color: p.ink,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isSuperAdmin
-                        ? 'صلاحيات كاملة على كل أدوات اللوحة'
-                        : 'صلاحية مراجعة المحتوى فقط',
-                    style: adminText(size: 12, color: p.inkMuted),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        AdminSpecGrid(
-          tiles: [
-            AdminSpecTile(
-              icon: AdminIcons.email,
-              label: 'البريد المسجّل',
-              value: user?.email ?? 'غير متاح',
-            ),
-            AdminSpecTile(
-              icon: isSuperAdmin ? AdminIcons.verified : AdminIcons.role,
-              label: 'مستوى الصلاحية',
-              value: isSuperAdmin ? 'صلاحيات كاملة' : 'مشاهدة فقط',
-            ),
-          ],
-        ),
+        _capabilityList(p, [
+          (
+            icon: isSuperAdmin ? AdminIcons.verified : AdminIcons.person,
+            text: isSuperAdmin
+                ? 'صلاحيات كاملة: النظام، المشرفون، التنظيف والنسخ الاحتياطي'
+                : 'مراجعة المحتوى؛ أدوات النظام لمشرفي الصلاحيات الكاملة',
+          ),
+          (
+            icon: AdminIcons.admins,
+            text: 'تغيير الصلاحيات وإضافة المشرفين من تبويب التحكم بالنظام',
+          ),
+        ]),
         const SizedBox(height: 14),
         AdminHintPanel(
           icon: AdminIcons.logout,
-          text: 'تسجيل الخروج يغلق الجلسة في هذا المتصفح ويعيدك لصفحة الدخول.',
+          text: 'تسجيل الخروج يغلق الجلسة الحالية في هذا المتصفح ويعيدك لصفحة الدخول.',
         ),
       ],
       actions: [
@@ -1275,10 +1232,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         ),
       ],
     );
+    return _settingsTabCards(account, _buildAppearanceCard(p));
   }
 
-  /// ---------------------------------------------------- appearance card -----
-  Widget _appearanceCard(AdminPalette p) {
+  /// ----------------------------------------------------- appearance card ----
+  Widget _buildAppearanceCard(AdminPalette p) {
     final current = ref.watch(themeModePreferenceProvider);
     final options = const [
       (
@@ -1302,9 +1260,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       p: p,
       icon: AdminIcons.palette,
       title: 'وضع العرض',
-      subtitle: 'نهاري أو داكن أو اتباع الجهاز',
-      iconBg: p.oliveSoft,
-      iconFg: p.oliveInk,
+      subtitle: 'نهاري أو داكن أو اتباع إعدادات الجهاز',
       body: [
         LayoutBuilder(
           builder: (context, constraints) {
@@ -1313,13 +1269,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 _appearanceOption(p, option, option.mode == current),
             ];
             // The Row owns the Expanded: handing one to the Column below would
-            // assert against the page scroll view's unbounded height. Three
-            // tiles still fit side by side inside a phone-width card.
-            if (constraints.maxWidth >= 300) {
+            // assert against the page scroll view's unbounded height.
+            if (constraints.maxWidth >= 560) {
               return Row(
                 children: [
                   for (final (index, tile) in tiles.indexed) ...[
-                    if (index > 0) const SizedBox(width: 11),
+                    if (index > 0) const SizedBox(width: 13),
                     Expanded(child: tile),
                   ],
                 ],
@@ -1329,21 +1284,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (final (index, tile) in tiles.indexed) ...[
-                  if (index > 0) const SizedBox(height: 11),
+                  if (index > 0) const SizedBox(height: 12),
                   tile,
                 ],
               ],
             );
           },
         ),
-        const SizedBox(height: 14),
-        AdminHintPanel(
-          icon: AdminIcons.info,
-          text: 'الاختيار بيتحفظ على المتصفح، فاللوحة تفتح على نفس الوضع مرة أخرى.',
-        ),
       ],
       actions: [
-        Icon(AdminIcons.check, size: 15, color: p.oliveInk),
+        Icon(AdminIcons.info, size: 15, color: p.inkFaint),
         const SizedBox(width: 9),
         Expanded(
           child: Text(
@@ -1365,35 +1315,39 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   ) {
     return Material(
       color: selected ? p.claySoft : p.surfaceAlt,
-      borderRadius: BorderRadius.circular(AdminRadii.md),
+      borderRadius: BorderRadius.circular(AdminRadii.sm),
       child: InkWell(
-        borderRadius: BorderRadius.circular(AdminRadii.md),
+        borderRadius: BorderRadius.circular(AdminRadii.sm),
         onTap: () => _setThemeMode(option.mode),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AdminRadii.md),
+            borderRadius: BorderRadius.circular(AdminRadii.sm),
             border: Border.all(
               color: selected ? p.clay.withValues(alpha: 0.55) : p.border,
             ),
           ),
-          child: Column(
+          child: Row(
             children: [
               Icon(
                 option.icon,
-                size: 20,
+                size: 18,
                 color: selected ? p.onClaySoft : p.inkMuted,
               ),
-              const SizedBox(height: 7),
-              Text(
-                option.label,
-                overflow: TextOverflow.ellipsis,
-                style: adminText(
-                  size: 12,
-                  weight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? p.onClaySoft : p.inkMuted,
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  option.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: adminText(
+                    size: 12.5,
+                    weight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: selected ? p.onClaySoft : p.inkMuted,
+                  ),
                 ),
               ),
+              if (selected)
+                Icon(AdminIcons.success, size: 15, color: p.onClaySoft),
             ],
           ),
         ),
@@ -1401,210 +1355,163 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  /// ------------------------------------------------- system config card -----
-  Widget _systemConfigCard(AdminPalette p, bool isSuperAdmin) {
-    final configAsync = ref.watch(systemConfigStreamProvider);
-
-    return _settingsCard(
-      p: p,
-      icon: AdminIcons.settings,
-      title: 'إعدادات النظام',
-      subtitle: 'القيم السارية على كل أجهزة المستخدمين',
-      iconBg: p.claySoft,
-      iconFg: p.onClaySoft,
-      headingTrailing: _lockedChip(p, isSuperAdmin),
-      body: [
-        configAsync.when(
-          loading: () => const AdminHintPanel(
-            icon: AdminIcons.time,
-            text: 'جارٍ قراءة إعدادات النظام…',
-          ),
-          error: (error, _) => AdminHintPanel(
-            icon: AdminIcons.warning,
-            text: 'تعذر تحميل الإعدادات: $error',
-            isError: true,
-          ),
-          data: (config) => AdminSpecGrid(
-            tiles: [
-              AdminSpecTile(
-                icon: AdminIcons.time,
-                label: 'التبريد بين الاقتراحات',
-                value: '${config?['cooldownDays'] ?? 14} يوم',
-              ),
-              AdminSpecTile(
-                icon: AdminIcons.update,
-                label: 'أقل إصدار للتطبيق',
-                value: '${config?['minAppVersion'] ?? '1.0.0'}',
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        _capabilityList(p, const [
-          (
-            icon: AdminIcons.campaign,
-            text: 'إعلان عام يظهر لكل المستخدمين داخل التطبيق',
-          ),
-        ]),
-      ],
-      actions: [
-        _settingsAction(
+  /// ---------------------------------------------------- tab: system tools ---
+  Widget _buildSystemControlTab(
+    AdminPalette p,
+    dynamic user,
+    bool isSuperAdmin,
+  ) {
+    return _settingsTabCards(
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.settings,
+        title: 'إعدادات النظام',
+        subtitle: 'أيام التبريد، تحديثات التطبيق، الإعلانات',
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, const [
+            (
+              icon: AdminIcons.time,
+              text: 'المدة التي ينتظرها المستخدم قبل اقتراح أكلة جديدة',
+            ),
+            (
+              icon: AdminIcons.update,
+              text: 'أقل إصدار تطبيق يُسمح للمستخدم بفتحه',
+            ),
+            (
+              icon: AdminIcons.campaign,
+              text: 'إعلان عام يظهر لكل المستخدمين داخل التطبيق',
+            ),
+          ]),
+        ],
+        actions: [
+          _settingsAction(
             p,
-            label: 'إدارة الإعدادات',
+            label: 'إدارة',
             icon: AdminIcons.edit,
             background: p.claySolid,
             enabled: isSuperAdmin,
             onPressed: () => _showSystemConfigDialog(p),
-        ),
-      ],
-    );
-  }
-
-  /// ------------------------------------------------------- admins card ------
-  Widget _adminsCard(AdminPalette p, dynamic user, bool isSuperAdmin) {
-    return _settingsCard(
-      p: p,
-      icon: AdminIcons.admins,
-      title: 'إدارة المشرفين',
-      subtitle: 'من يمكنه الدخول للوحة وما الذي يراه',
-      iconBg: p.plumSoft,
-      iconFg: p.plumInk,
-      headingTrailing: _lockedChip(p, isSuperAdmin),
-      body: [
-        for (final role in const [
-          'viewing_admin',
-          'editing_admin',
-          'super_admin',
-        ]) ...[
-          if (role != 'viewing_admin') const SizedBox(height: 11),
-          Row(
-            children: [
-              AdminRoleBadge(role: role),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  switch (role) {
-                    'super_admin' => 'كل الأدوات: النظام، المشرفون، التنظيف والنسخ',
-                    'editing_admin' => 'إضافة الأكلات ومراجعة المقترحات وحذفها',
-                    _ => 'مراجعة المحتوى دون تغيير إعدادات اللوحة',
-                  },
-                  style: adminText(size: 12, color: p.inkMuted, height: 1.6),
-                ),
-              ),
-            ],
           ),
         ],
-        const SizedBox(height: 14),
-        AdminHintPanel(
-          icon: AdminIcons.time,
-          text: 'نافذة الإدارة تعرض سجل آخر عشر تغييرات على الصلاحيات.',
-        ),
-      ],
-      actions: [
-        _settingsAction(
-          p,
-          label: 'إدارة المشرفين',
-          icon: AdminIcons.adminAdd,
-          background: p.plumSolid,
-          enabled: isSuperAdmin,
-          onPressed: () => _showAdminManagementDialog(p, user?.email),
-        ),
-      ],
+      ),
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.admins,
+        title: 'إدارة المشرفين',
+        subtitle: 'إضافة أو إزالة المشرفين وتحديد صلاحياتهم',
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, const [
+            (
+              icon: AdminIcons.adminAdd,
+              text: 'منح البريد الإلكتروني صلاحية الدخول للوحة',
+            ),
+            (
+              icon: AdminIcons.role,
+              text: 'تحويل المشرف بين مشاهدة وإدارة وصلاحيات كاملة',
+            ),
+            (
+              icon: AdminIcons.time,
+              text: 'سجل آخر عشر تغييرات على الصلاحيات مع صاحب القرار',
+            ),
+          ]),
+        ],
+        actions: [
+          _settingsAction(
+            p,
+            label: 'إدارة',
+            icon: AdminIcons.admins,
+            background: p.plumSolid,
+            enabled: isSuperAdmin,
+            onPressed: () => _showAdminManagementDialog(p, user?.email),
+          ),
+        ],
+      ),
     );
   }
 
-  /// -------------------------------------------------------- cleanup card ----
-  Widget _cleanupCard(
+  /// ------------------------------------------- tab: vault operations --------
+  Widget _buildVaultOperationsTab(
     AdminPalette p,
     AppStrings strings,
     bool isSuperAdmin,
   ) {
-    return _settingsCard(
-      p: p,
-      icon: AdminIcons.cleanup,
-      title: strings.vaultDeduplicationSettingsTileTitle,
-      subtitle: strings.vaultDeduplicationSettingsTileSubtitle,
-      iconBg: p.honeySoft,
-      iconFg: p.honeyInk,
-      headingTrailing: _lockedChip(p, isSuperAdmin),
-      body: [
-        _capabilityList(p, [
-          (
-            icon: AdminIcons.suggestions,
-            text: strings.vaultDeduplicationSubtitle,
+    return _settingsTabCards(
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.cleanup,
+        title: strings.vaultDeduplicationSettingsTileTitle,
+        subtitle: strings.vaultDeduplicationSettingsTileSubtitle,
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, [
+            (
+              icon: AdminIcons.suggestions,
+              text: strings.vaultDeduplicationSubtitle,
+            ),
+            (
+              icon: AdminIcons.visibilityOff,
+              text: 'الفحص يستخرج الأكلات المتشابهة داخل الخزنة، والحذف لا يتم قبل قرارك',
+            ),
+          ]),
+        ],
+        actions: [
+          _settingsAction(
+            p,
+            label: strings.vaultDeduplicationCleanButton,
+            icon: AdminIcons.cleanup,
+            background: p.honeySolid,
+            enabled: isSuperAdmin,
+            onPressed: () => _handleDeduplication(p),
           ),
-          (
-            icon: AdminIcons.visibilityOff,
-            text: 'الفحص يستخرج الأكلات المتشابهة، والحذف لا يتم قبل قرارك',
+        ],
+      ),
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.backup,
+        title: 'النسخ الاحتياطي والاستعادة',
+        subtitle: 'حفظ أو استعادة بيانات الخزنة الكاملة',
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, const [
+            (
+              icon: AdminIcons.upload,
+              text: 'رفع نسخة كاملة يستبدل النسخة الاحتياطية القديمة',
+            ),
+            (
+              icon: AdminIcons.restore,
+              text: 'استعادة تمسح الخزنة الحالية وتضع مكانها آخر نسخة مرفوعة',
+            ),
+          ]),
+          const SizedBox(height: 14),
+          AdminHintPanel(
+            icon: AdminIcons.warning,
+            text: 'الاستعادة لا يمكن التراجع عنها؛ ارفع نسخة جديدة قبلها إن كانت البيانات الحالية مهمة.',
           ),
-        ]),
-        const SizedBox(height: 14),
-        AdminHintPanel(
-          icon: AdminIcons.performance,
-          text: 'المطابقة تتم بالأسماء أو بمعرّف الأكلة، حسب الوضع المختار داخل النافذة.',
-        ),
-      ],
-      actions: [
-        _settingsAction(
-          p,
-          label: strings.vaultDeduplicationCleanButton,
-          icon: AdminIcons.cleanup,
-          background: p.honeySolid,
-          enabled: isSuperAdmin,
-          onPressed: () => _handleDeduplication(p),
-        ),
-      ],
-    );
-  }
-
-  /// --------------------------------------------------------- backup card ----
-  Widget _backupCard(AdminPalette p, bool isSuperAdmin) {
-    return _settingsCard(
-      p: p,
-      icon: AdminIcons.backup,
-      title: 'النسخ الاحتياطي والاستعادة',
-      subtitle: 'حفظ أو استعادة بيانات الخزنة الكاملة',
-      iconBg: p.nileSoft,
-      iconFg: p.nileInk,
-      headingTrailing: _lockedChip(p, isSuperAdmin),
-      body: [
-        _capabilityList(p, const [
-          (
-            icon: AdminIcons.upload,
-            text: 'رفع نسخة كاملة يستبدل النسخة الاحتياطية القديمة',
-          ),
-          (
+        ],
+        actions: [
+          _settingsQuietAction(
+            p,
+            label: 'استعادة',
             icon: AdminIcons.restore,
-            text: 'استعادة تمسح الخزنة الحالية وتضع مكانها آخر نسخة مرفوعة',
+            tint: p.nileInk,
+            enabled: isSuperAdmin,
+            loading: _isProcessingBackup,
+            onPressed: _restoreVault,
           ),
-        ]),
-        const SizedBox(height: 14),
-        AdminHintPanel(
-          icon: AdminIcons.warning,
-          text: 'الاستعادة لا يمكن التراجع عنها؛ ارفع نسخة جديدة قبلها إن كانت البيانات الحالية مهمة.',
-        ),
-      ],
-      actions: [
-        _settingsQuietAction(
-          p,
-          label: 'استعادة',
-          icon: AdminIcons.restore,
-          tint: p.nileInk,
-          enabled: isSuperAdmin,
-          loading: _isProcessingBackup,
-          onPressed: _restoreVault,
-        ),
-        const SizedBox(width: 10),
-        _settingsAction(
-          p,
-          label: 'نسخ احتياطي',
-          icon: AdminIcons.backup,
-          background: p.nileSolid,
-          enabled: isSuperAdmin,
-          loading: _isProcessingBackup,
-          onPressed: _uploadBackup,
-        ),
-      ],
+          const SizedBox(width: 10),
+          _settingsAction(
+            p,
+            label: 'نسخ احتياطي',
+            icon: AdminIcons.backup,
+            background: p.nileSolid,
+            enabled: isSuperAdmin,
+            loading: _isProcessingBackup,
+            onPressed: _uploadBackup,
+          ),
+        ],
+      ),
     );
   }
 
