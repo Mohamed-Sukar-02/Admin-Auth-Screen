@@ -368,9 +368,11 @@ void main() {
         final meal3 = _createTestMeal(id: 'm3', name: 'مسقعة بلدي');
         final meal4 = _createTestMeal(id: 'm4', name: 'مسقعة باللحمة');
 
+        // Batch clean only reaches for high-confidence pairs, so the fixture
+        // sits above that gate the way a real exact duplicate would.
         fakeRepo.candidatesToReturn = [
-          _createCandidate(original: meal1, duplicate: meal2),
-          _createCandidate(original: meal3, duplicate: meal4),
+          _createCandidate(original: meal1, duplicate: meal2, similarity: 0.98),
+          _createCandidate(original: meal3, duplicate: meal4, similarity: 0.97),
         ];
 
         await pumpDialog(tester);
@@ -481,7 +483,7 @@ void main() {
         final meal1 = _createTestMeal(id: 'm1', name: 'شوربة عدس');
         final meal2 = _createTestMeal(id: 'm2', name: 'شوربة خضار');
         fakeRepo.candidatesToReturn = [
-          _createCandidate(original: meal1, duplicate: meal2)
+          _createCandidate(original: meal1, duplicate: meal2, similarity: 0.99)
         ];
 
         await pumpDialog(tester);
@@ -536,8 +538,8 @@ void main() {
 
         // Both pairs designate mealC as duplicate
         fakeRepo.candidatesToReturn = [
-          _createCandidate(original: mealA, duplicate: mealC),
-          _createCandidate(original: mealB, duplicate: mealC),
+          _createCandidate(original: mealA, duplicate: mealC, similarity: 0.96),
+          _createCandidate(original: mealB, duplicate: mealC, similarity: 0.96),
         ];
 
         await pumpDialog(tester);
@@ -760,7 +762,7 @@ void main() {
         final mealA = _createTestMeal(id: 'm1', name: 'Chicken Kofta');
         final mealB = _createTestMeal(id: 'm2', name: 'Beef Kofta');
         fakeRepo.candidatesToReturn = [
-          _createCandidate(original: mealA, duplicate: mealB, similarity: 0.85)
+          _createCandidate(original: mealA, duplicate: mealB, similarity: 0.96)
         ];
 
         await pumpDialog(tester, locale: const Locale('en'));
