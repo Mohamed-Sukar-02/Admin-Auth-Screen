@@ -11,6 +11,7 @@ import '../data/models/notification_segment.dart';
 import '../data/vault_admin_repository.dart';
 import 'theme/admin_palette.dart';
 import 'widgets/admin_dialog.dart';
+import 'widgets/admin_page_chrome.dart';
 import 'widgets/admin_toast.dart';
 import 'widgets/ai_assistant_panel.dart';
 import 'widgets/notification_review.dart';
@@ -512,10 +513,21 @@ class _NotificationManagementScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _PageTabs(
+            AdminPageTabs(
               selected: _tab,
-              historyCount: history.length,
-              draftsCount: drafts.length,
+              tabs: [
+                (
+                  icon: AdminIcons.edit,
+                  label: 'إشعار جديد',
+                  count: null,
+                ),
+                (
+                  icon: AdminIcons.time,
+                  label: 'سجل الإشعارات',
+                  count: history.length,
+                ),
+                (icon: AdminIcons.save, label: 'المسودات', count: drafts.length),
+              ],
               onSelect: (index) => setState(() => _tab = index),
             ),
             const SizedBox(height: 24),
@@ -659,38 +671,31 @@ class _NotificationManagementScreenState
   /// The tinted band the mockups close every card with: send on one side, the
   /// quieter draft save on the other.
   Widget _buildFormActions(AdminPalette p) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
-      decoration: BoxDecoration(
-        color: p.surfaceAlt,
-        border: Border(top: BorderSide(color: p.border)),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _buildSendButton(p)),
-          const SizedBox(width: 10),
-          TextButton.icon(
-            onPressed: _savingDraft ? null : _saveDraft,
-            icon: Icon(AdminIcons.save, size: 18, color: p.inkMuted),
-            label: Text(
-              _savingDraft ? 'جارٍ الحفظ…' : 'حفظ كمسودة',
-              style: adminText(
-                size: 13,
-                weight: FontWeight.w500,
-                color: p.inkMuted,
-              ),
-            ),
-            style: TextButton.styleFrom(
-              foregroundColor: p.inkMuted,
-              backgroundColor: Colors.transparent,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AdminRadii.sm),
-              ),
+    return AdminCardActionBar(
+      children: [
+        Expanded(child: _buildSendButton(p)),
+        const SizedBox(width: 10),
+        TextButton.icon(
+          onPressed: _savingDraft ? null : _saveDraft,
+          icon: Icon(AdminIcons.save, size: 18, color: p.inkMuted),
+          label: Text(
+            _savingDraft ? 'جارٍ الحفظ…' : 'حفظ كمسودة',
+            style: adminText(
+              size: 13,
+              weight: FontWeight.w500,
+              color: p.inkMuted,
             ),
           ),
-        ],
-      ),
+          style: TextButton.styleFrom(
+            foregroundColor: p.inkMuted,
+            backgroundColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AdminRadii.sm),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -892,23 +897,20 @@ class _NotificationManagementScreenState
     AsyncValue<List<CloudMeal>> mealsAsync,
   ) {
     return mealsAsync.when(
-      loading: () => _TargetHint(
+      loading: () => AdminHintPanel(
         icon: AdminIcons.time,
         text: 'جارٍ تحميل أكلات الخزنة…',
-        palette: p,
       ),
-      error: (error, _) => _TargetHint(
+      error: (error, _) => AdminHintPanel(
         icon: AdminIcons.warning,
         text: 'تعذّر تحميل أكلات الخزنة: $error',
-        palette: p,
         isError: true,
       ),
       data: (meals) {
         if (meals.isEmpty) {
-          return _TargetHint(
+          return AdminHintPanel(
             icon: AdminIcons.empty,
             text: 'خزنة الأكلات فارغة الآن؛ اختر وجهة أخرى أو ارفع أكلة أولاً.',
-            palette: p,
           );
         }
 
@@ -990,10 +992,9 @@ class _NotificationManagementScreenState
   /// somewhere to go without competing with send.
   Widget _buildRoutePreview(AdminPalette p, String route) {
     if (route.isEmpty) {
-      return _TargetHint(
+      return AdminHintPanel(
         icon: AdminIcons.link,
         text: 'لم تُحدَّد وجهة التوجيه بعد — أكملها قبل الإرسال.',
-        palette: p,
       );
     }
 
@@ -1259,52 +1260,6 @@ class _NotificationManagementScreenState
 /// ===========================================================================
 /// Compose card helpers
 /// ===========================================================================
-/// Neutral placeholder for a destination that has no value to show yet: the
-/// vault picker while its stream is loading, failed or empty, and the route
-/// preview while the admin has not finished choosing.
-class _TargetHint extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final AdminPalette palette;
-  final bool isError;
-
-  const _TargetHint({
-    required this.icon,
-    required this.text,
-    required this.palette,
-    this.isError = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = isError ? palette.chiliInk : palette.inkMuted;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: isError ? palette.chiliSoft : palette.surfaceAlt,
-        borderRadius: BorderRadius.circular(AdminRadii.sm),
-        border: Border.all(
-          color: isError
-              ? palette.chiliSolid.withValues(alpha: 0.35)
-              : palette.border,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 17, color: fg),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: adminText(size: 12.5, color: fg, height: 1.6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// One broadcast in the history list.
 class _NotificationCard extends StatelessWidget {
   final Map<String, dynamic> notification;
@@ -1606,120 +1561,6 @@ String _formatSentAt(Object? sentAt) {
 }
 
 /// ===========================================================================
-/// Page tabs
-/// ===========================================================================
-/// The three sections of this screen live on one underline tab bar: labels sit
-/// on a shared hairline and only the active one gets an accent bar and colour,
-/// so switching never moves the content width.
-class _PageTabs extends StatelessWidget {
-  final int selected;
-  final int historyCount;
-  final int draftsCount;
-  final ValueChanged<int> onSelect;
-
-  const _PageTabs({
-    required this.selected,
-    required this.historyCount,
-    required this.draftsCount,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final p = AdminPalette.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: p.border)),
-      ),
-      child: Row(
-        children: [
-          _tab(p, 0, AdminIcons.edit, 'إشعار جديد'),
-          const SizedBox(width: 25),
-          _tab(p, 1, AdminIcons.time, 'سجل الإشعارات', count: historyCount),
-          const SizedBox(width: 25),
-          _tab(p, 2, AdminIcons.save, 'المسودات', count: draftsCount),
-        ],
-      ),
-    );
-  }
-
-  Widget _tab(
-    AdminPalette p,
-    int index,
-    IconData icon,
-    String label, {
-    int? count,
-  }) {
-    final active = selected == index;
-    final color = active ? p.onClaySoft : p.inkMuted;
-    return InkWell(
-      onTap: () => onSelect(index),
-      child: IntrinsicWidth(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 11),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 15, color: color),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: adminText(
-                      size: 13,
-                      weight: active ? FontWeight.w600 : FontWeight.w500,
-                      color: color,
-                    ),
-                  ),
-                  if (count != null) ...[
-                    const SizedBox(width: 8),
-                    _TabCount(count: count),
-                  ],
-                ],
-              ),
-            ),
-            Container(
-              height: 2,
-              decoration: BoxDecoration(
-                color: active ? p.clay : Colors.transparent,
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TabCount extends StatelessWidget {
-  final int count;
-
-  const _TabCount({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    final p = AdminPalette.of(context);
-    return Container(
-      constraints: const BoxConstraints(minWidth: 18),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-      decoration: BoxDecoration(
-        color: p.surfaceAlt,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: p.border),
-      ),
-      child: Text(
-        count.toString().padLeft(2, '0'),
-        textAlign: TextAlign.center,
-        style: adminLatinText(size: 10.5, color: p.inkMuted),
-      ),
-    );
-  }
-}
-
-/// ===========================================================================
 /// Card chrome
 /// ===========================================================================
 /// The small chip in the compose card header that says what the form currently
@@ -1744,7 +1585,7 @@ class _FormStatusBadge extends StatelessWidget {
         final hasCopy = controllers.any((c) => c.text.trim().isNotEmpty);
 
         if (saved) {
-          return _StatusChip(
+          return AdminStatusChip(
             label: 'مسودة محفوظة',
             bg: p.honeySoft,
             border: p.honeySolid.withValues(alpha: 0.28),
@@ -1752,7 +1593,7 @@ class _FormStatusBadge extends StatelessWidget {
           );
         }
         if (fromAssistant) {
-          return _StatusChip(
+          return AdminStatusChip(
             label: 'من المساعد',
             bg: p.oliveSoft,
             border: p.oliveSolid.withValues(alpha: 0.28),
@@ -1761,7 +1602,7 @@ class _FormStatusBadge extends StatelessWidget {
           );
         }
         if (hasCopy) {
-          return _StatusChip(
+          return AdminStatusChip(
             label: 'مسودة',
             bg: p.surfaceAlt,
             border: p.border,
@@ -1770,47 +1611,6 @@ class _FormStatusBadge extends StatelessWidget {
         }
         return const SizedBox.shrink();
       },
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final Color bg;
-  final Color border;
-  final Color fg;
-  final IconData? icon;
-
-  const _StatusChip({
-    required this.label,
-    required this.bg,
-    required this.border,
-    required this.fg,
-    this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: fg),
-            const SizedBox(width: 5),
-          ],
-          Text(
-            label,
-            style: adminText(size: 11, weight: FontWeight.w600, color: fg),
-          ),
-        ],
-      ),
     );
   }
 }
