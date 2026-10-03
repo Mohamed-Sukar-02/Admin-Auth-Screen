@@ -317,7 +317,6 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
                     ],
                   ),
                 ),
-                _buildFooter(p, strings, providers.isEmpty),
               ],
             ),
           ),
@@ -664,34 +663,6 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
         ),
         Text('↵ Enter', style: adminLatinText(size: 10, color: p.inkFaint)),
       ],
-    );
-  }
-
-  /// Card footer band: who owns the decision, and whether a provider is
-  /// actually wired up behind the capsule.
-  Widget _buildFooter(AdminPalette p, AppStrings strings, bool noProviders) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: p.border)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              strings.aiFooterDisclaimer,
-              style: adminText(size: 10.5, color: p.inkFaint),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Icon(AdminIcons.settings, size: 13, color: p.inkMuted),
-          const SizedBox(width: 5),
-          Text(
-            noProviders ? strings.aiOfflineMode : strings.aiOnlineMode,
-            style: adminText(size: 10.5, color: p.inkMuted),
-          ),
-        ],
-      ),
     );
   }
 

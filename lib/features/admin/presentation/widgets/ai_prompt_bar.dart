@@ -318,7 +318,7 @@ class _AiPromptBarState extends State<AiPromptBar> {
             controller: widget.controller,
             focusNode: widget.focusNode,
             enabled: !widget.isGenerating,
-            maxLines: 3,
+            maxLines: 2,
             maxLength: 600,
             textDirection: TextDirection.rtl,
             style: adminText(size: 13, color: AiCapsule.onInk, height: 1.8),
@@ -387,19 +387,21 @@ class _AiPromptBarState extends State<AiPromptBar> {
           const SizedBox(height: 4),
           Row(
             children: [
-              Expanded(
-                child: _ModelDropdownPill(
-                  providers: widget.providers,
-                  customModels: widget.customModels,
-                  selected: widget.selectedTarget,
-                  onChanged: widget.onTargetChanged,
-                ),
-              ),
-              const SizedBox(width: 12),
               _SendButton(
                 tooltip: strings.aiSendTooltip,
                 onPressed: widget.isGenerating ? null : widget.onSubmit,
                 isLoading: widget.isGenerating,
+              ),
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: _ModelDropdownPill(
+                    providers: widget.providers,
+                    customModels: widget.customModels,
+                    selected: widget.selectedTarget,
+                    onChanged: widget.onTargetChanged,
+                  ),
+                ),
               ),
             ],
           ),

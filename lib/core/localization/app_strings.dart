@@ -241,14 +241,9 @@ class AppStrings {
   String get aiSendTooltip => isEn ? 'Write the notification' : 'صياغة الإشعار';
 
   // AI assistant panel — footnotes
-  String get aiOfflineMode => isEn ? 'Local preview' : 'تجربة محلية';
-  String get aiOnlineMode => isEn ? 'Connected' : 'متصل بالموديلات';
   String get aiFooterPillars => isEn
       ? 'Egyptian Arabic · Spirited English · No emoji unless requested'
       : 'عامية مصرية · إنجليزي بروحها · بدون إيموجي إلا بطلبك';
-  String get aiFooterDisclaimer => isEn
-      ? 'The assistant suggests, you decide. The app never sends automatically.'
-      : 'المساعد بيقترح، وأنت صاحب القرار. التطبيق لا يرسل الإشعار تلقائياً.';
 
   // AI assistant panel — inline failures
   String get aiIdeaTooShort => isEn
