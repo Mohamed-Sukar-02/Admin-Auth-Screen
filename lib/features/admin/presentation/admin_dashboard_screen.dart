@@ -491,7 +491,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           );
 
-          final sidebarWidth = _sidebarCollapsed
+          // The sidebar is laid out on the desktop branch only: measuring it
+          // for a phone clamps against `maxWidth - 560`, a negative upper
+          // limit, which throws before any page paints.
+          final sidebarWidth = isMobile || _sidebarCollapsed
               ? _sidebarRailWidth
               : _sidebarWidth
                     .clamp(
