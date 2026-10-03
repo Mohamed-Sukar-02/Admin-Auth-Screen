@@ -369,7 +369,6 @@ class VaultAdminRepository {
     required List<CloudMeal> meals,
     required Set<String> ignoredKeys,
     double threshold = 0.88,
-    bool checkById = false,
   }) {
     final List<DuplicatePairCandidate> candidates = [];
     final n = meals.length;
@@ -383,13 +382,7 @@ class VaultAdminRepository {
           continue; // Pair acknowledged as distinct by admin
         }
 
-        // Firestore IDs are opaque tokens, so the ID tab matches exact normalized names instead.
-        final sim = checkById
-            ? (SimilarityEngine.normalizeArabic(a.name) ==
-                  SimilarityEngine.normalizeArabic(b.name)
-                ? 1.0
-                : 0.0)
-            : SimilarityEngine.compositeSimilarity(a.name, b.name);
+        final sim = SimilarityEngine.compositeSimilarity(a.name, b.name);
 
         if (sim >= threshold) {
           candidates.add(DuplicatePairCandidate.resolve(
@@ -462,7 +455,6 @@ class VaultAdminRepository {
     List<CloudMeal>? preloadedMeals,
     Set<String>? preloadedIgnoredKeys,
     double threshold = 0.88,
-    bool checkById = false,
   }) async {
     List<CloudMeal> meals;
     if (preloadedMeals != null) {
@@ -479,7 +471,6 @@ class VaultAdminRepository {
       meals: meals,
       ignoredKeys: ignoredKeys,
       threshold: threshold,
-      checkById: checkById,
     );
   }
 
@@ -614,3 +605,4 @@ class VaultAdminRepository {
     await _draftsRef.doc(id).delete();
   }
 }
+
