@@ -36,6 +36,10 @@ template for a new one.
 - Dialogs and confirmations use `showAdminDialog` / `showAdminConfirmDialog` and
   `AdminDialogShell` / `AdminDialogPanel` / `AdminDialogButtons`.
 - Form fields use `adminFieldDeco`.
+- A page that splits into sections uses `AdminPageTabs` (the underline bar), and
+  its cards close with `AdminCardActionBar`; state chips and "nothing to show
+  yet" rows use `AdminStatusChip` / `AdminHintPanel`. All four live in
+  `widgets/admin_page_chrome.dart` — never redraw them per screen.
 
 ## Shell rules
 
