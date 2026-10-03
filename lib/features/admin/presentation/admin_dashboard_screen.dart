@@ -464,6 +464,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ? null
                       : () => _openAddMealDialog(null),
                   showAddButton: _navIndex == 0,
+                  showSearch: _navIndex == 0,
                 ),
                 Expanded(
                   child: IndexedStack(
@@ -2849,6 +2850,9 @@ class _TopBar extends ConsumerWidget {
   final VoidCallback? onAddMeal;
   final bool showAddButton;
 
+  /// The field filters the vault grid, so it only earns its place on that page.
+  final bool showSearch;
+
   const _TopBar({
     required this.userEmail,
     required this.pageIndex,
@@ -2856,6 +2860,7 @@ class _TopBar extends ConsumerWidget {
     required this.onSearchChanged,
     required this.onAddMeal,
     required this.showAddButton,
+    required this.showSearch,
   });
 
   Future<void> _toggleTheme(BuildContext context, WidgetRef ref) async {
@@ -3008,8 +3013,10 @@ class _TopBar extends ConsumerWidget {
                 if (showAddButton) ...[const SizedBox(width: 6), addButton],
               ],
             ),
-            const SizedBox(height: 14),
-            searchField,
+            if (showSearch) ...[
+              const SizedBox(height: 14),
+              searchField,
+            ],
           ],
         ),
       );
@@ -3024,13 +3031,15 @@ class _TopBar extends ConsumerWidget {
       child: Row(
         children: [
           titleBlock,
-          const SizedBox(width: 24),
-          Expanded(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: searchField,
+          if (showSearch) ...[
+            const SizedBox(width: 24),
+            Expanded(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: searchField,
+              ),
             ),
-          ),
+          ],
           const Spacer(),
           if (showAddButton) ...[
             addButton,

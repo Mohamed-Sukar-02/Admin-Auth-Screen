@@ -6,6 +6,7 @@ import '../../../../core/localization/app_strings.dart';
 import '../../data/models/ai_provider.dart';
 import '../theme/admin_palette.dart';
 import 'admin_dialog.dart';
+import 'provider_brand_icons.dart';
 
 /// ===========================================================================
 /// AI prompt capsule with @ Meal Mention Autocomplete
@@ -318,7 +319,8 @@ class _AiPromptBarState extends State<AiPromptBar> {
             controller: widget.controller,
             focusNode: widget.focusNode,
             enabled: !widget.isGenerating,
-            maxLines: 2,
+            minLines: 1,
+            maxLines: 3,
             maxLength: 600,
             textDirection: TextDirection.rtl,
             style: adminText(size: 13, color: AiCapsule.onInk, height: 1.8),
@@ -509,52 +511,64 @@ class _ModelDropdownPillState extends State<_ModelDropdownPill> {
         ),
       ),
       menuChildren: [
-        MenuItemButton(
-          leadingIcon: _checkIcon(selected == null),
-          onPressed: () => widget.onChanged(null),
-          child: Text(
-            strings.aiAutoMode,
-            style: adminText(
-              size: 13,
-              weight: FontWeight.w700,
-              color: AiCapsule.onInk,
+        // The catalogue is Latin (provider names in brackets, model ids), so
+        // every row reads left-to-right even inside the RTL panel.
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MenuItemButton(
+            leadingIcon: _checkIcon(selected == null),
+            onPressed: () => widget.onChanged(null),
+            child: Text(
+              strings.aiAutoMode,
+              style: adminText(
+                size: 13,
+                weight: FontWeight.w700,
+                color: AiCapsule.onInk,
+              ),
             ),
           ),
         ),
         const Divider(height: 10, thickness: 1, color: AiCapsule.hairline),
         for (final group in _AiModelCatalog.getGroups(widget.customModels).where((g) => g.options.isNotEmpty))
-          SubmenuButton(
-            style: const ButtonStyle(
-              foregroundColor: WidgetStatePropertyAll<Color>(AiCapsule.muted),
-            ),
-            leadingIcon: Icon(group.icon, size: 16, color: AiCapsule.muted),
-            menuChildren: [
-              for (final option in group.options)
-                MenuItemButton(
-                  leadingIcon: _checkIcon(
-                    selected?.provider == group.provider &&
-                        selected?.model == option.model,
-                  ),
-                  onPressed: () => widget.onChanged(
-                    AiSelectedTarget(
-                      provider: group.provider,
-                      model: option.model,
-                      displayName: option.pillLabel ?? option.label,
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: SubmenuButton(
+              style: const ButtonStyle(
+                foregroundColor: WidgetStatePropertyAll<Color>(AiCapsule.muted),
+              ),
+              leadingIcon: ProviderBrandIcon(
+                provider: group.provider,
+                size: 16,
+                color: AiCapsule.muted,
+              ),
+              menuChildren: [
+                for (final option in group.options)
+                  MenuItemButton(
+                    leadingIcon: _checkIcon(
+                      selected?.provider == group.provider &&
+                          selected?.model == option.model,
+                    ),
+                    onPressed: () => widget.onChanged(
+                      AiSelectedTarget(
+                        provider: group.provider,
+                        model: option.model,
+                        displayName: option.pillLabel ?? option.label,
+                      ),
+                    ),
+                    child: Text(
+                      option.label,
+                      textDirection: TextDirection.ltr,
+                      style: adminText(size: 12.5, color: AiCapsule.onInk),
                     ),
                   ),
-                  child: Text(
-                    option.label,
-                    textDirection: TextDirection.ltr,
-                    style: adminText(size: 12.5, color: AiCapsule.onInk),
-                  ),
+              ],
+              child: Text(
+                _AiModelCatalog.labelFor(strings, group.provider),
+                style: adminText(
+                  size: 13,
+                  weight: FontWeight.w600,
+                  color: AiCapsule.onInk,
                 ),
-            ],
-            child: Text(
-              _AiModelCatalog.labelFor(strings, group.provider),
-              style: adminText(
-                size: 13,
-                weight: FontWeight.w600,
-                color: AiCapsule.onInk,
               ),
             ),
           ),
@@ -631,12 +645,10 @@ class _AiModelOption {
 
 class _AiModelGroup {
   final String provider;
-  final IconData icon;
   final List<_AiModelOption> options;
 
   const _AiModelGroup({
     required this.provider,
-    required this.icon,
     required this.options,
   });
 }
@@ -652,21 +664,18 @@ abstract final class _AiModelCatalog {
     return [
       _AiModelGroup(
         provider: 'gemini',
-        icon: Icons.bubble_chart_rounded,
         options: modelsFor('gemini').map((m) => _AiModelOption(
           model: m, label: m, pillLabel: 'Gemini: $m',
         )).toList(),
       ),
       _AiModelGroup(
         provider: 'groq',
-        icon: Icons.speed_rounded,
         options: modelsFor('groq').map((m) => _AiModelOption(
           model: m, label: m, pillLabel: 'Groq: $m',
         )).toList(),
       ),
       _AiModelGroup(
         provider: 'openrouter',
-        icon: Icons.alt_route_rounded,
         options: modelsFor('openrouter').map((m) => _AiModelOption(
           model: m, label: m, pillLabel: 'OpenRouter: $m',
         )).toList(),

@@ -252,76 +252,58 @@ class _AiAssistantPanelState extends ConsumerState<AiAssistantPanel> {
     final draft = _currentResult;
     final error = _errorMessage;
 
-    // The panel is dropped both next to the form (bounded height) and under it
-    // inside the screen's scroll view (unbounded), where an [Expanded] child
-    // would blow up the layout.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final fillsHeight = constraints.hasBoundedHeight;
-        final body = _buildBody(p, strings, draft);
+    // The screen hosts the panel inside its own scroll view, so the body is
+    // never handed a height to fill and the card closes around its content.
+    final body = _buildBody(p, strings, draft);
 
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Container(
-            decoration: p.panel(shadow: true),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              mainAxisSize: fillsHeight ? MainAxisSize.max : MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildHeader(p, strings),
-                if (fillsHeight)
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                      child: body,
-                    ),
-                  )
-                else
-                  ConstrainedBox(
-                    // The mockups hold the assistant body open at 318px so the
-                    // card never collapses to a sliver next to the tall form.
-                    constraints: const BoxConstraints(minHeight: 318),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                      child: body,
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 13),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (error != null) ...[
-                        _buildErrorBanner(p, error),
-                        const SizedBox(height: 11),
-                      ],
-                      AiPromptBar(
-                        controller: _promptController,
-                        focusNode: _focus,
-                        providers: providers,
-                        customModels: customModels,
-                        selectedTarget: _selectedTarget,
-                        onTargetChanged: (target) =>
-                            setState(() => _selectedTarget = target),
-                        onSubmit: () => _handleGenerate(),
-                        isGenerating: _isGenerating,
-                        meals: ref.watch(vaultMealsStreamProvider).valueOrNull ??
-                            const <CloudMeal>[],
-                        mentionedMeal: _mentionedMeal,
-                        onMentionMealChanged: (meal) =>
-                            setState(() => _mentionedMeal = meal),
-                      ),
-                      const SizedBox(height: 11),
-                      _buildGuidelines(p, strings),
-                    ],
-                  ),
-                ),
-              ],
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        decoration: p.panel(shadow: true),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(p, strings),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: body,
             ),
-          ),
-        );
-      },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (error != null) ...[
+                    _buildErrorBanner(p, error),
+                    const SizedBox(height: 11),
+                  ],
+                  AiPromptBar(
+                    controller: _promptController,
+                    focusNode: _focus,
+                    providers: providers,
+                    customModels: customModels,
+                    selectedTarget: _selectedTarget,
+                    onTargetChanged: (target) =>
+                        setState(() => _selectedTarget = target),
+                    onSubmit: () => _handleGenerate(),
+                    isGenerating: _isGenerating,
+                    meals:
+                        ref.watch(vaultMealsStreamProvider).valueOrNull ??
+                        const <CloudMeal>[],
+                    mentionedMeal: _mentionedMeal,
+                    onMentionMealChanged: (meal) =>
+                        setState(() => _mentionedMeal = meal),
+                  ),
+                  const SizedBox(height: 11),
+                  _buildGuidelines(p, strings),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -234,10 +234,8 @@ class AppStrings {
 
   // AI assistant panel — prompt capsule
   String get aiPromptCapsuleHint => isEn
-      ? 'What story do you want to tell today?\n'
-            'E.g.: Inspire people to enjoy Koshari for lunch'
-      : 'إيه الحكاية اللي عايز تقولها النهاردة؟\n'
-            'مثلاً: شجّع الناس يجربوا الكشري على الغدا';
+      ? 'What story do you want to tell today?'
+      : 'إيه الحكاية اللي عايز تقولها النهاردة؟';
   String get aiSendTooltip => isEn ? 'Write the notification' : 'صياغة الإشعار';
 
   // AI assistant panel — footnotes
