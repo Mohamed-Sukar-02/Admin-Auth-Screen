@@ -1180,12 +1180,19 @@ class AdminCardHeading extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
 
+  /// A card that owns a colour family paints its glyph tile with it; the
+  /// default stays the neutral `surfaceAlt` chip.
+  final Color? iconBg;
+  final Color? iconFg;
+
   const AdminCardHeading({
     super.key,
     required this.icon,
     required this.title,
     this.subtitle,
     this.trailing,
+    this.iconBg,
+    this.iconFg,
   });
 
   @override
@@ -1202,10 +1209,10 @@ class AdminCardHeading extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: p.surfaceAlt,
+              color: iconBg ?? p.surfaceAlt,
               borderRadius: BorderRadius.circular(AdminRadii.md),
             ),
-            child: Icon(icon, size: 19, color: p.inkMuted),
+            child: Icon(icon, size: 19, color: iconFg ?? p.inkMuted),
           ),
           const SizedBox(width: 10),
           Expanded(
