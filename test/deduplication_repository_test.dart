@@ -190,7 +190,7 @@ void main() {
       );
       koftaLahma = _createTestMeal(
         id: 'm_kofta_2',
-        name: 'كفتة لحمة',
+        name: 'كفتة الفراخ',
         isStarterMeal: false,
         createdAt: DateTime.parse('2025-06-01T00:00:00Z'),
       );
@@ -205,14 +205,14 @@ void main() {
       final candidates = VaultAdminRepository.detectCandidatesPure(
         meals: [koftaFerekh, koftaLahma, koshari],
         ignoredKeys: {},
-        threshold: 0.70,
+        threshold: 0.88,
       );
 
       expect(candidates, hasLength(1));
       final candidate = candidates.first;
       expect(candidate.originalMeal.id, 'm_kofta_1'); // starter kept
       expect(candidate.duplicateMeal.id, 'm_kofta_2'); // non-starter marked for deletion
-      expect(candidate.similarity, greaterThanOrEqualTo(0.70));
+      expect(candidate.similarity, greaterThanOrEqualTo(0.88));
       expect(candidate.pairKey, 'm_kofta_1_m_kofta_2');
     });
 
@@ -221,7 +221,7 @@ void main() {
       final candidates = VaultAdminRepository.detectCandidatesPure(
         meals: [koftaFerekh, koftaLahma, koshari],
         ignoredKeys: {pairKey},
-        threshold: 0.70,
+        threshold: 0.88,
       );
 
       expect(candidates, isEmpty, reason: 'Ignored pair must be skipped completely');
@@ -232,7 +232,7 @@ void main() {
       final candidates = VaultAdminRepository.detectCandidatesPure(
         meals: [koftaLahma, koftaFerekh], // reversed order
         ignoredKeys: {pairKey},
-        threshold: 0.70,
+        threshold: 0.88,
       );
 
       expect(candidates, isEmpty);
@@ -252,13 +252,13 @@ void main() {
     test('Tier 1: candidates are sorted descending by similarity', () {
       final mealA1 = _createTestMeal(id: '1', name: 'كفتة فراخ');
       final mealA2 = _createTestMeal(id: '2', name: 'كفتة الفراخ'); // ~93%
-      final mealB1 = _createTestMeal(id: '3', name: 'شوربة لسان عصفور');
-      final mealB2 = _createTestMeal(id: '4', name: 'طاجن لسان عصفور'); // ~73%
+      final mealB1 = _createTestMeal(id: '3', name: 'مكرونة بشاميل');
+      final mealB2 = _createTestMeal(id: '4', name: 'مكرونة بالبشاميل'); // ~92%
 
       final candidates = VaultAdminRepository.detectCandidatesPure(
         meals: [mealB1, mealB2, mealA1, mealA2],
         ignoredKeys: {},
-        threshold: 0.70,
+        threshold: 0.88,
       );
 
       expect(candidates.length, greaterThanOrEqualTo(2));
@@ -291,3 +291,4 @@ void main() {
     });
   });
 }
+

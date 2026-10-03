@@ -158,8 +158,13 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
   ) async {
     if (_pairs.isEmpty) return;
 
-    final duplicateIds =
-        _pairs.map((p) => p.duplicateMeal.id).toSet().toList();
+    final duplicateIds = _pairs
+        .where((p) => p.similarity >= 0.95)
+        .map((p) => p.duplicateMeal.id)
+        .toSet()
+        .toList();
+
+    if (duplicateIds.isEmpty) return;
 
     final confirmed = await showAdminConfirmDialog(
       context: context,
@@ -189,8 +194,11 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
           .deleteDuplicateMealsBatch(duplicateIds);
 
       if (mounted) {
+        final deletedSet = duplicateIds.toSet();
         setState(() {
-          _pairs.clear();
+          _pairs.removeWhere((p) =>
+              deletedSet.contains(p.duplicateMeal.id) ||
+              deletedSet.contains(p.originalMeal.id));
           _isCleaningAll = false;
         });
 
@@ -217,8 +225,11 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
     final p = AdminPalette.of(context);
     final strings = AppStrings.of(context);
 
-    final uniqueDuplicatesCount =
-        _pairs.map((p) => p.duplicateMeal.id).toSet().length;
+    final highConfidenceIds = _pairs
+        .where((p) => p.similarity >= 0.95)
+        .map((p) => p.duplicateMeal.id)
+        .toSet();
+    final uniqueDuplicatesCount = highConfidenceIds.length;
 
     return AdminDialogShell(
       icon: AdminIcons.cleanup,
@@ -233,7 +244,7 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
           label: strings.vaultDeduplicationClose,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        if (!_isLoading && _pairs.isNotEmpty)
+        if (!_isLoading && _pairs.isNotEmpty && uniqueDuplicatesCount > 0)
           AdminDialogButtons.primary(
             p,
             label: strings
@@ -505,9 +516,11 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
               ),
               const SizedBox(width: 8),
               Text(
-                pair.similarity >= 0.999
-                    ? strings.vaultDeduplicationExactMatch
-                    : strings.vaultDeduplicationSimilarName,
+                _checkById
+                    ? strings.vaultDeduplicationExactNameDiffId
+                    : (pair.similarity >= 0.999
+                        ? strings.vaultDeduplicationExactMatch
+                        : strings.vaultDeduplicationSimilarName),
                 style: adminText(size: 11.5, color: p.inkMuted),
               ),
             ],

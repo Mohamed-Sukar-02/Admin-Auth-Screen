@@ -22,6 +22,10 @@ class SimilarityEngine {
   // Whitespace collapsing regex
   static final RegExp _multiSpaceRegex = RegExp(r'\s+');
 
+  // Definite article and preposition+article clitics, longest first so that a
+  // shorter prefix can never shadow a longer one during token stripping
+  static const List<String> _articlePrefixes = ['وبال', 'بال', 'وال', 'ال'];
+
   // Eastern Arabic and Perso-Arabic digit mapping
   static const Map<String, String> _arabicIndicDigits = {
     '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
@@ -176,9 +180,32 @@ class SimilarityEngine {
     return (1.0 - (dist / maxLen)).clamp(0.0, 1.0);
   }
 
+  /// Calculates the word-level Jaccard index between raw strings:
+  /// 1. Normalizes both inputs via [normalizeArabic]
+  /// 2. Splits each into whitespace-separated tokens, dropping empties
+  /// 3. Returns |intersection| / |union|
+  ///
+  /// Returns 0.0 when either side has no tokens. Character-level metrics are
+  /// blind to this, which is why short dish names sharing one generic word
+  /// ("محشي كوسة" vs "محشي ورق عنب") still look alike: the overlap here is
+  /// what tells us whether the two names are actually about the same food.
+  static double tokenJaccardSimilarity(String s1, String s2) {
+    final tokens1 = _tokenize(normalizeArabic(s1));
+    final tokens2 = _tokenize(normalizeArabic(s2));
+
+    if (tokens1.isEmpty || tokens2.isEmpty) return 0.0;
+
+    final union = tokens1.union(tokens2);
+    final intersection = tokens1.intersection(tokens2);
+
+    return intersection.length / union.length;
+  }
+
   /// Calculates composite similarity between raw strings:
   /// 1. Normalizes both inputs via [normalizeArabic]
-  /// 2. Returns max(JaroWinkler, LevenshteinSimilarity)
+  /// 2. Takes the stronger of JaroWinkler and LevenshteinSimilarity
+  /// 3. Gates that character score by [tokenJaccardSimilarity] so that a thin
+  ///    word overlap dampens the result instead of faking a duplicate
   ///
   /// Defensive guard: If both normalized strings are empty, returns 0.0.
   static double compositeSimilarity(String s1, String s2) {
@@ -193,12 +220,37 @@ class SimilarityEngine {
 
     final jw = jaroWinkler(norm1, norm2);
     final lev = levenshteinSimilarity(norm1, norm2);
+    final charScore = max(jw, lev);
 
-    return max(jw, lev);
+    // Raw inputs are passed through: tokenization normalizes internally.
+    final tokenJaccard = tokenJaccardSimilarity(s1, s2);
+
+    return tokenJaccard < 0.5 ? charScore * tokenJaccard : charScore;
   }
 
-  /// Returns true if composite similarity meets or exceeds the given threshold (default 70%).
-  static bool areSimilar(String s1, String s2, {double threshold = 0.70}) {
+  /// Splits normalized text into whitespace-separated tokens, stripping the
+  /// definite article clitics so that "بشاميل" and "بالبشاميل" collide. A
+  /// prefix is only removed when the stem survives at 2+ characters, which
+  /// keeps short words that merely begin with those letters intact.
+  static Set<String> _tokenize(String normalized) {
+    if (normalized.isEmpty) return <String>{};
+    return normalized
+        .split(' ')
+        .where((token) => token.isNotEmpty)
+        .map((token) {
+          for (final prefix in _articlePrefixes) {
+            if (token.startsWith(prefix) &&
+                token.length - prefix.length >= 2) {
+              return token.substring(prefix.length);
+            }
+          }
+          return token;
+        })
+        .toSet();
+  }
+
+  /// Returns true if composite similarity meets or exceeds the given threshold (default 88%).
+  static bool areSimilar(String s1, String s2, {double threshold = 0.88}) {
     return compositeSimilarity(s1, s2) >= threshold;
   }
 }

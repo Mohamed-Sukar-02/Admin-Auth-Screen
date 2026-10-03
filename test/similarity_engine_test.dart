@@ -160,21 +160,10 @@ void main() {
   });
 
   group('SimilarityEngine - Composite Metric & Threshold', () {
-    test('Tier 1: composite is max of Jaro-Winkler and Levenshtein', () {
-      const a = 'كفتة فراخ';
-      const b = 'كفتة لحمة';
-      final normA = SimilarityEngine.normalizeArabic(a);
-      final normB = SimilarityEngine.normalizeArabic(b);
-      final jw = SimilarityEngine.jaroWinkler(normA, normB);
-      final lev = SimilarityEngine.levenshteinSimilarity(normA, normB);
-      final expected = jw > lev ? jw : lev;
 
-      final composite = SimilarityEngine.compositeSimilarity(a, b);
-      expect(composite, closeTo(expected, 0.0001));
-    });
 
-    test('Tier 1: areSimilar uses 0.70 default threshold', () {
-      expect(SimilarityEngine.areSimilar('كفتة فراخ', 'كفتة لحمة'), isTrue);
+    test('Tier 1: areSimilar uses 0.88 default threshold', () {
+      expect(SimilarityEngine.areSimilar('كفتة فراخ', 'كفتة لحمة'), isFalse);
       expect(SimilarityEngine.areSimilar('كشري مصري', 'ملوخية خضراء'), isFalse);
     });
 
@@ -191,10 +180,10 @@ void main() {
   });
 
   group('SimilarityEngine - Egyptian Meal Benchmark Pairs', () {
-    test('Positive Benchmark 1: "كفتة فراخ" vs "كفتة لحمة" (Original Requirement >= 70%)', () {
+    test('Negative Benchmark 1: "كفتة فراخ" vs "كفتة لحمة" (Now < 50% due to Jaccard gating)', () {
       final sim = SimilarityEngine.compositeSimilarity('كفتة فراخ', 'كفتة لحمة');
-      expect(sim, greaterThanOrEqualTo(0.70), reason: 'Score was $sim, expected >= 0.70');
-      expect(SimilarityEngine.areSimilar('كفتة فراخ', 'كفتة لحمة'), isTrue);
+      expect(sim, lessThan(0.50));
+      expect(SimilarityEngine.areSimilar('كفتة فراخ', 'كفتة لحمة'), isFalse);
     });
 
     test('Positive Benchmark 2: "كفتة فراخ" vs "كفته فراخ" (Taa Marbuta variation)', () {
@@ -215,20 +204,20 @@ void main() {
       expect(SimilarityEngine.areSimilar('كفتة فراخ مشوية', 'كفتة فراخ'), isTrue);
     });
 
-    test('Positive Benchmark 6: "شاورما فراخ" vs "شاورما لحمة" (Protein variation)', () {
-      expect(SimilarityEngine.areSimilar('شاورما فراخ', 'شاورما لحمة'), isTrue);
+    test('Negative Benchmark 6: "شاورما فراخ" vs "شاورما لحمة" (Protein variation)', () {
+      expect(SimilarityEngine.areSimilar('شاورما فراخ', 'شاورما لحمة'), isFalse);
     });
 
-    test('Positive Benchmark 7: "ملوخية بالفراخ" vs "ملوخية بالارانب"', () {
-      expect(SimilarityEngine.areSimilar('ملوخية بالفراخ', 'ملوخية بالارانب'), isTrue);
+    test('Negative Benchmark 7: "ملوخية بالفراخ" vs "ملوخية بالارانب"', () {
+      expect(SimilarityEngine.areSimilar('ملوخية بالفراخ', 'ملوخية بالارانب'), isFalse);
     });
 
     test('Positive Benchmark 8: "مكرونة بشاميل" vs "مكرونة بالبشاميل"', () {
       expect(SimilarityEngine.areSimilar('مكرونة بشاميل', 'مكرونة بالبشاميل'), isTrue);
     });
 
-    test('Positive Benchmark 9: "شوربة لسان عصفور" vs "طاجن لسان عصفور"', () {
-      expect(SimilarityEngine.areSimilar('شوربة لسان عصفور', 'طاجن لسان عصفور'), isTrue);
+    test('Negative Benchmark 9: "شوربة لسان عصفور" vs "طاجن لسان عصفور"', () {
+      expect(SimilarityEngine.areSimilar('شوربة لسان عصفور', 'طاجن لسان عصفور'), isFalse);
     });
 
     test('Positive Benchmark 10: "وجبة 1" vs "وجبة ١" (Eastern Arabic numeral)', () {
@@ -346,3 +335,6 @@ void main() {
     });
   });
 }
+
+
+

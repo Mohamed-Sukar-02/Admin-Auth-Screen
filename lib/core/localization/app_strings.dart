@@ -339,7 +339,8 @@ class AppStrings {
       : 'مراجعة الأكلات المتشابهة وحذف النسخ المكررة أو استبعاد الوجبات المختلفة';
 
   String get vaultDeduplicationTabName => isEn ? 'Name Match' : 'تشابه في الاسم';
-  String get vaultDeduplicationTabId => isEn ? 'ID Match' : 'تشابه في الـ ID';
+  String get vaultDeduplicationTabId =>
+      isEn ? 'Exact Name' : 'تطابق تام بالاسم';
 
   // Scanning & loading state
   String get vaultDeduplicationScanning => isEn
@@ -387,6 +388,8 @@ class AppStrings {
       isEn ? 'Exact match' : 'تطابق تام';
   String get vaultDeduplicationSimilarName =>
       isEn ? 'Similar name' : 'تشابه في الاسم';
+  String get vaultDeduplicationExactNameDiffId =>
+      isEn ? 'Exact name (different IDs)' : 'نفس الاسم بالظبط (IDs مختلفة)';
 
   // Card action buttons & in-flight states
   String get vaultDeduplicationDeleteAction =>
