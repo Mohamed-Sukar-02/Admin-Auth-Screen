@@ -338,6 +338,9 @@ class AppStrings {
       ? 'Review similar meals, remove duplicates, or ignore distinct dishes'
       : 'مراجعة الأكلات المتشابهة وحذف النسخ المكررة أو استبعاد الوجبات المختلفة';
 
+  String get vaultDeduplicationTabName => isEn ? 'Name Match' : 'تشابه في الاسم';
+  String get vaultDeduplicationTabId => isEn ? 'ID Match' : 'تشابه في الـ ID';
+
   // Scanning & loading state
   String get vaultDeduplicationScanning => isEn
       ? 'Scanning vault meals and comparing names…'

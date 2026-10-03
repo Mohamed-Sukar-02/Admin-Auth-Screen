@@ -32,6 +32,7 @@ class FakeVaultAdminRepository extends Fake implements VaultAdminRepository {
     List<CloudMeal>? preloadedMeals,
     Set<String>? preloadedIgnoredKeys,
     double threshold = 0.70,
+    bool checkById = false,
   }) async {
     if (simulatedDelay > Duration.zero) await Future.delayed(simulatedDelay);
     if (throwOnDetect) throw Exception('Simulated network error');
@@ -433,8 +434,13 @@ void main() {
         await pumpDialog(tester);
         const strings = AppStrings(Locale('ar'));
 
+        // The same phrase is the name-match mode's tab label, so the badge is
+        // read from the results list it belongs to.
         expect(
-          find.text(strings.vaultDeduplicationSimilarName),
+          find.descendant(
+            of: find.byType(ListView),
+            matching: find.text(strings.vaultDeduplicationSimilarName),
+          ),
           findsOneWidget,
         );
         expect(find.textContaining('85%'), findsOneWidget);

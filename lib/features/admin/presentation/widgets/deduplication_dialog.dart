@@ -23,6 +23,7 @@ class DeduplicationDialog extends ConsumerStatefulWidget {
 class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
   bool _isLoading = true;
   bool _isCleaningAll = false;
+  bool _checkById = false;
   String? _errorMessage;
   List<DuplicatePairCandidate> _pairs = [];
   final Set<String> _processingPairKeys = {};
@@ -41,7 +42,7 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
 
     try {
       final repo = ref.read(vaultAdminRepositoryProvider);
-      final candidates = await repo.detectDuplicateCandidates();
+      final candidates = await repo.detectDuplicateCandidates(checkById: _checkById);
 
       if (mounted) {
         setState(() {
@@ -250,6 +251,50 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
   }
 
   Widget _buildBody(AdminPalette p, AppStrings strings) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Mode Switcher
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: SegmentedButton<bool>(
+            segments: [
+              ButtonSegment<bool>(
+                value: false,
+                label: Text(strings.vaultDeduplicationTabName,
+                    style: adminText(size: 13, weight: FontWeight.w600)),
+              ),
+              ButtonSegment<bool>(
+                value: true,
+                label: Text(strings.vaultDeduplicationTabId,
+                    style: adminText(size: 13, weight: FontWeight.w600)),
+              ),
+            ],
+            selected: {_checkById},
+            onSelectionChanged: (Set<bool> newSelection) {
+              if (newSelection.isNotEmpty) {
+                setState(() {
+                  _checkById = newSelection.first;
+                });
+                _loadAndDetectDuplicates();
+              }
+            },
+            showSelectedIcon: false,
+            style: SegmentedButton.styleFrom(
+              backgroundColor: p.surface,
+              selectedForegroundColor: p.onSolid(p.honeySolid),
+              selectedBackgroundColor: p.honeySolid,
+              foregroundColor: p.inkMuted,
+            ),
+          ),
+        ),
+        
+        Expanded(child: _buildMainContent(p, strings)),
+      ],
+    );
+  }
+
+  Widget _buildMainContent(AdminPalette p, AppStrings strings) {
     if (_isLoading) {
       return Center(
         child: Padding(
@@ -390,7 +435,6 @@ class _DeduplicationDialogState extends ConsumerState<DeduplicationDialog> {
             itemCount: _pairs.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-
               final pair = _pairs[index];
               final isProcessing = _processingPairKeys.contains(pair.pairKey);
               return _buildPairCard(p, strings, pair, isProcessing);

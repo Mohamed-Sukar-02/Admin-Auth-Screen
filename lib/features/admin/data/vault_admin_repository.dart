@@ -369,6 +369,7 @@ class VaultAdminRepository {
     required List<CloudMeal> meals,
     required Set<String> ignoredKeys,
     double threshold = 0.70,
+    bool checkById = false,
   }) {
     final List<DuplicatePairCandidate> candidates = [];
     final n = meals.length;
@@ -382,7 +383,10 @@ class VaultAdminRepository {
           continue; // Pair acknowledged as distinct by admin
         }
 
-        final sim = SimilarityEngine.compositeSimilarity(a.name, b.name);
+        final sim = !checkById
+            ? SimilarityEngine.compositeSimilarity(a.name, b.name)
+            : SimilarityEngine.compositeSimilarity(a.id, b.id);
+        
         if (sim >= threshold) {
           candidates.add(DuplicatePairCandidate.resolve(
             mealA: a,
@@ -454,6 +458,7 @@ class VaultAdminRepository {
     List<CloudMeal>? preloadedMeals,
     Set<String>? preloadedIgnoredKeys,
     double threshold = 0.70,
+    bool checkById = false,
   }) async {
     List<CloudMeal> meals;
     if (preloadedMeals != null) {
@@ -470,6 +475,7 @@ class VaultAdminRepository {
       meals: meals,
       ignoredKeys: ignoredKeys,
       threshold: threshold,
+      checkById: checkById,
     );
   }
 
