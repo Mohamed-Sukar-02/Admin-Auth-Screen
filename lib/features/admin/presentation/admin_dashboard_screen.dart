@@ -16,6 +16,7 @@ import 'notification_management_screen.dart';
 import 'theme/admin_palette.dart';
 import 'widgets/add_meal_dialog.dart';
 import 'widgets/admin_dialog.dart';
+import 'widgets/admin_page_chrome.dart';
 import 'widgets/admin_toast.dart';
 import 'widgets/deduplication_dialog.dart';
 import '../../../core/localization/app_strings.dart';
@@ -138,6 +139,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'all';
   bool _isProcessingBackup = false;
+  int _settingsTab = 0;
 
 
   late double _sidebarWidth;
@@ -947,686 +949,656 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
   // ---------------------------------------------------------------------
   // صفحة الإعدادات
+  //
+  // نفس تركيبة صفحة الإشعارات: شريط تبويبات فوق خط فاصل، وكروت تفتح بشريط
+  // عنوان وتُشرف بشريط إجراءات ملون، وكارتان جنب بعض على الشاشة العريضة.
   // ---------------------------------------------------------------------
   Widget _buildSettingsPage(dynamic user, AdminPalette p, bool isSuperAdmin) {
     final strings = AppStrings.of(context);
     return SingleChildScrollView(
-
-      padding: const EdgeInsets.fromLTRB(26, 20, 26, 40),
+      padding: const EdgeInsets.fromLTRB(26, 18, 26, 40),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640),
+        constraints: const BoxConstraints(maxWidth: 1380),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // The shell's top bar already prints this page's title and
-            // subtitle, so the page opens straight on its first section.
-            // ── Profile section ─────────────────────────────────────────────
-            _SettingsSectionLabel(label: 'الحساب', palette: p),
-            const SizedBox(height: 10),
-            Container(
-              decoration: p.panel(shadow: true),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  // gradient header
-                  Container(
-                    height: 72,
-                    decoration: BoxDecoration(gradient: p.brandGradient),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    child: Column(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Transform.translate(
-                              offset: const Offset(0, -28),
-                              child: Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  gradient: p.brandGradient,
-                                  borderRadius: BorderRadius.circular(
-                                    AdminRadii.md,
-                                  ),
-                                  border: Border.all(
-                                    color: p.surface,
-                                    width: 3,
-                                  ),
-                                ),
-                                child: Icon(
-                                  AdminIcons.person,
-                                  color: p.onSolid(
-                                    p.brandGradient.colors.first,
-                                  ),
-                                  size: 28,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      user?.email ?? 'المشرف',
-                                      style: adminText(
-                                        size: 14,
-                                        weight: FontWeight.bold,
-                                        color: p.ink,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 5),
-                                    _Pill(
-                                      label: isSuperAdmin
-                                          ? 'Super Admin'
-                                          : 'Admin',
-                                      bg: isSuperAdmin
-                                          ? p.claySoft
-                                          : p.surfaceSunken,
-                                      fg: isSuperAdmin
-                                          ? p.onClaySoft
-                                          : p.inkMuted,
-                                      icon: isSuperAdmin
-                                          ? AdminIcons.verified
-                                          : AdminIcons.person,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () =>
-                                ref.read(adminAuthProvider).signOut(),
-                            icon: Icon(
-                              AdminIcons.logout,
-                              size: 17,
-                              color: p.chiliInk,
-                            ),
-                            label: Text(
-                              'تسجيل الخروج',
-                              style: adminText(size: 13, color: p.chiliInk),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: p.chiliInk,
-                              side: BorderSide(
-                                color: p.chiliSolid.withValues(alpha: 0.4),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AdminRadii.md,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            AdminPageTabs(
+              selected: _settingsTab,
+              onSelect: (index) => setState(() => _settingsTab = index),
+              tabs: [
+                (icon: AdminIcons.person, label: 'الحساب والمظهر', count: null),
+                (
+                  icon: AdminIcons.settings,
+                  label: 'التحكم بالنظام',
+                  count: null,
+                ),
+                (
+                  icon: AdminIcons.vault,
+                  label: strings.vaultOperationsSection,
+                  count: null,
+                ),
+              ],
             ),
-
-            const SizedBox(height: 28),
-
-            // ── Appearance section ──────────────────────────────────────────
-            _SettingsSectionLabel(label: 'المظهر', palette: p),
-            const SizedBox(height: 10),
-            _buildAppearanceCard(p),
-
-            const SizedBox(height: 28),
-
-            // ── System control section ─────────────────────────────────────
-            _SettingsSectionLabel(label: 'التحكم بالنظام', palette: p),
-            const SizedBox(height: 10),
-            Container(
-              decoration: p.panel(),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  _buildSettingsTile(
-                    p: p,
-                    icon: AdminIcons.settings,
-                    iconColor: p.claySolid,
-                    iconBg: p.claySoft,
-                    title: 'إعدادات النظام',
-                    subtitle: 'أيام التبريد، تحديثات التطبيق، الإعلانات',
-                    locked: !isSuperAdmin,
-                    trailing: _SettingsChevronButton(
-                      label: 'إدارة',
-                      color: p.claySolid,
-                      bg: p.claySoft,
-                      enabled: isSuperAdmin,
-                      onTap: () => _showSystemConfigDialog(p),
-                    ),
-                  ),
-                  _SettingsDivider(p: p),
-                  _buildSettingsTile(
-                    p: p,
-                    icon: AdminIcons.admins,
-                    iconColor: p.plumSolid,
-                    iconBg: p.plumSoft,
-                    title: 'إدارة المشرفين',
-                    subtitle: 'إضافة أو إزالة المشرفين وتحديد صلاحياتهم',
-                    locked: !isSuperAdmin,
-                    trailing: _SettingsChevronButton(
-                      label: 'إدارة',
-                      color: p.plumSolid,
-                      bg: p.plumSoft,
-                      enabled: isSuperAdmin,
-                      onTap: () => _showAdminManagementDialog(p, user?.email),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // ── Vault operations section ───────────────────────────────────
-            _SettingsSectionLabel(
-              label: strings.vaultOperationsSection,
-              palette: p,
-            ),
-            const SizedBox(height: 10),
-            Container(
-              decoration: p.panel(),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  _buildSettingsTile(
-                    p: p,
-                    icon: AdminIcons.cleanup,
-                    iconColor: p.honeyInk,
-                    iconBg: p.honeySoft,
-                    title: strings.vaultDeduplicationSettingsTileTitle,
-                    subtitle: strings.vaultDeduplicationSettingsTileSubtitle,
-                    locked: !isSuperAdmin,
-                    trailing: _SettingsChevronButton(
-                      label: strings.vaultDeduplicationCleanButton,
-                      color: p.honeyInk,
-                      bg: p.honeySoft,
-                      enabled: isSuperAdmin,
-                      onTap: () => _handleDeduplication(p),
-                    ),
-                  ),
-                  _SettingsDivider(p: p),
-
-                  // Backup & Restore combined tile
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _IconTile(
-                          icon: AdminIcons.backup,
-                          fg: isSuperAdmin ? p.nileSolid : p.inkFaint,
-                          bg: isSuperAdmin ? p.nileSoft : p.surfaceSunken,
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    'النسخ الاحتياطي والاستعادة',
-                                    style: adminText(
-                                      size: 14,
-                                      weight: FontWeight.bold,
-                                      color: isSuperAdmin ? p.ink : p.inkMuted,
-                                    ),
-                                  ),
-                                  if (!isSuperAdmin) ...[
-                                    const SizedBox(width: 8),
-                                    _Pill(
-                                      label: 'Super Admin فقط',
-                                      bg: p.surfaceSunken,
-                                      fg: p.inkFaint,
-                                      icon: AdminIcons.lock,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                'حفظ أو استعادة بيانات الخزنة الكاملة',
-                                style: adminText(size: 12, color: p.inkMuted),
-                              ),
-                              const SizedBox(height: 12),
-                              Opacity(
-                                opacity: isSuperAdmin ? 1.0 : 0.4,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed:
-                                            (!isSuperAdmin ||
-                                                _isProcessingBackup)
-                                            ? null
-                                            : () async {
-                                                final confirmed =
-                                                    await showAdminConfirmDialog(
-                                                      context: context,
-                                                      icon: AdminIcons.restore,
-                                                      tone: AdminDialogTone
-                                                          .danger,
-                                                      title:
-                                                          'استعادة النسخة الاحتياطية',
-                                                      message:
-                                                          'سيتم مسح جميع الأكلات الموجودة حالياً في الخزنة واستبدالها بالكامل بالنسخة الاحتياطية المرفوعة مسبقاً.',
-                                                      note: AdminDialogNote(
-                                                        tone: AdminDialogTone
-                                                            .danger,
-                                                        icon:
-                                                            AdminIcons.warning,
-                                                        badge:
-                                                            'لا يمكن التراجع',
-                                                        title:
-                                                            'الخزنة الحالية سيتم استبدالها بالكامل',
-                                                      ),
-                                                      confirmLabel:
-                                                          'استعادة الآن',
-                                                      confirmIcon:
-                                                          AdminIcons.restore,
-                                                    );
-                                                if (!confirmed) return;
-                                                setState(
-                                                  () => _isProcessingBackup =
-                                                      true,
-                                                );
-                                                try {
-                                                  await ref
-                                                      .read(
-                                                        vaultAdminRepositoryProvider,
-                                                      )
-                                                      .restoreVault();
-                                                  if (mounted) {
-                                                    showAdminToast(
-                                                      context,
-                                                      message:
-                                                          'تمت الاستعادة بنجاح',
-                                                      subtitle:
-                                                          'تم استبدال الخزنة بالنسخة الاحتياطية',
-                                                      kind: AdminToastKind
-                                                          .success,
-                                                    );
-                                                  }
-                                                } catch (e) {
-                                                  if (mounted) {
-                                                    showAdminToast(
-                                                      context,
-                                                      message:
-                                                          'خطأ أثناء الاستعادة',
-                                                      subtitle: e.toString(),
-                                                      kind:
-                                                          AdminToastKind.error,
-                                                    );
-                                                  }
-                                                } finally {
-                                                  if (mounted) {
-                                                    setState(
-                                                      () =>
-                                                          _isProcessingBackup =
-                                                              false,
-                                                    );
-                                                  }
-                                                }
-                                              },
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: p.nileInk,
-                                          side: BorderSide(
-                                            color: p.nileSolid.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              AdminRadii.md,
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 12,
-                                          ),
-                                        ),
-                                        icon: _isProcessingBackup
-                                            ? const SizedBox(
-                                                width: 14,
-                                                height: 14,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                    ),
-                                              )
-                                            : const Icon(
-                                                AdminIcons.restore,
-                                                size: 15,
-                                              ),
-                                        label: Text(
-                                          'استعادة',
-                                          style: adminText(size: 13),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: FilledButton.icon(
-                                        onPressed:
-                                            (!isSuperAdmin ||
-                                                _isProcessingBackup)
-                                            ? null
-                                            : () async {
-                                                final confirmed =
-                                                    await showAdminConfirmDialog(
-                                                      context: context,
-                                                      icon: AdminIcons.backup,
-                                                      tone:
-                                                          AdminDialogTone.info,
-                                                      title:
-                                                          'رفع نسخة احتياطية',
-                                                      message:
-                                                          'سيتم مسح النسخة الاحتياطية القديمة بالكامل واستبدالها بالبيانات الحالية الموجودة في الخزنة.',
-                                                      note: AdminDialogNote(
-                                                        tone: AdminDialogTone
-                                                            .info,
-                                                        icon: AdminIcons.info,
-                                                        title:
-                                                            'النسخة القديمة ستُستبدل بالبيانات الحالية',
-                                                      ),
-                                                      confirmLabel:
-                                                          'رفع النسخة',
-                                                      confirmIcon:
-                                                          AdminIcons.backup,
-                                                    );
-                                                if (!confirmed) return;
-                                                setState(
-                                                  () => _isProcessingBackup =
-                                                      true,
-                                                );
-                                                try {
-                                                  await ref
-                                                      .read(
-                                                        vaultAdminRepositoryProvider,
-                                                      )
-                                                      .backupVault();
-                                                  if (mounted) {
-                                                    showAdminToast(
-                                                      context,
-                                                      message:
-                                                          'تم رفع النسخة الاحتياطية',
-                                                      subtitle:
-                                                          'البيانات الحالية محفوظة بأمان',
-                                                      kind: AdminToastKind
-                                                          .success,
-                                                    );
-                                                  }
-                                                } catch (e) {
-                                                  if (mounted) {
-                                                    showAdminToast(
-                                                      context,
-                                                      message:
-                                                          'خطأ أثناء النسخ الاحتياطي',
-                                                      subtitle: e.toString(),
-                                                      kind:
-                                                          AdminToastKind.error,
-                                                    );
-                                                  }
-                                                } finally {
-                                                  if (mounted) {
-                                                    setState(
-                                                      () =>
-                                                          _isProcessingBackup =
-                                                              false,
-                                                    );
-                                                  }
-                                                }
-                                              },
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: p.nileSolid,
-                                          foregroundColor: p.onSolid(
-                                            p.nileSolid,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              AdminRadii.md,
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 12,
-                                          ),
-                                        ),
-                                        icon: _isProcessingBackup
-                                            ? SizedBox(
-                                                width: 14,
-                                                height: 14,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: p.onSolid(
-                                                        p.nileSolid,
-                                                      ),
-                                                    ),
-                                              )
-                                            : const Icon(
-                                                AdminIcons.backup,
-                                                size: 15,
-                                              ),
-                                        label: Text(
-                                          'نسخ احتياطي',
-                                          style: adminText(size: 13),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 24),
+            switch (_settingsTab) {
+              0 => _buildAccountTab(p, user, isSuperAdmin),
+              1 => _buildSystemControlTab(p, user, isSuperAdmin),
+              _ => _buildVaultOperationsTab(p, strings, isSuperAdmin),
+            },
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingsTile({
+  /// The split the notifications compose tab uses: two cards share the width
+  /// past 1150px, and stack — first over second — below it.
+  Widget _settingsTabCards(Widget first, Widget second) {
+    final isWide = MediaQuery.sizeOf(context).width >= 1150;
+    if (!isWide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [first, const SizedBox(height: 22), second],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 22),
+        Expanded(child: second),
+      ],
+    );
+  }
+
+  /// The shared card recipe: heading band, padded body, optional tinted action
+  /// band. The clip is what lets the band sit flush against the panel radius.
+  Widget _settingsCard({
     required AdminPalette p,
     required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
     required String title,
     required String subtitle,
-    required Widget trailing,
-    bool locked = false,
+    Widget? headingTrailing,
+    required List<Widget> body,
+    List<Widget>? actions,
   }) {
-    return Opacity(
-      opacity: locked ? 0.48 : 1.0,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(
-          children: [
-            _IconTile(
-              icon: icon,
-              fg: locked ? p.inkFaint : iconColor,
-              bg: locked ? p.surfaceSunken : iconBg,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        title,
-                        style: adminText(
-                          size: 14,
-                          weight: FontWeight.bold,
-                          color: locked ? p.inkMuted : p.ink,
-                        ),
-                      ),
-                      if (locked) ...[
-                        const SizedBox(width: 8),
-                        _Pill(
-                          label: 'Super Admin فقط',
-                          bg: p.surfaceSunken,
-                          fg: p.inkFaint,
-                          icon: AdminIcons.lock,
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(subtitle, style: adminText(size: 12, color: p.inkMuted)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            trailing,
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------
-  // بطاقة المظهر: الوضع النهاري / الداكن / النظام
-  // ---------------------------------------------------------------------
-  Widget _buildAppearanceCard(AdminPalette p) {
-    final current = ref.watch(themeModePreferenceProvider);
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: p.panel(),
+      decoration: p.panel(shadow: true),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          AdminCardHeading(
+            icon: icon,
+            title: title,
+            subtitle: subtitle,
+            trailing: headingTrailing,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 17, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: body,
+            ),
+          ),
+          if (actions != null) AdminCardActionBar(children: actions),
+        ],
+      ),
+    );
+  }
+
+  /// What a card actually reaches into, printed as the quiet icon rows the
+  /// notifications card reserves for its meta line.
+  Widget _capabilityList(
+    AdminPalette p,
+    List<({IconData icon, String text})> items,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (index, item) in items.indexed) ...[
+          if (index > 0) const SizedBox(height: 11),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _IconTile(
-                icon: AdminIcons.palette,
-                fg: p.claySolid,
-                bg: p.claySoft,
-              ),
-              const SizedBox(width: 14),
+              Icon(item.icon, size: 15, color: p.inkFaint),
+              const SizedBox(width: 9),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'وضع العرض',
-                      style: adminText(
-                        size: 14,
-                        weight: FontWeight.bold,
-                        color: p.ink,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'اختر بين الوضع النهاري والداكن أو اتبع إعدادات الجهاز',
-                      style: adminText(size: 12, color: p.inkMuted),
-                    ),
-                  ],
+                child: Text(
+                  item.text,
+                  style: adminText(size: 12.5, color: p.inkMuted, height: 1.6),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
+        ],
+      ],
+    );
+  }
+
+  /// The lock badge a card heading carries when its tool needs the higher
+  /// role; null for a card every admin can open.
+  Widget? _lockedChip(AdminPalette p, bool isSuperAdmin) {
+    if (isSuperAdmin) return null;
+    return AdminStatusChip(
+      label: 'Super Admin فقط',
+      bg: p.surfaceSunken,
+      border: p.border,
+      fg: p.inkFaint,
+      icon: AdminIcons.lock,
+    );
+  }
+
+  /// The footer band's primary action, in the card's own colour family.
+  Widget _settingsAction(
+    AdminPalette p, {
+    required String label,
+    required IconData icon,
+    required Color background,
+    required bool enabled,
+    bool loading = false,
+    VoidCallback? onPressed,
+  }) {
+    final foreground = p.onSolid(background);
+    return Expanded(
+      child: FilledButton.icon(
+        onPressed: enabled && !loading ? onPressed : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: background,
+          foregroundColor: foreground,
+          disabledBackgroundColor: background.withValues(alpha: 0.45),
+          disabledForegroundColor: foreground.withValues(alpha: 0.65),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AdminRadii.sm),
+          ),
+        ),
+        icon: loading
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: foreground,
+                ),
+              )
+            : Icon(icon, size: 19, color: foreground),
+        label: Text(
+          label,
+          style: adminText(size: 13.5, weight: FontWeight.w600),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  /// The outlined partner of the primary action — available, but not the
+  /// default choice in the band.
+  Widget _settingsQuietAction(
+    AdminPalette p, {
+    required String label,
+    required IconData icon,
+    required Color tint,
+    required bool enabled,
+    bool loading = false,
+    VoidCallback? onPressed,
+  }) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        onPressed: enabled && !loading ? onPressed : null,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: tint,
+          disabledForegroundColor: tint.withValues(alpha: 0.45),
+          side: BorderSide(color: tint.withValues(alpha: 0.5)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AdminRadii.sm),
+          ),
+        ),
+        icon: loading
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: tint),
+              )
+            : Icon(icon, size: 16),
+        label: Text(
+          label,
+          style: adminText(size: 13, weight: FontWeight.w600),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  /// -------------------------------------------------------- tab: account ----
+  Widget _buildAccountTab(
+    AdminPalette p,
+    dynamic user,
+    bool isSuperAdmin,
+  ) {
+    final account = _settingsCard(
+      p: p,
+      icon: AdminIcons.person,
+      title: 'حساب المشرف',
+      subtitle: user?.email ?? 'المشرف',
+      headingTrailing: AdminStatusChip(
+        label: isSuperAdmin ? 'Super Admin' : 'Admin',
+        bg: isSuperAdmin ? p.claySoft : p.surfaceAlt,
+        border: isSuperAdmin ? p.clay.withValues(alpha: 0.35) : p.border,
+        fg: isSuperAdmin ? p.onClaySoft : p.inkMuted,
+        icon: isSuperAdmin ? AdminIcons.verified : AdminIcons.person,
+      ),
+      body: [
+        _capabilityList(p, [
+          (
+            icon: isSuperAdmin ? AdminIcons.verified : AdminIcons.person,
+            text: isSuperAdmin
+                ? 'صلاحيات كاملة: النظام، المشرفون، التنظيف والنسخ الاحتياطي'
+                : 'مراجعة المحتوى؛ أدوات النظام لمشرفي الصلاحيات الكاملة',
+          ),
+          (
+            icon: AdminIcons.admins,
+            text: 'تغيير الصلاحيات وإضافة المشرفين من تبويب التحكم بالنظام',
+          ),
+        ]),
+        const SizedBox(height: 14),
+        AdminHintPanel(
+          icon: AdminIcons.logout,
+          text: 'تسجيل الخروج يغلق الجلسة الحالية في هذا المتصفح ويعيدك لصفحة الدخول.',
+        ),
+      ],
+      actions: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => ref.read(adminAuthProvider).signOut(),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: p.chiliInk,
+              side: BorderSide(color: p.chiliSolid.withValues(alpha: 0.5)),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AdminRadii.sm),
+              ),
+            ),
+            icon: const Icon(AdminIcons.logout, size: 18),
+            label: Text(
+              'تسجيل الخروج',
+              style: adminText(size: 13, weight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ],
+    );
+    return _settingsTabCards(account, _buildAppearanceCard(p));
+  }
+
+  /// ----------------------------------------------------- appearance card ----
+  Widget _buildAppearanceCard(AdminPalette p) {
+    final current = ref.watch(themeModePreferenceProvider);
+    final options = const [
+      (
+        mode: AppThemeModePreference.light,
+        label: 'نهاري',
+        icon: AdminIcons.lightMode,
+      ),
+      (
+        mode: AppThemeModePreference.dark,
+        label: 'داكن',
+        icon: AdminIcons.darkMode,
+      ),
+      (
+        mode: AppThemeModePreference.system,
+        label: 'النظام',
+        icon: AdminIcons.autoMode,
+      ),
+    ];
+
+    return _settingsCard(
+      p: p,
+      icon: AdminIcons.palette,
+      title: 'وضع العرض',
+      subtitle: 'نهاري أو داكن أو اتباع إعدادات الجهاز',
+      body: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final tiles = [
+              for (final option in options)
+                _appearanceOption(p, option, option.mode == current),
+            ];
+            // The Row owns the Expanded: handing one to the Column below would
+            // assert against the page scroll view's unbounded height.
+            if (constraints.maxWidth >= 560) {
+              return Row(
+                children: [
+                  for (final (index, tile) in tiles.indexed) ...[
+                    if (index > 0) const SizedBox(width: 13),
+                    Expanded(child: tile),
+                  ],
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (index, tile) in tiles.indexed) ...[
+                  if (index > 0) const SizedBox(height: 12),
+                  tile,
+                ],
+              ],
+            );
+          },
+        ),
+      ],
+      actions: [
+        Icon(AdminIcons.info, size: 15, color: p.inkFaint),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            'الوضع الحالي: ${_themeModeLabel(current)}',
+            style: adminText(size: 12, color: p.inkMuted),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// One theme mode stated the way the notifications page states a choice: a
+  /// bordered field-shaped tile that fills and checks when it is the stored one.
+  Widget _appearanceOption(
+    AdminPalette p,
+    ({AppThemeModePreference mode, IconData icon, String label}) option,
+    bool selected,
+  ) {
+    return Material(
+      color: selected ? p.claySoft : p.surfaceAlt,
+      borderRadius: BorderRadius.circular(AdminRadii.sm),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AdminRadii.sm),
+        onTap: () => _setThemeMode(option.mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AdminRadii.sm),
+            border: Border.all(
+              color: selected ? p.clay.withValues(alpha: 0.55) : p.border,
+            ),
+          ),
+          child: Row(
             children: [
-              _appearanceOption(
-                p,
-                AppThemeModePreference.light,
-                'نهاري',
-                AdminIcons.lightMode,
-                current,
+              Icon(
+                option.icon,
+                size: 18,
+                color: selected ? p.onClaySoft : p.inkMuted,
               ),
-              const SizedBox(width: 10),
-              _appearanceOption(
-                p,
-                AppThemeModePreference.dark,
-                'داكن',
-                AdminIcons.darkMode,
-                current,
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  option.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: adminText(
+                    size: 12.5,
+                    weight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: selected ? p.onClaySoft : p.inkMuted,
+                  ),
+                ),
               ),
-              const SizedBox(width: 10),
-              _appearanceOption(
-                p,
-                AppThemeModePreference.system,
-                'النظام',
-                AdminIcons.autoMode,
-                current,
-              ),
+              if (selected)
+                Icon(AdminIcons.success, size: 15, color: p.onClaySoft),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// ---------------------------------------------------- tab: system tools ---
+  Widget _buildSystemControlTab(
+    AdminPalette p,
+    dynamic user,
+    bool isSuperAdmin,
+  ) {
+    return _settingsTabCards(
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.settings,
+        title: 'إعدادات النظام',
+        subtitle: 'أيام التبريد، تحديثات التطبيق، الإعلانات',
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, const [
+            (
+              icon: AdminIcons.time,
+              text: 'المدة التي ينتظرها المستخدم قبل اقتراح أكلة جديدة',
+            ),
+            (
+              icon: AdminIcons.update,
+              text: 'أقل إصدار تطبيق يُسمح للمستخدم بفتحه',
+            ),
+            (
+              icon: AdminIcons.campaign,
+              text: 'إعلان عام يظهر لكل المستخدمين داخل التطبيق',
+            ),
+          ]),
+        ],
+        actions: [
+          _settingsAction(
+            p,
+            label: 'إدارة',
+            icon: AdminIcons.edit,
+            background: p.claySolid,
+            enabled: isSuperAdmin,
+            onPressed: () => _showSystemConfigDialog(p),
+          ),
+        ],
+      ),
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.admins,
+        title: 'إدارة المشرفين',
+        subtitle: 'إضافة أو إزالة المشرفين وتحديد صلاحياتهم',
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, const [
+            (
+              icon: AdminIcons.adminAdd,
+              text: 'منح البريد الإلكتروني صلاحية الدخول للوحة',
+            ),
+            (
+              icon: AdminIcons.role,
+              text: 'تحويل المشرف بين مشاهدة وإدارة وصلاحيات كاملة',
+            ),
+            (
+              icon: AdminIcons.time,
+              text: 'سجل آخر عشر تغييرات على الصلاحيات مع صاحب القرار',
+            ),
+          ]),
+        ],
+        actions: [
+          _settingsAction(
+            p,
+            label: 'إدارة',
+            icon: AdminIcons.admins,
+            background: p.plumSolid,
+            enabled: isSuperAdmin,
+            onPressed: () => _showAdminManagementDialog(p, user?.email),
           ),
         ],
       ),
     );
   }
 
-  Widget _appearanceOption(
+  /// ------------------------------------------- tab: vault operations --------
+  Widget _buildVaultOperationsTab(
     AdminPalette p,
-    AppThemeModePreference mode,
-    String label,
-    IconData icon,
-    AppThemeModePreference current,
+    AppStrings strings,
+    bool isSuperAdmin,
   ) {
-    final selected = mode == current;
-    return Expanded(
-      child: Material(
-        color: selected ? p.claySoft : p.surfaceAlt,
-        borderRadius: BorderRadius.circular(AdminRadii.md),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AdminRadii.md),
-          onTap: () => _setThemeMode(mode),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AdminRadii.md),
-              border: Border.all(
-                color: selected
-                    ? p.clay.withValues(alpha: 0.55)
-                    : Colors.transparent,
-              ),
+    return _settingsTabCards(
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.cleanup,
+        title: strings.vaultDeduplicationSettingsTileTitle,
+        subtitle: strings.vaultDeduplicationSettingsTileSubtitle,
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, [
+            (
+              icon: AdminIcons.suggestions,
+              text: strings.vaultDeduplicationSubtitle,
             ),
-            child: Column(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: selected ? p.onClaySoft : p.inkMuted,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: adminText(
-                    size: 12,
-                    weight: selected ? FontWeight.bold : FontWeight.w500,
-                    color: selected ? p.onClaySoft : p.inkMuted,
-                  ),
-                ),
-              ],
+            (
+              icon: AdminIcons.visibilityOff,
+              text: 'الفحص يستخرج الأكلات المتشابهة داخل الخزنة، والحذف لا يتم قبل قرارك',
             ),
+          ]),
+        ],
+        actions: [
+          _settingsAction(
+            p,
+            label: strings.vaultDeduplicationCleanButton,
+            icon: AdminIcons.cleanup,
+            background: p.honeySolid,
+            enabled: isSuperAdmin,
+            onPressed: () => _handleDeduplication(p),
           ),
-        ),
+        ],
+      ),
+      _settingsCard(
+        p: p,
+        icon: AdminIcons.backup,
+        title: 'النسخ الاحتياطي والاستعادة',
+        subtitle: 'حفظ أو استعادة بيانات الخزنة الكاملة',
+        headingTrailing: _lockedChip(p, isSuperAdmin),
+        body: [
+          _capabilityList(p, const [
+            (
+              icon: AdminIcons.upload,
+              text: 'رفع نسخة كاملة يستبدل النسخة الاحتياطية القديمة',
+            ),
+            (
+              icon: AdminIcons.restore,
+              text: 'استعادة تمسح الخزنة الحالية وتضع مكانها آخر نسخة مرفوعة',
+            ),
+          ]),
+          const SizedBox(height: 14),
+          AdminHintPanel(
+            icon: AdminIcons.warning,
+            text: 'الاستعادة لا يمكن التراجع عنها؛ ارفع نسخة جديدة قبلها إن كانت البيانات الحالية مهمة.',
+          ),
+        ],
+        actions: [
+          _settingsQuietAction(
+            p,
+            label: 'استعادة',
+            icon: AdminIcons.restore,
+            tint: p.nileInk,
+            enabled: isSuperAdmin,
+            loading: _isProcessingBackup,
+            onPressed: _restoreVault,
+          ),
+          const SizedBox(width: 10),
+          _settingsAction(
+            p,
+            label: 'نسخ احتياطي',
+            icon: AdminIcons.backup,
+            background: p.nileSolid,
+            enabled: isSuperAdmin,
+            loading: _isProcessingBackup,
+            onPressed: _uploadBackup,
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _restoreVault() async {
+    final confirmed = await showAdminConfirmDialog(
+      context: context,
+      icon: AdminIcons.restore,
+      tone: AdminDialogTone.danger,
+      title: 'استعادة النسخة الاحتياطية',
+      message:
+          'سيتم مسح جميع الأكلات الموجودة حالياً في الخزنة واستبدالها بالكامل بالنسخة الاحتياطية المرفوعة مسبقاً.',
+      note: AdminDialogNote(
+        tone: AdminDialogTone.danger,
+        icon: AdminIcons.warning,
+        badge: 'لا يمكن التراجع',
+        title: 'الخزنة الحالية سيتم استبدالها بالكامل',
+      ),
+      confirmLabel: 'استعادة الآن',
+      confirmIcon: AdminIcons.restore,
+    );
+    if (!confirmed) return;
+    setState(() => _isProcessingBackup = true);
+    try {
+      await ref.read(vaultAdminRepositoryProvider).restoreVault();
+      if (mounted) {
+        showAdminToast(
+          context,
+          message: 'تمت الاستعادة بنجاح',
+          subtitle: 'تم استبدال الخزنة بالنسخة الاحتياطية',
+          kind: AdminToastKind.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showAdminToast(
+          context,
+          message: 'خطأ أثناء الاستعادة',
+          subtitle: e.toString(),
+          kind: AdminToastKind.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingBackup = false);
+      }
+    }
+  }
+
+  Future<void> _uploadBackup() async {
+    final confirmed = await showAdminConfirmDialog(
+      context: context,
+      icon: AdminIcons.backup,
+      tone: AdminDialogTone.info,
+      title: 'رفع نسخة احتياطية',
+      message:
+          'سيتم مسح النسخة الاحتياطية القديمة بالكامل واستبدالها بالبيانات الحالية الموجودة في الخزنة.',
+      note: AdminDialogNote(
+        tone: AdminDialogTone.info,
+        icon: AdminIcons.info,
+        title: 'النسخة القديمة ستُستبدل بالبيانات الحالية',
+      ),
+      confirmLabel: 'رفع النسخة',
+      confirmIcon: AdminIcons.backup,
+    );
+    if (!confirmed) return;
+    setState(() => _isProcessingBackup = true);
+    try {
+      await ref.read(vaultAdminRepositoryProvider).backupVault();
+      if (mounted) {
+        showAdminToast(
+          context,
+          message: 'تم رفع النسخة الاحتياطية',
+          subtitle: 'البيانات الحالية محفوظة بأمان',
+          kind: AdminToastKind.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showAdminToast(
+          context,
+          message: 'خطأ أثناء النسخ الاحتياطي',
+          subtitle: e.toString(),
+          kind: AdminToastKind.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingBackup = false);
+      }
+    }
   }
 
   Future<void> _setThemeMode(AppThemeModePreference mode) async {
@@ -4110,94 +4082,6 @@ class _RoundAction extends StatelessWidget {
               color: onPressed == null ? fg.withValues(alpha: 0.35) : fg,
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Settings-page helper widgets
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SettingsSectionLabel extends StatelessWidget {
-  final String label;
-  final AdminPalette palette;
-  const _SettingsSectionLabel({required this.label, required this.palette});
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-    return Row(
-      children: [
-        Text(
-          label,
-          style: adminText(
-            size: 11,
-            weight: FontWeight.w700,
-            color: p.inkFaint,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(child: Divider(height: 1, color: p.border)),
-      ],
-    );
-  }
-}
-
-class _SettingsDivider extends StatelessWidget {
-  final AdminPalette p;
-  const _SettingsDivider({required this.p});
-
-  @override
-  Widget build(BuildContext context) {
-    return Divider(height: 1, indent: 60, endIndent: 0, color: p.border);
-  }
-}
-
-class _SettingsChevronButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color bg;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  const _SettingsChevronButton({
-    required this.label,
-    required this.color,
-    required this.bg,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: enabled ? bg : bg.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(AdminRadii.md),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: adminText(
-                size: 12,
-                weight: FontWeight.bold,
-                color: enabled ? color : color.withValues(alpha: 0.4),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              AdminIcons.chevronStart,
-              size: 16,
-              color: enabled ? color : color.withValues(alpha: 0.4),
-            ),
-          ],
         ),
       ),
     );
